@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:promedia_v2/home_pasien_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -54,9 +55,9 @@ class _RegisterScreenState extends State<RegisterScreen>
         elevation: 0,
         title: Text(
           'Daftar',
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Colors.black87,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(color: Colors.black87),
         ),
         centerTitle: true,
       ),
@@ -82,10 +83,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
-              tabs: const [
-                Tab(text: 'Pasien'),
-                Tab(text: 'Keluarga'),
-              ],
+              tabs: const [Tab(text: 'Pasien'), Tab(text: 'Keluarga')],
             ),
           ),
 
@@ -95,19 +93,13 @@ class _RegisterScreenState extends State<RegisterScreen>
               children: [
                 TabBarView(
                   controller: _tabController,
-                  children: [
-                    _buildPasienForm(),
-                    _buildKeluargaForm(),
-                  ],
+                  children: [_buildPasienForm(), _buildKeluargaForm()],
                 ),
                 // Gambar abstrak pojok kiri bawah
                 Positioned(
                   left: 0,
                   bottom: 0,
-                  child: Image.asset(
-                    'assets/12.png',
-                    width: 150,
-                  ),
+                  child: Image.asset('assets/12.png', width: 150),
                 ),
               ],
             ),
@@ -145,7 +137,10 @@ class _RegisterScreenState extends State<RegisterScreen>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFB83B7E),
                   borderRadius: BorderRadius.circular(20),
@@ -258,7 +253,9 @@ class _RegisterScreenState extends State<RegisterScreen>
               ),
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscurePasswordPasien ? Icons.visibility_off : Icons.visibility,
+                  _obscurePasswordPasien
+                      ? Icons.visibility_off
+                      : Icons.visibility,
                   color: Colors.grey,
                 ),
                 onPressed: () {
@@ -298,7 +295,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                 ),
                 onPressed: () {
                   setState(() {
-                    _obscureConfirmPasswordPasien = !_obscureConfirmPasswordPasien;
+                    _obscureConfirmPasswordPasien =
+                        !_obscureConfirmPasswordPasien;
                   });
                 },
               ),
@@ -313,6 +311,12 @@ class _RegisterScreenState extends State<RegisterScreen>
             child: ElevatedButton(
               onPressed: () {
                 // Handle register pasien
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HomePasienScreen(),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFB83B7E),
@@ -324,10 +328,7 @@ class _RegisterScreenState extends State<RegisterScreen>
               ),
               child: const Text(
                 'Daftar',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -365,7 +366,10 @@ class _RegisterScreenState extends State<RegisterScreen>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFB83B7E),
                   borderRadius: BorderRadius.circular(20),
@@ -544,10 +548,7 @@ class _RegisterScreenState extends State<RegisterScreen>
               ),
               child: const Text(
                 'Daftar',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ),
           ),
