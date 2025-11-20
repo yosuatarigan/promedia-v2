@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,12 +28,9 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             children: [
               // Header
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Image.asset('assets/18.png', height: 60),
-                ),
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Image.asset('assets/18.png', height: 80),
               ),
 
               const SizedBox(height: 40),
@@ -57,8 +55,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             // Title
                             Text(
                               'Masuk',
-                              style: Theme.of(context).textTheme.displaySmall
-                                  ?.copyWith(color: Colors.black87),
+                              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                                    color: Colors.black87,
+                                  ),
                             ),
                             const SizedBox(height: 8),
 
@@ -72,8 +71,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             // No Kode Field
                             Text(
                               'No Kode :',
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(fontWeight: FontWeight.w600),
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
                             ),
                             const SizedBox(height: 8),
                             TextField(
@@ -97,8 +97,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             // Password Field
                             Text(
                               'Password :',
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(fontWeight: FontWeight.w600),
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
                             ),
                             const SizedBox(height: 8),
                             TextField(
@@ -143,8 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: Text(
                                   'Lupa Password ?',
                                   style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(context).colorScheme.primary,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -170,8 +170,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 child: Text(
                                   'Masuk',
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(color: Colors.white),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(
+                                        color: Colors.white,
+                                      ),
                                 ),
                               ),
                             ),
@@ -187,26 +191,29 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 TextButton(
                                   onPressed: () {
-                                    // Navigate to register
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const RegisterScreen(),
+                                      ),
+                                    );
                                   },
                                   style: TextButton.styleFrom(
                                     padding: EdgeInsets.zero,
                                     minimumSize: Size.zero,
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
                                   child: Text(
                                     'Daftar Disini',
                                     style: TextStyle(
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(context).colorScheme.primary,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 100),
+                            SizedBox(height: 100,)
                           ],
                         ),
                       ),
@@ -215,7 +222,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     Positioned(
                       left: 0,
                       bottom: 0,
-                      child: Image.asset('assets/12.png', width: 150),
+                      child: Image.asset(
+                        'assets/12.png',
+                        width: 150,
+                      ),
                     ),
                   ],
                 ),
