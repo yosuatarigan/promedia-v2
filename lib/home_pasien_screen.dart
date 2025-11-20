@@ -4,6 +4,7 @@ import 'package:promedia_v2/detail_manajemen_screen.dart';
 import 'detail_makan_screen.dart';
 import 'detail_minum_obat_screen.dart';
 import 'detail_perawatan_kaki_screen.dart';
+import 'chat_list_screen.dart';
 
 class HomePasienScreen extends StatefulWidget {
   const HomePasienScreen({super.key});
@@ -388,18 +389,9 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     );
   }
 
-  // CHAT PAGE (Placeholder)
+  // CHAT PAGE
   Widget _buildChatPage() {
-    return Container(
-      color: Colors.white,
-      child: const Center(
-        child: Text(
-          'Chat Page\n(Coming Soon)',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
+    return const ChatListScreen();
   }
 
   // PROFIL PAGE (Placeholder)
