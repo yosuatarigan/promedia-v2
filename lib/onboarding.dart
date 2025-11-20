@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -55,7 +56,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     Image.asset('assets/1.png', height: 40),
                     TextButton(
                       onPressed: () {
-                        // Navigate to home or login
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginScreen(),
+                          ),
+                        );
                       },
                       child: Text(
                         'Lewati',
@@ -80,7 +86,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   },
                   itemCount: _pages.length,
                   itemBuilder: (context, index) {
-                    return OnboardingPage(data: _pages[index]);
+                    return OnboardingPage(
+                      data: _pages[index],
+                      isLastPage: index == _pages.length - 1,
+                      onGetStarted: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginScreen(),
+                          ),
+                        );
+                      },
+                    );
                   },
                 ),
               ),
@@ -127,8 +144,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
 class OnboardingPage extends StatelessWidget {
   final OnboardingData data;
+  final bool isLastPage;
+  final VoidCallback? onGetStarted;
 
-  const OnboardingPage({super.key, required this.data});
+  const OnboardingPage({
+    super.key,
+    required this.data,
+    this.isLastPage = false,
+    this.onGetStarted,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -157,6 +181,30 @@ class OnboardingPage extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.5),
             textAlign: TextAlign.justify,
           ),
+          const SizedBox(height: 32),
+          // Button Mulai (hanya di halaman terakhir)
+          if (isLastPage)
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: onGetStarted,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFB83B7E),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  'Mulai',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                      ),
+                ),
+              ),
+            ),
           const Spacer(),
         ],
       ),
