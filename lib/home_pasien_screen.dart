@@ -6,6 +6,7 @@ import 'detail_makan_screen.dart';
 import 'detail_minum_obat_screen.dart';
 import 'detail_perawatan_kaki_screen.dart';
 import 'chat_list_screen.dart';
+import 'notifikasi_screen.dart';
 
 class HomePasienScreen extends StatefulWidget {
   const HomePasienScreen({super.key});
@@ -108,34 +109,44 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                     ),
                   ),
                   // Notification Icon
-                  Stack(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.yellow.shade600,
-                          shape: BoxShape.circle,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotifikasiScreen(),
                         ),
-                        child: const Icon(
-                          Icons.notifications,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          width: 12,
-                          height: 12,
+                      );
+                    },
+                    child: Stack(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.red,
+                            color: Colors.yellow.shade600,
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.notifications,
+                            color: Colors.white,
+                            size: 28,
                           ),
                         ),
-                      ),
-                    ],
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
