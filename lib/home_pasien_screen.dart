@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:promedia_v2/detail_manajemen_screen.dart';
+import 'package:promedia_v2/manajemen_stress.dart';
 import 'package:promedia_v2/profile_pasien.dart';
 import 'detail_makan_screen.dart';
 import 'detail_minum_obat_screen.dart';
@@ -447,7 +448,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
         } else if (title == 'Manajemen Stress') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const DetailManajemenStressScreen()),
+            MaterialPageRoute(builder: (context) => const ManajemenStressScreen()),
           );
         }
       },
