@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:promedia_v2/detail_manajemen_screen.dart';
-import 'package:promedia_v2/pengelolaan_makanan_screen.dart';
 import 'package:promedia_v2/profile_pasien.dart';
-import 'package:promedia_v2/terapi_obat_screen.dart';
 import 'detail_makan_screen.dart';
 import 'detail_minum_obat_screen.dart';
 import 'detail_perawatan_kaki_screen.dart';
 import 'chat_list_screen.dart';
 import 'notifikasi_screen.dart';
+import 'pengelolaan_makanan_screen.dart';
+import 'terapi_obat_screen.dart';
+import 'latihan_fisik_screen.dart';
+import 'perawatan_kaki_screen.dart';
 
 class HomePasienScreen extends StatefulWidget {
   const HomePasienScreen({super.key});
@@ -19,6 +21,16 @@ class HomePasienScreen extends StatefulWidget {
 
 class _HomePasienScreenState extends State<HomePasienScreen> {
   int _selectedIndex = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Precache semua gambar aktivitas agar tidak flickering
+    precacheImage(const AssetImage('assets/21.png'), context);
+    precacheImage(const AssetImage('assets/22.png'), context);
+    precacheImage(const AssetImage('assets/23.png'), context);
+    precacheImage(const AssetImage('assets/24.png'), context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -173,27 +185,23 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                       // Aktivitas Saya Hari Ini
                       Text(
                         'Aktivitas Saya Hari Ini',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(color: Colors.black87),
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: Colors.black87,
+                            ),
                       ),
                       const SizedBox(height: 16),
-                      Row(
+                      GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 0.95,
                         children: [
-                          Expanded(
-                            child: _buildActivityCard(
-                              'assets/21.png',
-                              'Makan',
-                              hasNotification: true,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildActivityCard(
-                              'assets/22.png',
-                              'Minum Obat',
-                              hasNotification: true,
-                            ),
-                          ),
+                          _buildActivityCard('assets/21.png', 'Makan', hasNotification: true),
+                          _buildActivityCard('assets/22.png', 'Minum Obat', hasNotification: true),
+                          _buildActivityCard('assets/23.png', 'Perawatan Kaki', hasNotification: true),
+                          _buildActivityCard('assets/24.png', 'Manajemen Stress', hasNotification: true),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -201,8 +209,9 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                       // Program Manajemen Diabetes
                       Text(
                         'Program Manajemen Diabetes',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(color: Colors.black87),
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: Colors.black87,
+                            ),
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -229,6 +238,12 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                             child: _buildProgramCard(
                               'assets/27.png',
                               'Aktivitas Fisik',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const LatihanFisikScreen()),
+                                );
+                              },
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -276,8 +291,9 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                       // Catatan Gula Darah
                       Text(
                         'Catatan Gula Darah Anda',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(color: Colors.black87),
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: Colors.black87,
+                            ),
                       ),
                       const SizedBox(height: 16),
                       _buildBloodSugarChart(),
@@ -286,8 +302,9 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                       // Catatan HbA1c
                       Text(
                         'Catatan HbA1c',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(color: Colors.black87),
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: Colors.black87,
+                            ),
                       ),
                       const SizedBox(height: 16),
                       _buildHbA1cChart(),
@@ -296,8 +313,9 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                       // Catatan Olahraga Harian
                       Text(
                         'Catatan Olahraga Harian',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(color: Colors.black87),
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: Colors.black87,
+                            ),
                       ),
                       const SizedBox(height: 16),
                       _buildOlahragaChart(),
@@ -325,9 +343,9 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               padding: const EdgeInsets.all(16.0),
               child: Text(
                 'Aktivitas Anda',
-                style: Theme.of(
-                  context,
-                ).textTheme.headlineMedium?.copyWith(color: Colors.black87),
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: Colors.black87,
+                    ),
               ),
             ),
             // Content
@@ -362,50 +380,30 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                             ),
                           );
                         }),
-                        _buildRiwayatCard(
-                          'assets/22.png',
-                          'Minum Obat',
-                          true,
-                          () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => const DetailMinumObatScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildRiwayatCard(
-                          'assets/23.png',
-                          'Perawatan Kaki',
-                          true,
-                          () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) =>
-                                        const DetailPerawatanKakiScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildRiwayatCard(
-                          'assets/24.png',
-                          'Manajemen Stress',
-                          true,
-                          () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) =>
-                                        const DetailManajemenStressScreen(),
-                              ),
-                            );
-                          },
-                        ),
+                        _buildRiwayatCard('assets/22.png', 'Minum Obat', true, () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const DetailMinumObatScreen(),
+                            ),
+                          );
+                        }),
+                        _buildRiwayatCard('assets/23.png', 'Perawatan Kaki', true, () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const DetailPerawatanKakiScreen(),
+                            ),
+                          );
+                        }),
+                        _buildRiwayatCard('assets/24.png', 'Manajemen Stress', true, () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const DetailManajemenStressScreen(),
+                            ),
+                          );
+                        }),
                       ],
                     ),
                   ],
@@ -428,24 +426,28 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     return const ProfilPasienScreen();
   }
 
-  Widget _buildActivityCard(
-    String iconPath,
-    String title, {
-    bool hasNotification = false,
-  }) {
+  Widget _buildActivityCard(String iconPath, String title, {bool hasNotification = false}) {
     return GestureDetector(
       onTap: () {
         if (title == 'Makan') {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const PengelolaanMakananScreen(),
-            ),
+            MaterialPageRoute(builder: (context) => const PengelolaanMakananScreen()),
           );
         } else if (title == 'Minum Obat') {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const TerapiObatScreen()),
+          );
+        } else if (title == 'Perawatan Kaki') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const PerawatanKakiScreen()),
+          );
+        } else if (title == 'Manajemen Stress') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const DetailManajemenStressScreen()),
           );
         }
       },
@@ -453,7 +455,8 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
         clipBehavior: Clip.none,
         children: [
           Container(
-            padding: const EdgeInsets.all(20),
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -466,13 +469,21 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               ],
             ),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(iconPath, height: 80),
-                const SizedBox(height: 12),
+                Image.asset(
+                  iconPath,
+                  height: 70,
+                  width: 70,
+                  fit: BoxFit.contain,
+                  gaplessPlayback: true,
+                ),
+                const SizedBox(height: 10),
                 Text(
                   title,
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
@@ -483,10 +494,10 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
           if (hasNotification)
             Positioned(
               top: -5,
-              right: 20,
+              right: 15,
               child: Container(
-                width: 16,
-                height: 16,
+                width: 14,
+                height: 14,
                 decoration: const BoxDecoration(
                   color: Colors.red,
                   shape: BoxShape.circle,
@@ -498,12 +509,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     );
   }
 
-  Widget _buildRiwayatCard(
-    String iconPath,
-    String title,
-    bool hasNotification,
-    VoidCallback onTap,
-  ) {
+  Widget _buildRiwayatCard(String iconPath, String title, bool hasNotification, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Stack(
@@ -558,27 +564,30 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     );
   }
 
-  Widget _buildProgramCard(String iconPath, String title) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          Image.asset(iconPath, height: 80),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+  Widget _buildProgramCard(String iconPath, String title, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          children: [
+            Image.asset(iconPath, height: 80),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -600,7 +609,10 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               drawVerticalLine: false,
               horizontalInterval: 50,
               getDrawingHorizontalLine: (value) {
-                return FlLine(color: Colors.grey.shade300, strokeWidth: 1);
+                return FlLine(
+                  color: Colors.grey.shade300,
+                  strokeWidth: 1,
+                );
               },
             ),
             titlesData: FlTitlesData(
@@ -697,7 +709,10 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               drawVerticalLine: false,
               horizontalInterval: 2,
               getDrawingHorizontalLine: (value) {
-                return FlLine(color: Colors.grey.shade300, strokeWidth: 1);
+                return FlLine(
+                  color: Colors.grey.shade300,
+                  strokeWidth: 1,
+                );
               },
             ),
             titlesData: FlTitlesData(
@@ -794,7 +809,10 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               drawVerticalLine: false,
               horizontalInterval: 10,
               getDrawingHorizontalLine: (value) {
-                return FlLine(color: Colors.grey.shade300, strokeWidth: 1);
+                return FlLine(
+                  color: Colors.grey.shade300,
+                  strokeWidth: 1,
+                );
               },
             ),
             titlesData: FlTitlesData(
@@ -844,7 +862,10 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
             maxY: 40,
             lineBarsData: [
               LineChartBarData(
-                spots: [const FlSpot(0, 30), const FlSpot(1, 40)],
+                spots: [
+                  const FlSpot(0, 30),
+                  const FlSpot(1, 40),
+                ],
                 isCurved: true,
                 color: const Color(0xFF4DD0E1),
                 barWidth: 3,
@@ -883,10 +904,22 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
         unselectedItemColor: Colors.grey,
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Riwayat'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Beranda',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'Riwayat',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat),
+            label: 'Chat',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profil',
+          ),
         ],
       ),
     );
