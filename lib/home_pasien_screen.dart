@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:promedia_v2/detail_manajemen_screen.dart';
+import 'package:promedia_v2/profile_pasien.dart';
 import 'detail_makan_screen.dart';
 import 'detail_minum_obat_screen.dart';
 import 'detail_perawatan_kaki_screen.dart';
@@ -394,18 +395,9 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     return const ChatListScreen();
   }
 
-  // PROFIL PAGE (Placeholder)
+  // PROFIL PAGE
   Widget _buildProfilPage() {
-    return Container(
-      color: Colors.white,
-      child: const Center(
-        child: Text(
-          'Profil Page\n(Coming Soon)',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
+    return const ProfilPasienScreen();
   }
 
   Widget _buildActivityCard(String iconPath, String title, {bool hasNotification = false}) {
