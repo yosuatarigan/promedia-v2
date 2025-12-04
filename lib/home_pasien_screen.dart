@@ -179,147 +179,174 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                   ),
                 ),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Aktivitas Saya Hari Ini
-                      Text(
-                        'Aktivitas Saya Hari Ini',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              color: Colors.black87,
-                            ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Text(
+                          'Aktivitas Saya Hari Ini',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(color: Colors.black87),
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.95,
-                        children: [
-                          _buildActivityCard('assets/21.png', 'Makan', hasNotification: true),
-                          _buildActivityCard('assets/22.png', 'Minum Obat', hasNotification: true),
-                          _buildActivityCard('assets/23.png', 'Perawatan Kaki', hasNotification: true),
-                          _buildActivityCard('assets/24.png', 'Manajemen Stress', hasNotification: true),
-                        ],
+                      SizedBox(
+                        height: 140,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          children: [
+                            _buildActivityCard(
+                              'assets/21.png',
+                              'Makan',
+                              hasNotification: true,
+                            ),
+                            const SizedBox(width: 16),
+                            _buildActivityCard(
+                              'assets/22.png',
+                              'Minum Obat',
+                              hasNotification: true,
+                            ),
+                            const SizedBox(width: 16),
+                            _buildActivityCard(
+                              'assets/23.png',
+                              'Perawatan Kaki',
+                              hasNotification: true,
+                            ),
+                            const SizedBox(width: 16),
+                            _buildActivityCard(
+                              'assets/24.png',
+                              'Manajemen Stress',
+                              hasNotification: true,
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 24),
 
                       // Program Manajemen Diabetes
-                      Text(
-                        'Program Manajemen Diabetes',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              color: Colors.black87,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Program Manajemen Diabetes',
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(color: Colors.black87),
                             ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildProgramCard(
-                              'assets/25.png',
-                              'Pengelolaan\nDiabetes',
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildProgramCard(
+                                    'assets/25.png',
+                                    'Pengelolaan\nDiabetes',
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildProgramCard(
+                                    'assets/26.png',
+                                    'Diet Diabetes',
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildProgramCard(
-                              'assets/26.png',
-                              'Diet Diabetes',
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildProgramCard(
+                                    'assets/27.png',
+                                    'Aktivitas Fisik',
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) =>
+                                                  const LatihanFisikScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildProgramCard(
+                                    'assets/28.png',
+                                    'Komplikasi\nDiabetes',
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildProgramCard(
-                              'assets/27.png',
-                              'Aktivitas Fisik',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => const LatihanFisikScreen()),
-                                );
-                              },
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildProgramCard(
+                                    'assets/29.png',
+                                    'Pengobatan\nUntuk Pasien DM',
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildProgramCard(
+                                    'assets/30.png',
+                                    'Stress dan\nDiabetes',
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildProgramCard(
-                              'assets/28.png',
-                              'Komplikasi\nDiabetes',
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildProgramCard(
+                                    'assets/31.png',
+                                    'Peran Keluarga\ndalam Manajemen\nDiabetes',
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(child: Container()),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildProgramCard(
-                              'assets/29.png',
-                              'Pengobatan\nUntuk Pasien DM',
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildProgramCard(
-                              'assets/30.png',
-                              'Stress dan\nDiabetes',
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildProgramCard(
-                              'assets/31.png',
-                              'Peran Keluarga\ndalam Manajemen\nDiabetes',
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(child: Container()),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
+                            const SizedBox(height: 24),
 
-                      // Catatan Gula Darah
-                      Text(
-                        'Catatan Gula Darah Anda',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              color: Colors.black87,
+                            // Catatan - Horizontal Scroll
+                            Text(
+                              'Catatan Kesehatan',
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(color: Colors.black87),
                             ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      _buildBloodSugarChart(),
-                      const SizedBox(height: 24),
-
-                      // Catatan HbA1c
-                      Text(
-                        'Catatan HbA1c',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              color: Colors.black87,
+                      SizedBox(
+                        height: 280,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          children: [
+                            _buildChartCard(
+                              'Gula Darah',
+                              _buildBloodSugarChart(),
                             ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildHbA1cChart(),
-                      const SizedBox(height: 24),
-
-                      // Catatan Olahraga Harian
-                      Text(
-                        'Catatan Olahraga Harian',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              color: Colors.black87,
+                            const SizedBox(width: 16),
+                            _buildChartCard('HbA1c', _buildHbA1cChart()),
+                            const SizedBox(width: 16),
+                            _buildChartCard(
+                              'Olahraga Harian',
+                              _buildOlahragaChart(),
                             ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      _buildOlahragaChart(),
                       const SizedBox(height: 20),
                     ],
                   ),
@@ -328,6 +355,40 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildChartCard(String title, Widget chart) {
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.85,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(child: chart),
+        ],
       ),
     );
   }
@@ -344,9 +405,9 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               padding: const EdgeInsets.all(16.0),
               child: Text(
                 'Aktivitas Anda',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Colors.black87,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineMedium?.copyWith(color: Colors.black87),
               ),
             ),
             // Content
@@ -381,30 +442,50 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                             ),
                           );
                         }),
-                        _buildRiwayatCard('assets/22.png', 'Minum Obat', true, () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const DetailMinumObatScreen(),
-                            ),
-                          );
-                        }),
-                        _buildRiwayatCard('assets/23.png', 'Perawatan Kaki', true, () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const DetailPerawatanKakiScreen(),
-                            ),
-                          );
-                        }),
-                        _buildRiwayatCard('assets/24.png', 'Manajemen Stress', true, () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const DetailManajemenStressScreen(),
-                            ),
-                          );
-                        }),
+                        _buildRiwayatCard(
+                          'assets/22.png',
+                          'Minum Obat',
+                          true,
+                          () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => const DetailMinumObatScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildRiwayatCard(
+                          'assets/23.png',
+                          'Perawatan Kaki',
+                          true,
+                          () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        const DetailPerawatanKakiScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildRiwayatCard(
+                          'assets/24.png',
+                          'Manajemen Stress',
+                          true,
+                          () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        const DetailManajemenStressScreen(),
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ],
@@ -427,13 +508,19 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     return const ProfilPasienScreen();
   }
 
-  Widget _buildActivityCard(String iconPath, String title, {bool hasNotification = false}) {
+  Widget _buildActivityCard(
+    String iconPath,
+    String title, {
+    bool hasNotification = false,
+  }) {
     return GestureDetector(
       onTap: () {
         if (title == 'Makan') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const PengelolaanMakananScreen()),
+            MaterialPageRoute(
+              builder: (context) => const PengelolaanMakananScreen(),
+            ),
           );
         } else if (title == 'Minum Obat') {
           Navigator.push(
@@ -443,12 +530,16 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
         } else if (title == 'Perawatan Kaki') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const PerawatanKakiScreen()),
+            MaterialPageRoute(
+              builder: (context) => const PerawatanKakiScreen(),
+            ),
           );
         } else if (title == 'Manajemen Stress') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const ManajemenStressScreen()),
+            MaterialPageRoute(
+              builder: (context) => const ManajemenStressScreen(),
+            ),
           );
         }
       },
@@ -456,7 +547,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
         clipBehavior: Clip.none,
         children: [
           Container(
-            width: double.infinity,
+            width: 120,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -474,8 +565,8 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               children: [
                 Image.asset(
                   iconPath,
-                  height: 70,
-                  width: 70,
+                  height: 60,
+                  width: 60,
                   fit: BoxFit.contain,
                   gaplessPlayback: true,
                 ),
@@ -484,7 +575,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                   title,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
@@ -495,7 +586,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
           if (hasNotification)
             Positioned(
               top: -5,
-              right: 15,
+              right: 5,
               child: Container(
                 width: 14,
                 height: 14,
@@ -510,7 +601,12 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     );
   }
 
-  Widget _buildRiwayatCard(String iconPath, String title, bool hasNotification, VoidCallback onTap) {
+  Widget _buildRiwayatCard(
+    String iconPath,
+    String title,
+    bool hasNotification,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Stack(
@@ -565,7 +661,11 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     );
   }
 
-  Widget _buildProgramCard(String iconPath, String title, {VoidCallback? onTap}) {
+  Widget _buildProgramCard(
+    String iconPath,
+    String title, {
+    VoidCallback? onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -594,288 +694,243 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
   }
 
   Widget _buildBloodSugarChart() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: SizedBox(
-        height: 200,
-        child: LineChart(
-          LineChartData(
-            gridData: FlGridData(
-              show: true,
-              drawVerticalLine: false,
-              horizontalInterval: 50,
-              getDrawingHorizontalLine: (value) {
-                return FlLine(
-                  color: Colors.grey.shade300,
-                  strokeWidth: 1,
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: 50,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(color: Colors.grey.shade300, strokeWidth: 1);
+          },
+        ),
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 50,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  value.toInt().toString(),
+                  style: const TextStyle(fontSize: 10),
                 );
               },
             ),
-            titlesData: FlTitlesData(
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  interval: 50,
-                  reservedSize: 40,
-                  getTitlesWidget: (value, meta) {
-                    return Text(
-                      value.toInt().toString(),
-                      style: const TextStyle(fontSize: 10),
-                    );
-                  },
-                ),
-              ),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  interval: 1,
-                  getTitlesWidget: (value, meta) {
-                    const dates = [
-                      '15 Agustus',
-                      '16 Agustus',
-                      '17 Agustus',
-                      '18 Agustus',
-                      '19 Agustus',
-                      '20 Agustus',
-                      '21 Agustus',
-                    ];
-                    if (value.toInt() >= 0 && value.toInt() < dates.length) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          dates[value.toInt()],
-                          style: const TextStyle(fontSize: 8),
-                        ),
-                      );
-                    }
-                    return const Text('');
-                  },
-                ),
-              ),
-              rightTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
-              topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                const dates = [
+                  '15 Agustus',
+                  '16 Agustus',
+                  '17 Agustus',
+                  '18 Agustus',
+                  '19 Agustus',
+                  '20 Agustus',
+                  '21 Agustus',
+                ];
+                if (value.toInt() >= 0 && value.toInt() < dates.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      dates[value.toInt()],
+                      style: const TextStyle(fontSize: 8),
+                    ),
+                  );
+                }
+                return const Text('');
+              },
             ),
-            borderData: FlBorderData(show: false),
-            minX: 0,
-            maxX: 6,
-            minY: 0,
-            maxY: 250,
-            lineBarsData: [
-              LineChartBarData(
-                spots: [
-                  const FlSpot(0, 100),
-                  const FlSpot(1, 140),
-                  const FlSpot(2, 160),
-                  const FlSpot(3, 200),
-                  const FlSpot(4, 180),
-                  const FlSpot(5, 210),
-                  const FlSpot(6, 150),
-                ],
-                isCurved: true,
-                color: const Color(0xFF4DD0E1),
-                barWidth: 3,
-                dotData: const FlDotData(show: true),
-                belowBarData: BarAreaData(show: false),
-              ),
-            ],
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
           ),
         ),
+        borderData: FlBorderData(show: false),
+        minX: 0,
+        maxX: 6,
+        minY: 0,
+        maxY: 250,
+        lineBarsData: [
+          LineChartBarData(
+            spots: [
+              const FlSpot(0, 100),
+              const FlSpot(1, 140),
+              const FlSpot(2, 160),
+              const FlSpot(3, 200),
+              const FlSpot(4, 180),
+              const FlSpot(5, 210),
+              const FlSpot(6, 150),
+            ],
+            isCurved: true,
+            color: const Color(0xFF4DD0E1),
+            barWidth: 3,
+            dotData: const FlDotData(show: true),
+            belowBarData: BarAreaData(show: false),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildHbA1cChart() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: SizedBox(
-        height: 200,
-        child: LineChart(
-          LineChartData(
-            gridData: FlGridData(
-              show: true,
-              drawVerticalLine: false,
-              horizontalInterval: 2,
-              getDrawingHorizontalLine: (value) {
-                return FlLine(
-                  color: Colors.grey.shade300,
-                  strokeWidth: 1,
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: 2,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(color: Colors.grey.shade300, strokeWidth: 1);
+          },
+        ),
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 2,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  value.toInt().toString(),
+                  style: const TextStyle(fontSize: 10),
                 );
               },
             ),
-            titlesData: FlTitlesData(
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  interval: 2,
-                  reservedSize: 40,
-                  getTitlesWidget: (value, meta) {
-                    return Text(
-                      value.toInt().toString(),
-                      style: const TextStyle(fontSize: 10),
-                    );
-                  },
-                ),
-              ),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  interval: 1,
-                  getTitlesWidget: (value, meta) {
-                    const dates = [
-                      '15 Agustus',
-                      '16 Agustus',
-                      '17 Agustus',
-                      '18 Agustus',
-                      '19 Agustus',
-                      '20 Agustus',
-                      '21 Agustus',
-                    ];
-                    if (value.toInt() >= 0 && value.toInt() < dates.length) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          dates[value.toInt()],
-                          style: const TextStyle(fontSize: 8),
-                        ),
-                      );
-                    }
-                    return const Text('');
-                  },
-                ),
-              ),
-              rightTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
-              topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                const dates = [
+                  '15 Agustus',
+                  '16 Agustus',
+                  '17 Agustus',
+                  '18 Agustus',
+                  '19 Agustus',
+                  '20 Agustus',
+                  '21 Agustus',
+                ];
+                if (value.toInt() >= 0 && value.toInt() < dates.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      dates[value.toInt()],
+                      style: const TextStyle(fontSize: 8),
+                    ),
+                  );
+                }
+                return const Text('');
+              },
             ),
-            borderData: FlBorderData(show: false),
-            minX: 0,
-            maxX: 6,
-            minY: 0,
-            maxY: 10,
-            lineBarsData: [
-              LineChartBarData(
-                spots: [
-                  const FlSpot(0, 6),
-                  const FlSpot(1, 5),
-                  const FlSpot(2, 9),
-                  const FlSpot(3, 5.5),
-                  const FlSpot(4, 6),
-                  const FlSpot(5, 7.5),
-                  const FlSpot(6, 8),
-                ],
-                isCurved: true,
-                color: const Color(0xFF4DD0E1),
-                barWidth: 3,
-                dotData: const FlDotData(show: true),
-                belowBarData: BarAreaData(show: false),
-              ),
-            ],
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
           ),
         ),
+        borderData: FlBorderData(show: false),
+        minX: 0,
+        maxX: 6,
+        minY: 0,
+        maxY: 10,
+        lineBarsData: [
+          LineChartBarData(
+            spots: [
+              const FlSpot(0, 6),
+              const FlSpot(1, 5),
+              const FlSpot(2, 9),
+              const FlSpot(3, 5.5),
+              const FlSpot(4, 6),
+              const FlSpot(5, 7.5),
+              const FlSpot(6, 8),
+            ],
+            isCurved: true,
+            color: const Color(0xFF4DD0E1),
+            barWidth: 3,
+            dotData: const FlDotData(show: true),
+            belowBarData: BarAreaData(show: false),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildOlahragaChart() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: SizedBox(
-        height: 200,
-        child: LineChart(
-          LineChartData(
-            gridData: FlGridData(
-              show: true,
-              drawVerticalLine: false,
-              horizontalInterval: 10,
-              getDrawingHorizontalLine: (value) {
-                return FlLine(
-                  color: Colors.grey.shade300,
-                  strokeWidth: 1,
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: 10,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(color: Colors.grey.shade300, strokeWidth: 1);
+          },
+        ),
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 10,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  value.toInt().toString(),
+                  style: const TextStyle(fontSize: 10),
                 );
               },
             ),
-            titlesData: FlTitlesData(
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  interval: 10,
-                  reservedSize: 40,
-                  getTitlesWidget: (value, meta) {
-                    return Text(
-                      value.toInt().toString(),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                const times = ['Jam 07.00', 'Jam 10.00'];
+                if (value.toInt() >= 0 && value.toInt() < times.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      times[value.toInt()],
                       style: const TextStyle(fontSize: 10),
-                    );
-                  },
-                ),
-              ),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  interval: 1,
-                  getTitlesWidget: (value, meta) {
-                    const times = ['Jam 07.00', 'Jam 10.00'];
-                    if (value.toInt() >= 0 && value.toInt() < times.length) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          times[value.toInt()],
-                          style: const TextStyle(fontSize: 10),
-                        ),
-                      );
-                    }
-                    return const Text('');
-                  },
-                ),
-              ),
-              rightTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
-              topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
+                    ),
+                  );
+                }
+                return const Text('');
+              },
             ),
-            borderData: FlBorderData(show: false),
-            minX: 0,
-            maxX: 1,
-            minY: 0,
-            maxY: 40,
-            lineBarsData: [
-              LineChartBarData(
-                spots: [
-                  const FlSpot(0, 30),
-                  const FlSpot(1, 40),
-                ],
-                isCurved: true,
-                color: const Color(0xFF4DD0E1),
-                barWidth: 3,
-                dotData: const FlDotData(show: true),
-                belowBarData: BarAreaData(show: false),
-              ),
-            ],
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
           ),
         ),
+        borderData: FlBorderData(show: false),
+        minX: 0,
+        maxX: 1,
+        minY: 0,
+        maxY: 40,
+        lineBarsData: [
+          LineChartBarData(
+            spots: [const FlSpot(0, 30), const FlSpot(1, 40)],
+            isCurved: true,
+            color: const Color(0xFF4DD0E1),
+            barWidth: 3,
+            dotData: const FlDotData(show: true),
+            belowBarData: BarAreaData(show: false),
+          ),
+        ],
       ),
     );
   }
@@ -905,22 +960,10 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
         unselectedItemColor: Colors.grey,
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Beranda',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'Riwayat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'Chat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profil',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Riwayat'),
+          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
         ],
       ),
     );
