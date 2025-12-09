@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:promedia_v2/pilar1_edukasi.dart';
 import 'package:promedia_v2/pilar2_makan_sehat.dart';
 import 'package:promedia_v2/pilar3_latihan_fisik.dart';
-
+import 'package:promedia_v2/pilar4_pemantauan.dart';
 class DiabetesEducationPage extends StatelessWidget {
   const DiabetesEducationPage({Key? key}) : super(key: key);
 
@@ -159,6 +159,14 @@ class DiabetesEducationPage extends StatelessWidget {
                         Icons.monitor_heart_rounded,
                         const Color(0xFFF59E0B),
                         const Color(0xFFD97706),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const Pilar4PemantauanPage(),
+                            ),
+                          );
+                        },
                       ),
                       _buildPillarCard(
                         context,
