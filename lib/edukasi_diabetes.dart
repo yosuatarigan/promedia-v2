@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:promedia_v2/pilar1_edukasi.dart';
+import 'package:promedia_v2/pilar2_makan_sehat.dart';
 class DiabetesEducationPage extends StatelessWidget {
   const DiabetesEducationPage({Key? key}) : super(key: key);
 
@@ -122,6 +123,14 @@ class DiabetesEducationPage extends StatelessWidget {
                         Icons.restaurant_rounded,
                         const Color(0xFF10B981),
                         const Color(0xFF059669),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const Pilar2MakanSehatPage(),
+                            ),
+                          );
+                        },
                       ),
                       _buildPillarCard(
                         context,
