@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:promedia_v2/detail_manajemen_screen.dart';
+import 'package:promedia_v2/edukasi_diabetes.dart';
 import 'package:promedia_v2/manajemen_stress.dart';
 import 'package:promedia_v2/profile_pasien.dart';
 import 'detail_makan_screen.dart';
@@ -234,86 +235,25 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Program Manajemen Diabetes',
+                              'Materi Edukasi Diabetes Melitus',
                               style: Theme.of(context).textTheme.headlineSmall
                                   ?.copyWith(color: Colors.black87),
                             ),
                             const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildProgramCard(
-                                    'assets/25.png',
-                                    'Pengelolaan\nDiabetes',
+                            InkWell(
+                              onTap:
+                                  () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) =>
+                                              const DiabetesEducationPage(),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildProgramCard(
-                                    'assets/26.png',
-                                    'Diet Diabetes',
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildProgramCard(
-                                    'assets/27.png',
-                                    'Aktivitas Fisik',
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder:
-                                              (context) =>
-                                                  const LatihanFisikScreen(),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildProgramCard(
-                                    'assets/28.png',
-                                    'Komplikasi\nDiabetes',
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildProgramCard(
-                                    'assets/29.png',
-                                    'Pengobatan\nUntuk Pasien DM',
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildProgramCard(
-                                    'assets/30.png',
-                                    'Stress dan\nDiabetes',
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildProgramCard(
-                                    'assets/31.png',
-                                    'Peran Keluarga\ndalam Manajemen\nDiabetes',
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(child: Container()),
-                              ],
+                              child: _buildProgramCard(
+                                'assets/25.png',
+                                'Pengelolaan\nDiabetes',
+                              ),
                             ),
                             const SizedBox(height: 24),
 
@@ -669,6 +609,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: const Color(0xFFF5F5F5),
@@ -676,15 +617,18 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
         ),
         child: Column(
           children: [
-            Image.asset(iconPath, height: 80),
+            Image.asset(iconPath, height: 100),
             const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+            SizedBox(
+              width: 200,
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
             ),
           ],
