@@ -67,6 +67,7 @@ flutter:
     - assets/edukasi/pilar2/
     - assets/edukasi/pilar3/
     - assets/edukasi/pilar4/
+    - assets/edukasi/pilar5/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
