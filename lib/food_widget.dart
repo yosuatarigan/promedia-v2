@@ -300,9 +300,9 @@ class FoodNutritionDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final calories = food.calculateCalories(grams);
     final carbs = food.calculateCarbs(grams);
-    final protein = (food.protein / 100) * grams;
-    final fat = (food.fat / 100) * grams;
-    final fiber = (food.fiber / 100) * grams;
+    final protein = food.calculateProtein(grams);
+    final fat = food.calculateFat(grams);
+    final fiber = food.calculateFiber(grams);
 
     return Container(
       padding: const EdgeInsets.all(16),

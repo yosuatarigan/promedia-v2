@@ -26,4 +26,19 @@ class FoodItem {
   double calculateCarbs(double gramsWeight) {
     return (carbohydrate / 100) * gramsWeight;
   }
+
+  // Hitung protein berdasarkan porsi dalam gram
+  double calculateProtein(double gramsWeight) {
+    return (protein / 100) * gramsWeight;
+  }
+
+  // Hitung lemak berdasarkan porsi dalam gram
+  double calculateFat(double gramsWeight) {
+    return (fat / 100) * gramsWeight;
+  }
+
+  // Hitung serat berdasarkan porsi dalam gram
+  double calculateFiber(double gramsWeight) {
+    return (fiber / 100) * gramsWeight;
+  }
 }
