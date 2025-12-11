@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class PerawatanKakiScreen extends StatefulWidget {
   const PerawatanKakiScreen({super.key});
@@ -8,6 +11,10 @@ class PerawatanKakiScreen extends StatefulWidget {
 }
 
 class _PerawatanKakiScreenState extends State<PerawatanKakiScreen> {
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
+  bool _isLoading = false;
+
   // Kondisi kaki (multiple selection)
   Set<String> kondisiKaki = {};
   
@@ -17,9 +24,40 @@ class _PerawatanKakiScreenState extends State<PerawatanKakiScreen> {
   String? menggunakanAlasKaki;
   String? menggunakanPelembab;
 
+  // Tanggal dan waktu observasi
+  DateTime selectedDate = DateTime.now();
+  TimeOfDay selectedJam = TimeOfDay.now();
+
   int _skorRisiko = 0;
 
-  void _simpanData() {
+  Future<void> _selectDateTime() async {
+    // Pilih tanggal
+    final date = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+
+    if (date != null) {
+      // Pilih jam
+      if (mounted) {
+        final time = await showTimePicker(
+          context: context,
+          initialTime: selectedJam,
+        );
+
+        if (time != null) {
+          setState(() {
+            selectedDate = date;
+            selectedJam = time;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _simpanData() async {
     if (kondisiKaki.isEmpty || 
         memeriksaSepatu == null || 
         mengeringkanKaki == null || 
@@ -37,8 +75,80 @@ class _PerawatanKakiScreenState extends State<PerawatanKakiScreen> {
     // Hitung skor risiko
     _skorRisiko = _hitungSkorRisiko();
 
-    // Tampilkan dialog hasil
-    _showHasilDialog();
+    setState(() => _isLoading = true);
+
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        _showError('User tidak ditemukan');
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Ambil noKode user dari Firestore
+      final userDoc =
+          await _firestore.collection('users').doc(currentUser.uid).get();
+
+      if (!userDoc.exists) {
+        _showError('Data user tidak ditemukan');
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final userData = userDoc.data()!;
+      final noKode = userData['noKode'] as String;
+      final namaLengkap = userData['namaLengkap'] as String;
+      final role = userData['role'] as String;
+
+      // Gabungkan tanggal dan jam
+      final dateTime = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        selectedJam.hour,
+        selectedJam.minute,
+      );
+
+      // Simpan ke Firestore (top-level collection)
+      await _firestore.collection('foot_care_logs').add({
+        'userId': currentUser.uid,
+        'noKode': noKode,
+        'userName': namaLengkap,
+        'userRole': role,
+        'kondisiKaki': kondisiKaki.toList(),
+        'memeriksaSepatu': memeriksaSepatu,
+        'mengeringkanKaki': mengeringkanKaki,
+        'menggunakanAlasKaki': menggunakanAlasKaki,
+        'menggunakanPelembab': menggunakanPelembab,
+        'skorRisiko': _skorRisiko,
+        'statusKondisi': _getStatusKondisi(),
+        'deskripsiObservasi': _getDeskripsiObservasi(),
+        'rekomendasi': _getRekomendasi(),
+        'tanggal': Timestamp.fromDate(dateTime),
+        'jam':
+            '${selectedJam.hour.toString().padLeft(2, '0')}:${selectedJam.minute.toString().padLeft(2, '0')}',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      setState(() => _isLoading = false);
+
+      if (mounted) {
+        // Tampilkan dialog hasil
+        _showHasilDialog();
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showError('Terjadi kesalahan: $e');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   void _showHasilDialog() {
@@ -555,122 +665,188 @@ class _PerawatanKakiScreenState extends State<PerawatanKakiScreen> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Info
-            const Text(
-              'Silahkan lengkapi form dibawah ini untuk melakukan pencatatan perawatan kaki',
-              style: TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
-            ),
-            const SizedBox(height: 28),
-
-            // Form Title
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF9E6),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'OBSERVASI PERAWATAN KAKI DIABETES',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Lakukan Observasi Kaki anda',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.black54,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Question 1: Kondisi Kaki (Multiple selection)
-            const Text(
-              '1. Bagaimana kondisi kaki anda hari ini',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            _buildCheckboxOption('Lepuh, luka gores, atau sayatan'),
-            _buildCheckboxOption('Perubahan warna kulit (biru, merah terang, atau bercak putih)'),
-            _buildCheckboxOption('Kulit terlalu kering'),
-            _buildCheckboxOption('Kapur/tumit tebal (callus) atau mata ikan (corns)'),
-            _buildCheckboxOption('Bengkak'),
-            const SizedBox(height: 24),
-
-            // Question 2
-            const Text(
-              '2. Saya selalu memeriksa bagaian dalam sepatu sebelum digunakan',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            _buildRadioOption('memeriksaSepatu', 'Ya', memeriksaSepatu),
-            _buildRadioOption('memeriksaSepatu', 'Tidak', memeriksaSepatu),
-            const SizedBox(height: 20),
-
-            // Question 3
-            const Text(
-              '3. Setelah di cuci di keringkan',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            _buildRadioOption('mengeringkanKaki', 'Ya', mengeringkanKaki),
-            _buildRadioOption('mengeringkanKaki', 'Tidak', mengeringkanKaki),
-            const SizedBox(height: 20),
-
-            // Question 4
-            const Text(
-              '4. Menggunakan alas kaki setiap keluar rumah',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            _buildRadioOption('menggunakanAlasKaki', 'Ya', menggunakanAlasKaki),
-            _buildRadioOption('menggunakanAlasKaki', 'Tidak', menggunakanAlasKaki),
-            const SizedBox(height: 20),
-
-            // Question 5
-            const Text(
-              '5. Menggunakan pelembab atau lotion',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            _buildRadioOption('menggunakanPelembab', 'Ya', menggunakanPelembab),
-            _buildRadioOption('menggunakanPelembab', 'Tidak', menggunakanPelembab),
-            const SizedBox(height: 32),
-
-            // Tombol Simpan
-            Center(
-              child: ElevatedButton(
-                onPressed: _simpanData,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFB83B7E),
-                  padding: const EdgeInsets.symmetric(horizontal: 56, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Info
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade200),
                   ),
-                  elevation: 2,
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.blue.shade700),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Lengkapi form observasi perawatan kaki untuk monitoring kesehatan kaki Anda',
+                          style: TextStyle(fontSize: 13, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: const Text(
-                  'Simpan',
+                const SizedBox(height: 24),
+
+                // Tanggal & Waktu Observasi
+                const Text(
+                  'Tanggal & Waktu Observasi',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: _selectDateTime,
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFCE4EC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: const Color(0xFFB83B7E).withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today,
+                            color: Color(0xFFB83B7E), size: 20),
+                        const SizedBox(width: 12),
+                        Text(
+                          '${DateFormat('dd MMM yyyy').format(selectedDate)} - ${selectedJam.hour.toString().padLeft(2, '0')}:${selectedJam.minute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Form Title
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF9E6),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'OBSERVASI PERAWATAN KAKI DIABETES',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Lakukan Observasi Kaki anda',
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    fontSize: 13,
+                    color: Colors.black54,
                   ),
+                ),
+                const SizedBox(height: 24),
+
+                // Question 1: Kondisi Kaki (Multiple selection)
+                const Text(
+                  '1. Bagaimana kondisi kaki anda hari ini',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                _buildCheckboxOption('Lepuh, luka gores, atau sayatan'),
+                _buildCheckboxOption('Perubahan warna kulit (biru, merah terang, atau bercak putih)'),
+                _buildCheckboxOption('Kulit terlalu kering'),
+                _buildCheckboxOption('Kapur/tumit tebal (callus) atau mata ikan (corns)'),
+                _buildCheckboxOption('Bengkak'),
+                const SizedBox(height: 24),
+
+                // Question 2
+                const Text(
+                  '2. Saya selalu memeriksa bagaian dalam sepatu sebelum digunakan',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                _buildRadioOption('memeriksaSepatu', 'Ya', memeriksaSepatu),
+                _buildRadioOption('memeriksaSepatu', 'Tidak', memeriksaSepatu),
+                const SizedBox(height: 20),
+
+                // Question 3
+                const Text(
+                  '3. Setelah di cuci di keringkan',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                _buildRadioOption('mengeringkanKaki', 'Ya', mengeringkanKaki),
+                _buildRadioOption('mengeringkanKaki', 'Tidak', mengeringkanKaki),
+                const SizedBox(height: 20),
+
+                // Question 4
+                const Text(
+                  '4. Menggunakan alas kaki setiap keluar rumah',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                _buildRadioOption('menggunakanAlasKaki', 'Ya', menggunakanAlasKaki),
+                _buildRadioOption('menggunakanAlasKaki', 'Tidak', menggunakanAlasKaki),
+                const SizedBox(height: 20),
+
+                // Question 5
+                const Text(
+                  '5. Menggunakan pelembab atau lotion',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                _buildRadioOption('menggunakanPelembab', 'Ya', menggunakanPelembab),
+                _buildRadioOption('menggunakanPelembab', 'Tidak', menggunakanPelembab),
+                const SizedBox(height: 32),
+
+                // Tombol Simpan
+                Center(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _simpanData,
+                    icon: const Icon(Icons.save, color: Colors.white),
+                    label: const Text(
+                      'Simpan Observasi',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFB83B7E),
+                      disabledBackgroundColor: Colors.grey.shade300,
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.3),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(Color(0xFFB83B7E)),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-          ],
-        ),
+        ],
       ),
     );
   }
