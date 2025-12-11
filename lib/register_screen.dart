@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:promedia_v2/home_pasien_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -11,6 +13,8 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
 
   // Controllers untuk Pasien
   final _nikController = TextEditingController();
@@ -37,6 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   bool _obscureConfirmPassword = true;
   bool _obscurePasswordPasien = true;
   bool _obscureConfirmPasswordPasien = true;
+  bool _isLoading = false;
   String? _selectedJenisKelamin;
   String? _selectedJenisKelaminPasien;
 
@@ -44,6 +49,225 @@ class _RegisterScreenState extends State<RegisterScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+  }
+
+  // Validasi NIK unik
+  Future<bool> _isNikUnique(String nik) async {
+    final result = await _firestore
+        .collection('users')
+        .where('nik', isEqualTo: nik)
+        .limit(1)
+        .get();
+    return result.docs.isEmpty;
+  }
+
+  // Validasi kombinasi noKode + role unik (noKode boleh sama untuk family linking)
+  Future<bool> _isNoKodeRoleUnique(String noKode, String role) async {
+    final result = await _firestore
+        .collection('users')
+        .where('noKode', isEqualTo: noKode)
+        .where('role', isEqualTo: role)
+        .limit(1)
+        .get();
+    return result.docs.isEmpty;
+  }
+
+  // Register Pasien
+  Future<void> _registerPasien() async {
+    // Validasi form
+    if (_nikController.text.isEmpty ||
+        _noHpController.text.isEmpty ||
+        _noKodeController.text.isEmpty ||
+        _namaLengkapController.text.isEmpty ||
+        _alamatController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        _passwordPasienController.text.isEmpty ||
+        _confirmPasswordPasienController.text.isEmpty ||
+        _selectedJenisKelaminPasien == null) {
+      _showError('Mohon lengkapi semua field');
+      return;
+    }
+
+    // Validasi password
+    if (_passwordPasienController.text != _confirmPasswordPasienController.text) {
+      _showError('Password tidak cocok');
+      return;
+    }
+
+    if (_passwordPasienController.text.length < 6) {
+      _showError('Password minimal 6 karakter');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Cek NIK unik
+      final nikUnique = await _isNikUnique(_nikController.text);
+      if (!nikUnique) {
+        _showError('NIK sudah terdaftar');
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Cek kombinasi noKode + role unik (noKode boleh sama untuk family linking)
+      final noKodeRoleUnique = await _isNoKodeRoleUnique(_noKodeController.text, 'pasien');
+      if (!noKodeRoleUnique) {
+        _showError('Nomor Kode untuk Pasien sudah terdaftar');
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Register ke Firebase Auth
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordPasienController.text,
+      );
+
+      // Simpan data ke Firestore
+      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+        'uid': userCredential.user!.uid,
+        'nik': _nikController.text,
+        'noHp': '+62${_noHpController.text}',
+        'noKode': _noKodeController.text,
+        'namaLengkap': _namaLengkapController.text,
+        'alamat': _alamatController.text,
+        'email': _emailController.text.trim(),
+        'jenisKelamin': _selectedJenisKelaminPasien,
+        'role': 'pasien',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      setState(() => _isLoading = false);
+
+      // Navigate ke home
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const HomePasienScreen(),
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
+      if (e.code == 'email-already-in-use') {
+        _showError('Email sudah terdaftar');
+      } else if (e.code == 'invalid-email') {
+        _showError('Format email tidak valid');
+      } else if (e.code == 'weak-password') {
+        _showError('Password terlalu lemah');
+      } else {
+        _showError('Terjadi kesalahan: ${e.message}');
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showError('Terjadi kesalahan: $e');
+    }
+  }
+
+  // Register Keluarga
+  Future<void> _registerKeluarga() async {
+    // Validasi form
+    if (_nikKeluargaController.text.isEmpty ||
+        _noHpKeluargaController.text.isEmpty ||
+        _noKodeKeluargaController.text.isEmpty ||
+        _namaLengkapKeluargaController.text.isEmpty ||
+        _alamatKeluargaController.text.isEmpty ||
+        _emailKeluargaController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        _confirmPasswordController.text.isEmpty ||
+        _selectedJenisKelamin == null) {
+      _showError('Mohon lengkapi semua field');
+      return;
+    }
+
+    // Validasi password
+    if (_passwordController.text != _confirmPasswordController.text) {
+      _showError('Password tidak cocok');
+      return;
+    }
+
+    if (_passwordController.text.length < 6) {
+      _showError('Password minimal 6 karakter');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Cek NIK unik
+      final nikUnique = await _isNikUnique(_nikKeluargaController.text);
+      if (!nikUnique) {
+        _showError('NIK sudah terdaftar');
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Cek kombinasi noKode + role unik (noKode boleh sama untuk family linking)
+      final noKodeRoleUnique = await _isNoKodeRoleUnique(_noKodeKeluargaController.text, 'keluarga');
+      if (!noKodeRoleUnique) {
+        _showError('Nomor Kode untuk Keluarga sudah terdaftar');
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Register ke Firebase Auth
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: _emailKeluargaController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      // Simpan data ke Firestore
+      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+        'uid': userCredential.user!.uid,
+        'nik': _nikKeluargaController.text,
+        'noHp': '+62${_noHpKeluargaController.text}',
+        'noKode': _noKodeKeluargaController.text,
+        'namaLengkap': _namaLengkapKeluargaController.text,
+        'alamat': _alamatKeluargaController.text,
+        'email': _emailKeluargaController.text.trim(),
+        'jenisKelamin': _selectedJenisKelamin,
+        'role': 'keluarga',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      setState(() => _isLoading = false);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registrasi berhasil!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
+      if (e.code == 'email-already-in-use') {
+        _showError('Email sudah terdaftar');
+      } else if (e.code == 'invalid-email') {
+        _showError('Format email tidak valid');
+      } else if (e.code == 'weak-password') {
+        _showError('Password terlalu lemah');
+      } else {
+        _showError('Terjadi kesalahan: ${e.message}');
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showError('Terjadi kesalahan: $e');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
@@ -61,49 +285,62 @@ class _RegisterScreenState extends State<RegisterScreen>
         ),
         centerTitle: true,
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // Tab Bar
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF0F7),
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              indicator: BoxDecoration(
-                color: const Color(0xFFB83B7E),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              indicatorSize: TabBarIndicatorSize.tab,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.black38,
-              labelStyle: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-              tabs: const [Tab(text: 'Pasien'), Tab(text: 'Keluarga')],
-            ),
-          ),
-
-          // Tab Bar View
-          Expanded(
-            child: Stack(
-              children: [
-                TabBarView(
+          Column(
+            children: [
+              // Tab Bar
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF0F7),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: TabBar(
                   controller: _tabController,
-                  children: [_buildPasienForm(), _buildKeluargaForm()],
+                  indicator: BoxDecoration(
+                    color: const Color(0xFFB83B7E),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.black38,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                  tabs: const [Tab(text: 'Pasien'), Tab(text: 'Keluarga')],
                 ),
-                // Gambar abstrak pojok kiri bawah
-                Positioned(
-                  left: 0,
-                  bottom: 0,
-                  child: Image.asset('assets/12.png', width: 150),
+              ),
+
+              // Tab Bar View
+              Expanded(
+                child: Stack(
+                  children: [
+                    TabBarView(
+                      controller: _tabController,
+                      children: [_buildPasienForm(), _buildKeluargaForm()],
+                    ),
+                    // Gambar abstrak pojok kiri bawah
+                    Positioned(
+                      left: 0,
+                      bottom: 0,
+                      child: Image.asset('assets/12.png', width: 150),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.3),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFB83B7E)),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -309,15 +546,7 @@ class _RegisterScreenState extends State<RegisterScreen>
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
-              onPressed: () {
-                // Handle register pasien
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const HomePasienScreen(),
-                  ),
-                );
-              },
+              onPressed: _isLoading ? null : _registerPasien,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFB83B7E),
                 foregroundColor: Colors.white,
@@ -535,9 +764,7 @@ class _RegisterScreenState extends State<RegisterScreen>
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
-              onPressed: () {
-                // Handle register keluarga
-              },
+              onPressed: _isLoading ? null : _registerKeluarga,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFB83B7E),
                 foregroundColor: Colors.white,
