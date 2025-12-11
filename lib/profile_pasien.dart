@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:promedia_v2/ubah_password.dart';
 import 'package:promedia_v2/ubah_profile.dart';
@@ -47,19 +48,13 @@ class ProfilPasienScreen extends StatelessWidget {
               // Phone
               const Text(
                 '+62-8731 7318 324',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.white),
               ),
               const SizedBox(height: 4),
               // Kode
               const Text(
                 'No. Kode R25',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.white),
               ),
               const SizedBox(height: 16),
 
@@ -109,25 +104,19 @@ class ProfilPasienScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: _buildInfoCard(
-                                'Data Diri',
-                                [
-                                  InfoItem('NIK', '32**************23123'),
-                                  InfoItem('Alamat', 'Jl. Raya Cicalengka'),
-                                  InfoItem('Jenis Kelamin', 'Pria'),
-                                ],
-                              ),
+                              child: _buildInfoCard('Data Diri', [
+                                InfoItem('NIK', '32**************23123'),
+                                InfoItem('Alamat', 'Jl. Raya Cicalengka'),
+                                InfoItem('Jenis Kelamin', 'Pria'),
+                              ]),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _buildInfoCard(
-                                'Profil Kesehatan',
-                                [
-                                  InfoItem('Gula Darah Sewaktu', '220 mg/dL'),
-                                  InfoItem('HbA1c', '5,6 %'),
-                                  InfoItem('Olahraga', '30 menit (15 Agustus)'),
-                                ],
-                              ),
+                              child: _buildInfoCard('Profil Kesehatan', [
+                                InfoItem('Gula Darah Sewaktu', '220 mg/dL'),
+                                InfoItem('HbA1c', '5,6 %'),
+                                InfoItem('Olahraga', '30 menit (15 Agustus)'),
+                              ]),
                             ),
                           ],
                         ),
@@ -138,23 +127,29 @@ class ProfilPasienScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: _buildInfoCard(
-                                'Riwayat Makan',
-                                [
-                                  InfoItem('Pagi (07.30 WIB)', 'Nasi Kuning (250 kal)'),
-                                  InfoItem('Siang (14.30 WIB)', 'Nasi Putih (250 kal)'),
-                                ],
-                              ),
+                              child: _buildInfoCard('Riwayat Makan', [
+                                InfoItem(
+                                  'Pagi (07.30 WIB)',
+                                  'Nasi Kuning (250 kal)',
+                                ),
+                                InfoItem(
+                                  'Siang (14.30 WIB)',
+                                  'Nasi Putih (250 kal)',
+                                ),
+                              ]),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _buildInfoCard(
-                                'Riwayat Minum Obat',
-                                [
-                                  InfoItem('Pagi (07.30 WIB)', 'Metformin (2 Tablet)'),
-                                  InfoItem('Siang (14.30 WIB)', 'Insulin (2 Unit)'),
-                                ],
-                              ),
+                              child: _buildInfoCard('Riwayat Minum Obat', [
+                                InfoItem(
+                                  'Pagi (07.30 WIB)',
+                                  'Metformin (2 Tablet)',
+                                ),
+                                InfoItem(
+                                  'Siang (14.30 WIB)',
+                                  'Insulin (2 Unit)',
+                                ),
+                              ]),
                             ),
                           ],
                         ),
@@ -165,23 +160,17 @@ class ProfilPasienScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: _buildInfoCard(
-                                'Perawatan Kaki',
-                                [
-                                  InfoItem('Pagi (07.30 WIB)', 'Baik'),
-                                  InfoItem('Malam (19.30WIB)', 'Baik'),
-                                ],
-                              ),
+                              child: _buildInfoCard('Perawatan Kaki', [
+                                InfoItem('Pagi (07.30 WIB)', 'Baik'),
+                                InfoItem('Malam (19.30WIB)', 'Baik'),
+                              ]),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _buildInfoCard(
-                                'Manajemen Stres',
-                                [
-                                  InfoItem('Tekanan Darah', '140/80 mmHg'),
-                                  InfoItem('Kondisi', 'Baik'),
-                                ],
-                              ),
+                              child: _buildInfoCard('Manajemen Stres', [
+                                InfoItem('Tekanan Darah', '140/80 mmHg'),
+                                InfoItem('Kondisi', 'Baik'),
+                              ]),
                             ),
                           ],
                         ),
@@ -194,7 +183,8 @@ class ProfilPasienScreen extends StatelessWidget {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const UbahPasswordScreen(),
+                                  builder:
+                                      (context) => const UbahPasswordScreen(),
                                 ),
                               );
                             },
@@ -277,29 +267,25 @@ class ProfilPasienScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          ...items.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.label,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      item.value,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              )),
+          ...items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.label,
+                    style: const TextStyle(fontSize: 12, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.value,
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -308,27 +294,35 @@ class ProfilPasienScreen extends StatelessWidget {
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Keluar'),
-        content: const Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Navigate to login screen
-              Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFB83B7E),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Keluar'),
+            content: const Text(
+              'Apakah Anda yakin ingin keluar dari aplikasi?',
             ),
-            child: const Text('Keluar', style: TextStyle(color: Colors.white)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await FirebaseAuth.instance.signOut();
+                  // Navigator.pop(context);
+                  // // Navigate to login screen
+                  // Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFB83B7E),
+                ),
+                child: const Text(
+                  'Keluar',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }
