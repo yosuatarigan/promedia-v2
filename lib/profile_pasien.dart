@@ -1,13 +1,73 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:promedia_v2/ubah_password.dart';
-import 'package:promedia_v2/ubah_profile.dart';
+import 'package:intl/intl.dart';
 
-class ProfilPasienScreen extends StatelessWidget {
+class ProfilPasienScreen extends StatefulWidget {
   const ProfilPasienScreen({super.key});
 
   @override
+  State<ProfilPasienScreen> createState() => _ProfilPasienScreenState();
+}
+
+class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
+
+  Map<String, dynamic>? userData;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) return;
+
+      final userDoc =
+          await _firestore.collection('users').doc(currentUser.uid).get();
+
+      if (userDoc.exists) {
+        setState(() {
+          userData = userDoc.data();
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() => isLoading = false);
+      print('Error loading user data: $e');
+    }
+  }
+
+  String _maskNIK(String? nik) {
+    if (nik == null || nik.isEmpty) return '-';
+    if (nik.length < 6) return nik;
+    return '${nik.substring(0, 2)}${'*' * (nik.length - 4)}${nik.substring(nik.length - 2)}';
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFE040A0), Color(0xFFD070C0)],
+            ),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -28,17 +88,26 @@ class ProfilPasienScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 4),
-                  image: const DecorationImage(
-                    image: NetworkImage('https://i.pravatar.cc/150?img=12'),
-                    fit: BoxFit.cover,
-                  ),
+                  color: Colors.white,
                 ),
+                child: userData?['photoUrl'] != null
+                    ? ClipOval(
+                        child: Image.network(
+                          userData!['photoUrl'],
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.person,
+                                  size: 50, color: Color(0xFFB83B7E)),
+                        ),
+                      )
+                    : const Icon(Icons.person,
+                        size: 50, color: Color(0xFFB83B7E)),
               ),
               const SizedBox(height: 16),
               // Name
-              const Text(
-                'Alvi Riansyah',
-                style: TextStyle(
+              Text(
+                userData?['namaLengkap'] ?? 'User',
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -46,15 +115,15 @@ class ProfilPasienScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               // Phone
-              const Text(
-                '+62-8731 7318 324',
-                style: TextStyle(fontSize: 14, color: Colors.white),
+              Text(
+                userData?['noHp'] ?? '-',
+                style: const TextStyle(fontSize: 14, color: Colors.white),
               ),
               const SizedBox(height: 4),
               // Kode
-              const Text(
-                'No. Kode R25',
-                style: TextStyle(fontSize: 14, color: Colors.white),
+              Text(
+                'No. Kode ${userData?['noKode'] ?? '-'}',
+                style: const TextStyle(fontSize: 14, color: Colors.white),
               ),
               const SizedBox(height: 16),
 
@@ -77,11 +146,10 @@ class ProfilPasienScreen extends StatelessWidget {
                         // Ubah Button
                         TextButton.icon(
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const UbahProfilScreen(),
-                              ),
+                            // TODO: Navigate to edit profile
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Fitur edit profile')),
                             );
                           },
                           icon: const Text(
@@ -104,19 +172,11 @@ class ProfilPasienScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: _buildInfoCard('Data Diri', [
-                                InfoItem('NIK', '32**************23123'),
-                                InfoItem('Alamat', 'Jl. Raya Cicalengka'),
-                                InfoItem('Jenis Kelamin', 'Pria'),
-                              ]),
+                              child: _buildDataDiriCard(),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _buildInfoCard('Profil Kesehatan', [
-                                InfoItem('Gula Darah Sewaktu', '220 mg/dL'),
-                                InfoItem('HbA1c', '5,6 %'),
-                                InfoItem('Olahraga', '30 menit (15 Agustus)'),
-                              ]),
+                              child: _buildProfilKesehatanCard(),
                             ),
                           ],
                         ),
@@ -127,29 +187,11 @@ class ProfilPasienScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: _buildInfoCard('Riwayat Makan', [
-                                InfoItem(
-                                  'Pagi (07.30 WIB)',
-                                  'Nasi Kuning (250 kal)',
-                                ),
-                                InfoItem(
-                                  'Siang (14.30 WIB)',
-                                  'Nasi Putih (250 kal)',
-                                ),
-                              ]),
+                              child: _buildRiwayatMakanCard(),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _buildInfoCard('Riwayat Minum Obat', [
-                                InfoItem(
-                                  'Pagi (07.30 WIB)',
-                                  'Metformin (2 Tablet)',
-                                ),
-                                InfoItem(
-                                  'Siang (14.30 WIB)',
-                                  'Insulin (2 Unit)',
-                                ),
-                              ]),
+                              child: _buildRiwayatObatCard(),
                             ),
                           ],
                         ),
@@ -160,17 +202,11 @@ class ProfilPasienScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: _buildInfoCard('Perawatan Kaki', [
-                                InfoItem('Pagi (07.30 WIB)', 'Baik'),
-                                InfoItem('Malam (19.30WIB)', 'Baik'),
-                              ]),
+                              child: _buildPerawatanKakiCard(),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _buildInfoCard('Manajemen Stres', [
-                                InfoItem('Tekanan Darah', '140/80 mmHg'),
-                                InfoItem('Kondisi', 'Baik'),
-                              ]),
+                              child: _buildManajemenStressCard(),
                             ),
                           ],
                         ),
@@ -180,16 +216,14 @@ class ProfilPasienScreen extends StatelessWidget {
                         Center(
                           child: TextButton.icon(
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => const UbahPasswordScreen(),
-                                ),
+                              // TODO: Navigate to change password
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Fitur ubah password')),
                               );
                             },
                             icon: const Icon(
-                              Icons.edit,
+                              Icons.lock_outline,
                               color: Color(0xFFB83B7E),
                               size: 18,
                             ),
@@ -210,10 +244,7 @@ class ProfilPasienScreen extends StatelessWidget {
                             width: 200,
                             height: 50,
                             child: ElevatedButton.icon(
-                              onPressed: () {
-                                // Logout
-                                _showLogoutDialog(context);
-                              },
+                              onPressed: () => _showLogoutDialog(context),
                               icon: const Icon(
                                 Icons.logout,
                                 color: Colors.white,
@@ -248,7 +279,7 @@ class ProfilPasienScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard(String title, List<InfoItem> items) {
+  Widget _buildDataDiriCard() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -258,32 +289,313 @@ class ProfilPasienScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
+          const Text(
+            'Data Diri',
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Color(0xFFB83B7E),
             ),
           ),
           const SizedBox(height: 12),
-          ...items.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Column(
+          _buildInfoItem('NIK', _maskNIK(userData?['nik'])),
+          _buildInfoItem('Alamat', userData?['alamat'] ?? '-'),
+          _buildInfoItem('Jenis Kelamin', userData?['jenisKelamin'] ?? '-'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfilKesehatanCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF0F5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Profil Kesehatan',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFB83B7E),
+            ),
+          ),
+          const SizedBox(height: 12),
+          StreamBuilder<QuerySnapshot>(
+            stream: _firestore
+                .collection('food_logs')
+                .where('noKode', isEqualTo: userData?['noKode'])
+                .orderBy('tanggal', descending: true)
+                .limit(1)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                final latestFood =
+                    snapshot.data!.docs.first.data() as Map<String, dynamic>;
+                final totalCalories = latestFood['calories'] ?? 0;
+                final date = (latestFood['tanggal'] as Timestamp).toDate();
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildInfoItem(
+                      'Kalori Terakhir',
+                      '${totalCalories.toStringAsFixed(0)} kal',
+                    ),
+                    _buildInfoItem(
+                      'Tanggal',
+                      DateFormat('dd MMM yyyy').format(date),
+                    ),
+                    _buildInfoItem('Status', 'Aktif Monitoring'),
+                  ],
+                );
+              }
+              return _buildInfoItem('Status', 'Belum ada data');
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRiwayatMakanCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF0F5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Riwayat Makan',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFB83B7E),
+            ),
+          ),
+          const SizedBox(height: 12),
+          StreamBuilder<QuerySnapshot>(
+            stream: _firestore
+                .collection('food_logs')
+                .where('noKode', isEqualTo: userData?['noKode'])
+                .orderBy('tanggal', descending: true)
+                .limit(2)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return _buildInfoItem('Status', 'Belum ada data');
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: snapshot.data!.docs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final waktu = data['waktu'] ?? '';
+                  final jam = data['jam'] ?? '';
+                  final foodName = data['foodName'] ?? '';
+                  final calories = data['calories'] ?? 0;
+
+                  return _buildInfoItem(
+                    '$waktu ($jam WIB)',
+                    '$foodName (${calories.toStringAsFixed(0)} kal)',
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRiwayatObatCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF0F5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Riwayat Minum Obat',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFB83B7E),
+            ),
+          ),
+          const SizedBox(height: 12),
+          StreamBuilder<QuerySnapshot>(
+            stream: _firestore
+                .collection('medication_logs')
+                .where('noKode', isEqualTo: userData?['noKode'])
+                .orderBy('tanggal', descending: true)
+                .limit(2)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return _buildInfoItem('Status', 'Belum ada data');
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: snapshot.data!.docs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final waktu = data['waktu'] ?? '';
+                  final jam = data['jam'] ?? '';
+                  final jenisObat = data['jenisObat'] ?? '';
+                  final dosis = data['dosis'] ?? 0;
+                  final satuan = data['satuan'] ?? '';
+
+                  return _buildInfoItem(
+                    '$waktu ($jam WIB)',
+                    '$jenisObat ($dosis $satuan)',
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerawatanKakiCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF0F5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Perawatan Kaki',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFB83B7E),
+            ),
+          ),
+          const SizedBox(height: 12),
+          StreamBuilder<QuerySnapshot>(
+            stream: _firestore
+                .collection('foot_care_logs')
+                .where('noKode', isEqualTo: userData?['noKode'])
+                .orderBy('tanggal', descending: true)
+                .limit(2)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return _buildInfoItem('Status', 'Belum ada data');
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: snapshot.data!.docs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final jam = data['jam'] ?? '';
+                  final statusKondisi = data['statusKondisi'] ?? '';
+                  final date = (data['tanggal'] as Timestamp).toDate();
+                  final waktu = DateFormat('dd MMM').format(date);
+
+                  return _buildInfoItem(
+                    '$waktu ($jam WIB)',
+                    statusKondisi,
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildManajemenStressCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF0F5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Manajemen Stres',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFB83B7E),
+            ),
+          ),
+          const SizedBox(height: 12),
+          StreamBuilder<QuerySnapshot>(
+            stream: _firestore
+                .collection('stress_management_logs')
+                .where('noKode', isEqualTo: userData?['noKode'])
+                .orderBy('tanggal', descending: true)
+                .limit(1)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildInfoItem('Tekanan Darah', '-'),
+                    _buildInfoItem('Kondisi', 'Belum ada data'),
+                  ],
+                );
+              }
+
+              final data =
+                  snapshot.data!.docs.first.data() as Map<String, dynamic>;
+              final tekananDarah = data['tekananDarah'] ?? '-';
+              final statusStress = data['statusStress'] ?? '-';
+              final status = statusStress.split(' - ')[0]; // Ambil status saja
+
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.label,
-                    style: const TextStyle(fontSize: 12, color: Colors.black87),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item.value,
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
+                  _buildInfoItem('Tekanan Darah', '$tekananDarah mmHg'),
+                  _buildInfoItem('Kondisi', status),
                 ],
-              ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: Colors.black87),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black54,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -294,42 +606,32 @@ class ProfilPasienScreen extends StatelessWidget {
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Keluar'),
-            content: const Text(
-              'Apakah Anda yakin ingin keluar dari aplikasi?',
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Keluar'),
+        content: const Text(
+          'Apakah Anda yakin ingin keluar dari aplikasi?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ), 
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _auth.signOut();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB83B7E),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Batal'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await FirebaseAuth.instance.signOut();
-                  // Navigator.pop(context);
-                  // // Navigate to login screen
-                  // Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFB83B7E),
-                ),
-                child: const Text(
-                  'Keluar',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
+            child: const Text(
+              'Keluar',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
+        ],
+      ),
     );
   }
-}
-
-class InfoItem {
-  final String label;
-  final String value;
-
-  InfoItem(this.label, this.value);
 }
