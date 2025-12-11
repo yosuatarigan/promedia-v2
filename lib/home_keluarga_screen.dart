@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:promedia_v2/detail_manajemen_screen.dart';
 import 'package:promedia_v2/edukasi_diabetes.dart';
 import 'package:promedia_v2/manajemen_stress.dart';
@@ -23,6 +25,8 @@ class HomeKeluargaScreen extends StatefulWidget {
 
 class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
   int _selectedIndex = 0;
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
 
   @override
   void didChangeDependencies() {
@@ -32,6 +36,29 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
     precacheImage(const AssetImage('assets/22.png'), context);
     precacheImage(const AssetImage('assets/23.png'), context);
     precacheImage(const AssetImage('assets/24.png'), context);
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Pagi';
+    } else if (hour < 15) {
+      return 'Siang';
+    } else if (hour < 18) {
+      return 'Sore';
+    } else {
+      return 'Malam';
+    }
+  }
+
+  String _getInitials(String name) {
+    List<String> names = name.trim().split(' ');
+    if (names.length >= 2) {
+      return '${names[0][0]}${names[1][0]}'.toUpperCase();
+    } else if (names.isNotEmpty) {
+      return names[0][0].toUpperCase();
+    }
+    return '?';
   }
 
   @override
@@ -52,6 +79,8 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
 
   // BERANDA PAGE
   Widget _buildBerandaPage() {
+    final currentUser = _auth.currentUser;
+
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -63,109 +92,164 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
       child: SafeArea(
         child: Column(
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  // Profile Picture
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      image: const DecorationImage(
-                        image: NetworkImage('https://i.pravatar.cc/150?img=12'),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Greeting Text
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Pagi, Bapak Alvi Riansyah',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+            // Header with StreamBuilder
+            StreamBuilder<DocumentSnapshot>(
+              stream: currentUser != null
+                  ? _firestore
+                      .collection('users')
+                      .doc(currentUser.uid)
+                      .snapshots()
+                  : null,
+              builder: (context, snapshot) {
+                // Default values
+                String namaLengkap = 'User';
+                String? photoUrl;
+                String jenisKelamin = 'Laki-laki';
+
+                if (snapshot.hasData && snapshot.data!.exists) {
+                  final userData = snapshot.data!.data() as Map<String, dynamic>;
+                  namaLengkap = userData['namaLengkap'] ?? 'User';
+                  photoUrl = userData['photoUrl'];
+                  jenisKelamin = userData['jenisKelamin'] ?? 'Laki-laki';
+                }
+
+                // Tentukan sapaan berdasarkan jenis kelamin
+                String title = jenisKelamin == 'Laki-laki' ? 'Bapak' : 'Ibu';
+
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      // Profile Picture
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: const Color(0xFFB83B7E),
                         ),
-                        const SizedBox(height: 4),
-                        Row(
+                        child: photoUrl != null && photoUrl.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  photoUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Center(
+                                      child: Text(
+                                        _getInitials(namaLengkap),
+                                        style: const TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                            : Center(
+                                child: Text(
+                                  _getInitials(namaLengkap),
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Greeting Text
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Anda punya ',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white,
-                              ),
-                            ),
                             Text(
-                              '10',
-                              style: TextStyle(
-                                fontSize: 14,
+                              '${_getGreeting()}, $title $namaLengkap',
+                              style: const TextStyle(
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.red.shade700,
+                                color: Colors.white,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Text(
+                                  'Anda punya ',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  '10',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red.shade700,
+                                  ),
+                                ),
+                                const Text(
+                                  ' aktivitas',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Notification Icon
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const NotifikasiScreen(),
+                            ),
+                          );
+                        },
+                        child: Stack(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.yellow.shade600,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.notifications,
+                                color: Colors.white,
+                                size: 28,
                               ),
                             ),
-                            const Text(
-                              ' aktivitas',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white,
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                  border:
+                                      Border.all(color: Colors.white, width: 2),
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  // Notification Icon
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NotifikasiScreen(),
-                        ),
-                      );
-                    },
-                    child: Stack(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.yellow.shade600,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.notifications,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ),
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
 
             // Main Content
@@ -185,48 +269,7 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Aktivitas Saya Hari Ini
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Text(
-                          'Aktivitas Saya Hari Ini',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(color: Colors.black87),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        height: 140,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          children: [
-                            _buildActivityCard(
-                              'assets/21.png',
-                              'Makan',
-                              hasNotification: true,
-                            ),
-                            const SizedBox(width: 16),
-                            _buildActivityCard(
-                              'assets/22.png',
-                              'Minum Obat',
-                              hasNotification: true,
-                            ),
-                            const SizedBox(width: 16),
-                            _buildActivityCard(
-                              'assets/23.png',
-                              'Perawatan Kaki',
-                              hasNotification: true,
-                            ),
-                            const SizedBox(width: 16),
-                            _buildActivityCard(
-                              'assets/24.png',
-                              'Manajemen Stress',
-                              hasNotification: true,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                     
 
                       // Program Manajemen Diabetes
                       Padding(
@@ -236,20 +279,20 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                           children: [
                             Text(
                               'Materi Edukasi Diabetes Melitus',
-                              style: Theme.of(context).textTheme.headlineSmall
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
                                   ?.copyWith(color: Colors.black87),
                             ),
                             const SizedBox(height: 16),
                             InkWell(
-                              onTap:
-                                  () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) =>
-                                              const DiabetesEducationPage(),
-                                    ),
-                                  ),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const DiabetesEducationPage(),
+                                ),
+                              ),
                               child: _buildProgramCard(
                                 'assets/25.png',
                                 'Pengelolaan\nDiabetes',
@@ -260,7 +303,9 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                             // Catatan - Horizontal Scroll
                             Text(
                               'Catatan Kesehatan',
-                              style: Theme.of(context).textTheme.headlineSmall
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
                                   ?.copyWith(color: Colors.black87),
                             ),
                             const SizedBox(height: 16),

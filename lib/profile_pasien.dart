@@ -16,8 +16,10 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
-  Map<String, dynamic>? userData;
+  Map<String, dynamic>? userData; // Data profile yang ditampilkan
+  Map<String, dynamic>? currentUserData; // Data user yang login
   bool isLoading = true;
+  bool isViewingOwnProfile = true; // Apakah sedang lihat profile sendiri
 
   @override
   void initState() {
@@ -30,17 +32,56 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
       final currentUser = _auth.currentUser;
       if (currentUser == null) return;
 
+      // Load data user yang login
       final userDoc =
           await _firestore.collection('users').doc(currentUser.uid).get();
 
-      if (userDoc.exists) {
+      if (!userDoc.exists) return;
+
+      final currentUserInfo = userDoc.data()!;
+      final userRole = currentUserInfo['role'] ?? '';
+      final noKode = currentUserInfo['noKode'] ?? '';
+
+      Map<String, dynamic>? profileData;
+
+      if (userRole == 'Pasien') {
+        // Jika Pasien, tampilkan data sendiri
+        profileData = currentUserInfo;
+        isViewingOwnProfile = true;
+      } else if (userRole == 'Keluarga') {
+        // Jika Keluarga, cari data Pasien dengan noKode yang sama
+        final pasienQuery = await _firestore
+            .collection('users')
+            .where('noKode', isEqualTo: noKode)
+            .where('role', isEqualTo: 'Pasien')
+            .limit(1)
+            .get();
+
+        if (pasienQuery.docs.isNotEmpty) {
+          profileData = pasienQuery.docs.first.data();
+          isViewingOwnProfile = false; // Keluarga lihat profile pasien
+        } else {
+          // Jika tidak ada pasien, tampilkan data keluarga sendiri
+          profileData = currentUserInfo;
+          isViewingOwnProfile = true;
+        }
+      } else {
+        // Role lain, tampilkan data sendiri
+        profileData = currentUserInfo;
+        isViewingOwnProfile = true;
+      }
+
+      if (mounted) {
         setState(() {
-          userData = userDoc.data();
+          userData = profileData;
+          currentUserData = currentUserInfo;
           isLoading = false;
         });
       }
     } catch (e) {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
       print('Error loading user data: $e');
     }
   }
@@ -127,6 +168,34 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                 'No. Kode ${userData?['noKode'] ?? '-'}',
                 style: const TextStyle(fontSize: 14, color: Colors.white),
               ),
+              // Indicator jika keluarga melihat profil pasien
+              if (!isViewingOwnProfile) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.visibility, color: Colors.white, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Profil Pasien: ${userData?['namaLengkap'] ?? 'User'}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
 
               // Main Content
@@ -145,32 +214,62 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        // Ubah Button
-                        TextButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const UbahProfilScreen(),
+                        // Ubah Button - hanya untuk profile sendiri
+                        if (isViewingOwnProfile)
+                          TextButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const UbahProfilScreen(),
+                                ),
+                              ).then((_) {
+                                // Reload data after return from edit screen
+                                _loadUserData();
+                              });
+                            },
+                            icon: const Text(
+                              'ubah',
+                              style: TextStyle(
+                                color: Color(0xFFB83B7E),
+                                fontWeight: FontWeight.w600,
                               ),
-                            ).then((_) {
-                              // Reload data after return from edit screen
-                              _loadUserData();
-                            });
-                          },
-                          icon: const Text(
-                            'ubah',
-                            style: TextStyle(
+                            ),
+                            label: const Icon(
+                              Icons.edit,
                               color: Color(0xFFB83B7E),
-                              fontWeight: FontWeight.w600,
+                              size: 18,
                             ),
                           ),
-                          label: const Icon(
-                            Icons.edit,
-                            color: Color(0xFFB83B7E),
-                            size: 18,
+                        
+                        // Info jika keluarga melihat profil pasien
+                        if (!isViewingOwnProfile)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.blue.shade200),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.info_outline,
+                                    size: 16, color: Colors.blue.shade700),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Mode Lihat Saja',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue.shade700,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
                         const SizedBox(height: 8),
 
                         // Row 1: Data Diri & Profil Kesehatan
@@ -218,33 +317,34 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Ubah Password
-                        Center(
-                          child: TextButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const UbahPasswordScreen(),
-                                ),
-                              );
-                            },
-                            icon: const Icon(
-                              Icons.lock_outline,
-                              color: Color(0xFFB83B7E),
-                              size: 18,
-                            ),
-                            label: const Text(
-                              'Ubah Password',
-                              style: TextStyle(
+                        // Ubah Password - hanya untuk profile sendiri
+                        if (isViewingOwnProfile)
+                          Center(
+                            child: TextButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const UbahPasswordScreen(),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(
+                                Icons.lock_outline,
                                 color: Color(0xFFB83B7E),
-                                fontWeight: FontWeight.w600,
+                                size: 18,
+                              ),
+                              label: const Text(
+                                'Ubah Password',
+                                style: TextStyle(
+                                  color: Color(0xFFB83B7E),
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
+                        if (isViewingOwnProfile) const SizedBox(height: 16),
 
                         // Keluar Button
                         Center(
