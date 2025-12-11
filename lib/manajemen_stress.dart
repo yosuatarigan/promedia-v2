@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class ManajemenStressScreen extends StatefulWidget {
   const ManajemenStressScreen({super.key});
@@ -8,8 +11,16 @@ class ManajemenStressScreen extends StatefulWidget {
 }
 
 class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
+  bool _isLoading = false;
+
   final TextEditingController _tekananDarahController = TextEditingController();
   String? selectedPerasaan;
+
+  // Tanggal dan waktu observasi
+  DateTime selectedDate = DateTime.now();
+  TimeOfDay selectedJam = TimeOfDay.now();
 
   final List<String> daftarPerasaan = [
     'Perasaan Senang',
@@ -30,7 +41,34 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
     super.dispose();
   }
 
-  void _simpanData() {
+  Future<void> _selectDateTime() async {
+    // Pilih tanggal
+    final date = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+
+    if (date != null) {
+      // Pilih jam
+      if (mounted) {
+        final time = await showTimePicker(
+          context: context,
+          initialTime: selectedJam,
+        );
+
+        if (time != null) {
+          setState(() {
+            selectedDate = date;
+            selectedJam = time;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _simpanData() async {
     if (_tekananDarahController.text.isEmpty || selectedPerasaan == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -44,8 +82,79 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
     // Hitung skor stress
     _skorStress = _hitungSkorStress();
 
-    // Tampilkan dialog hasil
-    _showHasilDialog();
+    setState(() => _isLoading = true);
+
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        _showError('User tidak ditemukan');
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Ambil noKode user dari Firestore
+      final userDoc =
+          await _firestore.collection('users').doc(currentUser.uid).get();
+
+      if (!userDoc.exists) {
+        _showError('Data user tidak ditemukan');
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final userData = userDoc.data()!;
+      final noKode = userData['noKode'] as String;
+      final namaLengkap = userData['namaLengkap'] as String;
+      final role = userData['role'] as String;
+
+      // Gabungkan tanggal dan jam
+      final dateTime = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        selectedJam.hour,
+        selectedJam.minute,
+      );
+
+      // Simpan ke Firestore (top-level collection)
+      await _firestore.collection('stress_management_logs').add({
+        'userId': currentUser.uid,
+        'noKode': noKode,
+        'userName': namaLengkap,
+        'userRole': role,
+        'tekananDarah': _tekananDarahController.text.trim(),
+        'perasaan': selectedPerasaan,
+        'skorStress': _skorStress,
+        'statusStress': _getStatusStress(),
+        'deskripsiObservasi': _getDeskripsiObservasi(),
+        'analisaTekananDarah': _getAnalisaTekananDarah(),
+        'analisisPerasaan': _getAnalisisPerasaan(),
+        'rekomendasi': _getRekomendasi(),
+        'tanggal': Timestamp.fromDate(dateTime),
+        'jam':
+            '${selectedJam.hour.toString().padLeft(2, '0')}:${selectedJam.minute.toString().padLeft(2, '0')}',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      setState(() => _isLoading = false);
+
+      if (mounted) {
+        // Tampilkan dialog hasil
+        _showHasilDialog();
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showError('Terjadi kesalahan: $e');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   int _hitungSkorStress() {
@@ -694,99 +803,166 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Silahkan lengkapi form dibawah ini untuk melakukan pencatatan management stress',
-              style: TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
-            ),
-            const SizedBox(height: 24),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Info
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.blue.shade700),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Lengkapi form untuk monitoring stress dan kesehatan mental Anda',
+                          style: TextStyle(fontSize: 13, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-            // Tekanan Darah
-            const Text(
-              'Tekanan Darah :',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFCE4EC),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                // Tanggal & Waktu Observasi
+                const Text(
+                  'Tanggal & Waktu Observasi',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: _selectDateTime,
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFB83B7E),
-                      borderRadius: BorderRadius.circular(20),
+                      color: const Color(0xFFFCE4EC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: const Color(0xFFB83B7E).withOpacity(0.2)),
                     ),
-                    child: const Text(
-                      'mmHg',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today,
+                            color: Color(0xFFB83B7E), size: 20),
+                        const SizedBox(width: 12),
+                        Text(
+                          '${DateFormat('dd MMM yyyy').format(selectedDate)} - ${selectedJam.hour.toString().padLeft(2, '0')}:${selectedJam.minute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Tekanan Darah
+                const Text(
+                  'Tekanan Darah :',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFCE4EC),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFB83B7E),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'mmHg',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _tekananDarahController,
+                          keyboardType: TextInputType.text,
+                          decoration: const InputDecoration(
+                            hintText: 'Contoh: 120/80',
+                            hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Perasaan
+                const Text(
+                  'Apa yang Anda rasakan saat ini ?',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 12),
+                ...daftarPerasaan.map((perasaan) => _buildRadioOption(perasaan)),
+                const SizedBox(height: 32),
+
+                // Tombol Simpan
+                Center(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _simpanData,
+                    icon: const Icon(Icons.save, color: Colors.white),
+                    label: const Text(
+                      'Simpan Observasi',
                       style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                         color: Colors.white,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _tekananDarahController,
-                      keyboardType: TextInputType.text,
-                      decoration: const InputDecoration(
-                        hintText: 'Contoh: 120/80',
-                        hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 8),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFB83B7E),
+                      disabledBackgroundColor: Colors.grey.shade300,
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
                       ),
+                      elevation: 4,
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Perasaan
-            const Text(
-              'Apa yang Anda rasakan saat ini ?',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 12),
-            ...daftarPerasaan.map((perasaan) => _buildRadioOption(perasaan)),
-            const SizedBox(height: 32),
-
-            // Tombol Simpan
-            Center(
-              child: ElevatedButton(
-                onPressed: _simpanData,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFB83B7E),
-                  padding: const EdgeInsets.symmetric(horizontal: 56, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  elevation: 2,
                 ),
-                child: const Text(
-                  'Simpan',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.3),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(Color(0xFFB83B7E)),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-          ],
-        ),
+        ],
       ),
     );
   }
