@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "501470008135",
+    "project_id": "app-jarak-penentu",
+    "storage_bucket": "app-jarak-penentu.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:501470008135:android:9cb5deb02a8c2c0ca7b262",
+        "android_client_info": {
+          "package_name": "com.example.promedia_v2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTuPlCFTSDZ9EeQ523fm-l9nlbb6vEJ2c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
