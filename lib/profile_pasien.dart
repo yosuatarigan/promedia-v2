@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:promedia_v2/ubah_password.dart';
+import 'package:promedia_v2/ubah_profile.dart';
 
 class ProfilPasienScreen extends StatefulWidget {
   const ProfilPasienScreen({super.key});
@@ -146,11 +148,15 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                         // Ubah Button
                         TextButton.icon(
                           onPressed: () {
-                            // TODO: Navigate to edit profile
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Fitur edit profile')),
-                            );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const UbahProfilScreen(),
+                              ),
+                            ).then((_) {
+                              // Reload data after return from edit screen
+                              _loadUserData();
+                            });
                           },
                           icon: const Text(
                             'ubah',
@@ -216,10 +222,12 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                         Center(
                           child: TextButton.icon(
                             onPressed: () {
-                              // TODO: Navigate to change password
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Fitur ubah password')),
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const UbahPasswordScreen(),
+                                ),
                               );
                             },
                             icon: const Icon(
@@ -616,7 +624,7 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Batal'),
-          ), 
+          ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
