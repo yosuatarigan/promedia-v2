@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:promedia_v2/detail_latihan_fisik.dart';
 import 'package:promedia_v2/detail_manajemen_screen.dart';
 import 'package:promedia_v2/edukasi_diabetes.dart';
 import 'package:promedia_v2/manajemen_stress.dart';
@@ -94,12 +95,13 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
           children: [
             // Header with StreamBuilder
             StreamBuilder<DocumentSnapshot>(
-              stream: currentUser != null
-                  ? _firestore
-                      .collection('users')
-                      .doc(currentUser.uid)
-                      .snapshots()
-                  : null,
+              stream:
+                  currentUser != null
+                      ? _firestore
+                          .collection('users')
+                          .doc(currentUser.uid)
+                          .snapshots()
+                      : null,
               builder: (context, snapshot) {
                 // Default values
                 String namaLengkap = 'User';
@@ -107,7 +109,8 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                 String jenisKelamin = 'Laki-laki';
 
                 if (snapshot.hasData && snapshot.data!.exists) {
-                  final userData = snapshot.data!.data() as Map<String, dynamic>;
+                  final userData =
+                      snapshot.data!.data() as Map<String, dynamic>;
                   namaLengkap = userData['namaLengkap'] ?? 'User';
                   photoUrl = userData['photoUrl'];
                   jenisKelamin = userData['jenisKelamin'] ?? 'Laki-laki';
@@ -128,36 +131,37 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                           borderRadius: BorderRadius.circular(12),
                           color: const Color(0xFFB83B7E),
                         ),
-                        child: photoUrl != null && photoUrl.isNotEmpty
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.network(
-                                  photoUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Center(
-                                      child: Text(
-                                        _getInitials(namaLengkap),
-                                        style: const TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                        child:
+                            photoUrl != null && photoUrl.isNotEmpty
+                                ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.network(
+                                    photoUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Center(
+                                        child: Text(
+                                          _getInitials(namaLengkap),
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              )
-                            : Center(
-                                child: Text(
-                                  _getInitials(namaLengkap),
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                      );
+                                    },
+                                  ),
+                                )
+                                : Center(
+                                  child: Text(
+                                    _getInitials(namaLengkap),
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
-                              ),
                       ),
                       const SizedBox(width: 12),
                       // Greeting Text
@@ -238,8 +242,10 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                                 decoration: BoxDecoration(
                                   color: Colors.red,
                                   shape: BoxShape.circle,
-                                  border:
-                                      Border.all(color: Colors.white, width: 2),
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
                                 ),
                               ),
                             ),
@@ -273,9 +279,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Text(
                           'Aktivitas Saya Hari Ini',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
+                          style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(color: Colors.black87),
                         ),
                       ),
@@ -309,6 +313,12 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                               'Manajemen Stress',
                               hasNotification: true,
                             ),
+                            const SizedBox(width: 16),
+                            _buildActivityCard(
+                              'assets/exercise.png',
+                              'Latihan Fisik',
+                              hasNotification: true,
+                            ),
                           ],
                         ),
                       ),
@@ -322,20 +332,20 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                           children: [
                             Text(
                               'Materi Edukasi Diabetes Melitus',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
+                              style: Theme.of(context).textTheme.headlineSmall
                                   ?.copyWith(color: Colors.black87),
                             ),
                             const SizedBox(height: 16),
                             InkWell(
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const DiabetesEducationPage(),
-                                ),
-                              ),
+                              onTap:
+                                  () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) =>
+                                              const DiabetesEducationPage(),
+                                    ),
+                                  ),
                               child: _buildProgramCard(
                                 'assets/25.png',
                                 'Pengelolaan\nDiabetes',
@@ -346,9 +356,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                             // Catatan - Horizontal Scroll
                             Text(
                               'Catatan Kesehatan',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
+                              style: Theme.of(context).textTheme.headlineSmall
                                   ?.copyWith(color: Colors.black87),
                             ),
                             const SizedBox(height: 16),
@@ -514,6 +522,21 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                             );
                           },
                         ),
+                        _buildRiwayatCard(
+                          'assets/exercise.png',
+                          'Latihan Fisik',
+                          true,
+                          () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const DetailLatihanFisikScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        
                       ],
                     ),
                   ],
@@ -568,6 +591,11 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
             MaterialPageRoute(
               builder: (context) => const ManajemenStressScreen(),
             ),
+          );
+        } else if (title == 'Latihan Fisik') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const LatihanFisikScreen()),
           );
         }
       },

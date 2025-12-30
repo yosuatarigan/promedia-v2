@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:promedia_v2/detail_latihan_fisik.dart';
 import 'package:promedia_v2/detail_manajemen_screen.dart';
 import 'detail_makan_screen.dart';
 import 'detail_minum_obat_screen.dart';
@@ -17,9 +18,9 @@ class RiwayatAktivitasScreen extends StatelessWidget {
         centerTitle: true,
         title: Text(
           'Aktivitas Anda',
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Colors.black87,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(color: Colors.black87),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
@@ -102,7 +103,23 @@ class RiwayatAktivitasScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const DetailManajemenStressScreen(),
+                        builder:
+                            (context) => const DetailManajemenStressScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildActivityCard(
+                  context,
+                  'assets/exercise.png',
+                  'Latihan Fisik',
+                  hasNotification: true,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => const DetailLatihanFisikScreen(),
                       ),
                     );
                   },
@@ -144,11 +161,7 @@ class RiwayatAktivitasScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  iconPath,
-                  height: 80,
-                  fit: BoxFit.contain,
-                ),
+                Image.asset(iconPath, height: 80, fit: BoxFit.contain),
                 const SizedBox(height: 16),
                 Text(
                   title,
