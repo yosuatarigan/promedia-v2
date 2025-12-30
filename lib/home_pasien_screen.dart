@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:promedia_v2/catatan_hba1c.dart';
 import 'package:promedia_v2/detail_latihan_fisik.dart';
 import 'package:promedia_v2/detail_manajemen_screen.dart';
 import 'package:promedia_v2/edukasi_diabetes.dart';
@@ -372,7 +373,18 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                               },
                             ),
                             const SizedBox(width: 16),
-                            _buildChartCard('HbA1c', _buildHbA1cChart()),
+                            _buildChartCardWithTap(
+                              'HbA1c',
+                              _buildHbA1cChart(),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const CatatanHbA1cScreen(),
+                                  ),
+                                );
+                              },
+                            ),
                             const SizedBox(width: 16),
                             _buildChartCard(
                               'Olahraga Harian',
@@ -907,88 +919,132 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
   }
 
   Widget _buildHbA1cChart() {
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          horizontalInterval: 2,
-          getDrawingHorizontalLine: (value) {
-            return FlLine(color: Colors.grey.shade300, strokeWidth: 1);
-          },
-        ),
-        titlesData: FlTitlesData(
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: 2,
-              reservedSize: 40,
-              getTitlesWidget: (value, meta) {
-                return Text(
-                  value.toInt().toString(),
-                  style: const TextStyle(fontSize: 10),
-                );
-              },
-            ),
-          ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                const dates = [
-                  '15 Agustus',
-                  '16 Agustus',
-                  '17 Agustus',
-                  '18 Agustus',
-                  '19 Agustus',
-                  '20 Agustus',
-                  '21 Agustus',
-                ];
-                if (value.toInt() >= 0 && value.toInt() < dates.length) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      dates[value.toInt()],
-                      style: const TextStyle(fontSize: 8),
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      return const Center(child: Text('Login terlebih dahulu'));
+    }
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _firestore.collection('users').doc(currentUser.uid).snapshots(),
+      builder: (context, userSnapshot) {
+        if (!userSnapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final noKode = userSnapshot.data?.get('noKode') ?? '';
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: _firestore
+              .collection('hba1c_logs')
+              .where('noKode', isEqualTo: noKode)
+              .orderBy('tanggal', descending: false)
+              .limit(7)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Center(
+                child: Text(
+                  'Belum ada data HbA1c.\nTap untuk menambah data.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              );
+            }
+
+            final docs = snapshot.data!.docs;
+            final List<FlSpot> spots = [];
+            final List<String> dates = [];
+
+            for (int i = 0; i < docs.length; i++) {
+              final data = docs[i].data() as Map<String, dynamic>;
+              final nilaiHbA1c = (data['nilaiHbA1c'] ?? 0).toDouble();
+              final tanggal = (data['tanggal'] as Timestamp).toDate();
+              
+              spots.add(FlSpot(i.toDouble(), nilaiHbA1c));
+              dates.add(DateFormat('dd MMM').format(tanggal));
+            }
+
+            return LineChart(
+              LineChartData(
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: 2,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(color: Colors.grey.shade300, strokeWidth: 1);
+                  },
+                ),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 2,
+                      reservedSize: 40,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          value.toInt().toString(),
+                          style: const TextStyle(fontSize: 10),
+                        );
+                      },
                     ),
-                  );
-                }
-                return const Text('');
-              },
-            ),
-          ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-        ),
-        borderData: FlBorderData(show: false),
-        minX: 0,
-        maxX: 6,
-        minY: 0,
-        maxY: 10,
-        lineBarsData: [
-          LineChartBarData(
-            spots: [
-              const FlSpot(0, 6),
-              const FlSpot(1, 5),
-              const FlSpot(2, 9),
-              const FlSpot(3, 5.5),
-              const FlSpot(4, 6),
-              const FlSpot(5, 7.5),
-              const FlSpot(6, 8),
-            ],
-            isCurved: true,
-            color: const Color(0xFF4DD0E1),
-            barWidth: 3,
-            dotData: const FlDotData(show: true),
-            belowBarData: BarAreaData(show: false),
-          ),
-        ],
-      ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        if (value.toInt() >= 0 && value.toInt() < dates.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              dates[value.toInt()],
+                              style: const TextStyle(fontSize: 8),
+                            ),
+                          );
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                minX: 0,
+                maxX: (spots.length - 1).toDouble(),
+                minY: 0,
+                maxY: 12,
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    color: const Color(0xFF4DD0E1),
+                    barWidth: 3,
+                    dotData: const FlDotData(show: true),
+                    belowBarData: BarAreaData(show: false),
+                  ),
+                ],
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipItems: (touchedSpots) {
+                      return touchedSpots.map((spot) {
+                        return LineTooltipItem(
+                          '${spot.y.toStringAsFixed(1)}%',
+                          const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
