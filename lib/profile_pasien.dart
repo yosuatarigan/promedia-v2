@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:promedia_v2/kebutuhan_kalori.dart';
 import 'package:promedia_v2/ubah_password.dart';
 import 'package:promedia_v2/ubah_profile.dart';
 
@@ -16,10 +17,10 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
-  Map<String, dynamic>? userData; // Data profile yang ditampilkan
-  Map<String, dynamic>? currentUserData; // Data user yang login
+  Map<String, dynamic>? userData;
+  Map<String, dynamic>? currentUserData;
   bool isLoading = true;
-  bool isViewingOwnProfile = true; // Apakah sedang lihat profile sendiri
+  bool isViewingOwnProfile = true;
 
   @override
   void initState() {
@@ -32,7 +33,6 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
       final currentUser = _auth.currentUser;
       if (currentUser == null) return;
 
-      // Load data user yang login
       final userDoc =
           await _firestore.collection('users').doc(currentUser.uid).get();
 
@@ -45,11 +45,9 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
       Map<String, dynamic>? profileData;
 
       if (userRole == 'Pasien') {
-        // Jika Pasien, tampilkan data sendiri
         profileData = currentUserInfo;
         isViewingOwnProfile = true;
       } else if (userRole == 'Keluarga') {
-        // Jika Keluarga, cari data Pasien dengan noKode yang sama
         final pasienQuery = await _firestore
             .collection('users')
             .where('noKode', isEqualTo: noKode)
@@ -59,14 +57,12 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
 
         if (pasienQuery.docs.isNotEmpty) {
           profileData = pasienQuery.docs.first.data();
-          isViewingOwnProfile = false; // Keluarga lihat profile pasien
+          isViewingOwnProfile = false;
         } else {
-          // Jika tidak ada pasien, tampilkan data keluarga sendiri
           profileData = currentUserInfo;
           isViewingOwnProfile = true;
         }
       } else {
-        // Role lain, tampilkan data sendiri
         profileData = currentUserInfo;
         isViewingOwnProfile = true;
       }
@@ -124,7 +120,6 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
           child: Column(
             children: [
               const SizedBox(height: 20),
-              // Profile Photo
               Container(
                 width: 100,
                 height: 100,
@@ -147,7 +142,6 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                         size: 50, color: Color(0xFFB83B7E)),
               ),
               const SizedBox(height: 16),
-              // Name
               Text(
                 userData?['namaLengkap'] ?? 'User',
                 style: const TextStyle(
@@ -157,18 +151,15 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              // Phone
               Text(
                 userData?['noHp'] ?? '-',
                 style: const TextStyle(fontSize: 14, color: Colors.white),
               ),
               const SizedBox(height: 4),
-              // Kode
               Text(
                 'No. Kode ${userData?['noKode'] ?? '-'}',
                 style: const TextStyle(fontSize: 14, color: Colors.white),
               ),
-              // Indicator jika keluarga melihat profil pasien
               if (!isViewingOwnProfile) ...[
                 const SizedBox(height: 8),
                 Container(
@@ -198,7 +189,6 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
               ],
               const SizedBox(height: 16),
 
-              // Main Content
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -214,7 +204,6 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        // Ubah Button - hanya untuk profile sendiri
                         if (isViewingOwnProfile)
                           TextButton.icon(
                             onPressed: () {
@@ -225,7 +214,6 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                                       const UbahProfilScreen(),
                                 ),
                               ).then((_) {
-                                // Reload data after return from edit screen
                                 _loadUserData();
                               });
                             },
@@ -243,7 +231,6 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                             ),
                           ),
                         
-                        // Info jika keluarga melihat profil pasien
                         if (!isViewingOwnProfile)
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -272,7 +259,6 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                           ),
                         const SizedBox(height: 8),
 
-                        // Row 1: Data Diri & Profil Kesehatan
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -287,7 +273,6 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Row 2: Riwayat Makan & Riwayat Minum Obat
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -302,7 +287,6 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Row 3: Perawatan Kaki & Manajemen Stres
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -317,7 +301,6 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Ubah Password - hanya untuk profile sendiri
                         if (isViewingOwnProfile)
                           Center(
                             child: TextButton.icon(
@@ -346,7 +329,6 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                           ),
                         if (isViewingOwnProfile) const SizedBox(height: 16),
 
-                        // Keluar Button
                         Center(
                           child: SizedBox(
                             width: 200,
@@ -415,6 +397,8 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
   }
 
   Widget _buildProfilKesehatanCard() {
+    final kebutuhanKalori = userData?['kebutuhanKalori'];
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -424,47 +408,115 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Profil Kesehatan',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFB83B7E),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Profil Kesehatan',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFB83B7E),
+                ),
+              ),
+              if (isViewingOwnProfile)
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const KebutuhanKaloriScreen(),
+                      ),
+                    ).then((_) => _loadUserData());
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB83B7E),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(
+                      Icons.calculate,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 12),
-          StreamBuilder<QuerySnapshot>(
-            stream: _firestore
-                .collection('food_logs')
-                .where('noKode', isEqualTo: userData?['noKode'])
-                .orderBy('tanggal', descending: true)
-                .limit(1)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
-                final latestFood =
-                    snapshot.data!.docs.first.data() as Map<String, dynamic>;
-                final totalCalories = latestFood['calories'] ?? 0;
-                final date = (latestFood['tanggal'] as Timestamp).toDate();
+          if (kebutuhanKalori != null) ...[
+            _buildInfoItem(
+              'Kebutuhan Kalori',
+              '${kebutuhanKalori.toStringAsFixed(0)} kal/hari',
+            ),
+            _buildInfoItem(
+              'TB / BB',
+              '${userData?['tbKalori']?.toStringAsFixed(0) ?? '-'} cm / ${userData?['bbKalori']?.toStringAsFixed(0) ?? '-'} kg',
+            ),
+            _buildInfoItem('Status', 'Sudah dihitung'),
+          ] else ...[
+            StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('food_logs')
+                  .where('noKode', isEqualTo: userData?['noKode'])
+                  .orderBy('tanggal', descending: true)
+                  .limit(1)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                  final latestFood =
+                      snapshot.data!.docs.first.data() as Map<String, dynamic>;
+                  final totalCalories = latestFood['calories'] ?? 0;
+                  final date = (latestFood['tanggal'] as Timestamp).toDate();
 
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInfoItem(
+                        'Kalori Terakhir',
+                        '${totalCalories.toStringAsFixed(0)} kal',
+                      ),
+                      _buildInfoItem(
+                        'Tanggal',
+                        DateFormat('dd MMM yyyy').format(date),
+                      ),
+                      if (isViewingOwnProfile)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            'Hitung kebutuhan kalori →',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.orange.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                }
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildInfoItem(
-                      'Kalori Terakhir',
-                      '${totalCalories.toStringAsFixed(0)} kal',
-                    ),
-                    _buildInfoItem(
-                      'Tanggal',
-                      DateFormat('dd MMM yyyy').format(date),
-                    ),
-                    _buildInfoItem('Status', 'Aktif Monitoring'),
+                    _buildInfoItem('Status', 'Belum ada data'),
+                    if (isViewingOwnProfile)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Hitung kebutuhan kalori →',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.orange.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                   ],
                 );
-              }
-              return _buildInfoItem('Status', 'Belum ada data');
-            },
-          ),
+              },
+            ),
+          ],
         ],
       ),
     );
@@ -671,7 +723,7 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
                   snapshot.data!.docs.first.data() as Map<String, dynamic>;
               final tekananDarah = data['tekananDarah'] ?? '-';
               final statusStress = data['statusStress'] ?? '-';
-              final status = statusStress.split(' - ')[0]; // Ambil status saja
+              final status = statusStress.split(' - ')[0];
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

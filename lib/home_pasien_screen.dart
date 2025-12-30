@@ -7,6 +7,7 @@ import 'package:promedia_v2/detail_manajemen_screen.dart';
 import 'package:promedia_v2/edukasi_diabetes.dart';
 import 'package:promedia_v2/manajemen_stress.dart';
 import 'package:promedia_v2/profile_pasien.dart';
+import 'package:promedia_v2/catatan_gula_darah_screen.dart';
 import 'detail_makan_screen.dart';
 import 'detail_minum_obat_screen.dart';
 import 'detail_perawatan_kaki_screen.dart';
@@ -16,6 +17,7 @@ import 'pengelolaan_makanan_screen.dart';
 import 'terapi_obat_screen.dart';
 import 'latihan_fisik_screen.dart';
 import 'perawatan_kaki_screen.dart';
+import 'package:intl/intl.dart';
 
 class HomePasienScreen extends StatefulWidget {
   const HomePasienScreen({super.key});
@@ -32,7 +34,6 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Precache semua gambar aktivitas agar tidak flickering
     precacheImage(const AssetImage('assets/21.png'), context);
     precacheImage(const AssetImage('assets/22.png'), context);
     precacheImage(const AssetImage('assets/23.png'), context);
@@ -78,7 +79,6 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     );
   }
 
-  // BERANDA PAGE
   Widget _buildBerandaPage() {
     final currentUser = _auth.currentUser;
 
@@ -93,7 +93,6 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
       child: SafeArea(
         child: Column(
           children: [
-            // Header with StreamBuilder
             StreamBuilder<DocumentSnapshot>(
               stream:
                   currentUser != null
@@ -103,7 +102,6 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                           .snapshots()
                       : null,
               builder: (context, snapshot) {
-                // Default values
                 String namaLengkap = 'User';
                 String? photoUrl;
                 String jenisKelamin = 'Laki-laki';
@@ -116,14 +114,12 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                   jenisKelamin = userData['jenisKelamin'] ?? 'Laki-laki';
                 }
 
-                // Tentukan sapaan berdasarkan jenis kelamin
                 String title = jenisKelamin == 'Laki-laki' ? 'Bapak' : 'Ibu';
 
                 return Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
                     children: [
-                      // Profile Picture
                       Container(
                         width: 60,
                         height: 60,
@@ -164,7 +160,6 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                                 ),
                       ),
                       const SizedBox(width: 12),
-                      // Greeting Text
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,7 +204,6 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                           ],
                         ),
                       ),
-                      // Notification Icon
                       GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -258,7 +252,6 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               },
             ),
 
-            // Main Content
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -274,7 +267,6 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Aktivitas Saya Hari Ini
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Text(
@@ -324,7 +316,6 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Program Manajemen Diabetes
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Column(
@@ -353,7 +344,6 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                             ),
                             const SizedBox(height: 24),
 
-                            // Catatan - Horizontal Scroll
                             Text(
                               'Catatan Kesehatan',
                               style: Theme.of(context).textTheme.headlineSmall
@@ -369,9 +359,17 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           children: [
-                            _buildChartCard(
+                            _buildChartCardWithTap(
                               'Gula Darah',
                               _buildBloodSugarChart(),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const CatatanGulaDarahScreen(),
+                                  ),
+                                );
+                              },
                             ),
                             const SizedBox(width: 16),
                             _buildChartCard('HbA1c', _buildHbA1cChart()),
@@ -429,14 +427,55 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     );
   }
 
-  // RIWAYAT PAGE
+  Widget _buildChartCardWithTap(String title, Widget chart, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.85,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.shade200,
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                Icon(Icons.add_circle, color: Colors.blue.shade400, size: 20),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Expanded(child: chart),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildRiwayatPage() {
     return Container(
       color: Colors.white,
       child: SafeArea(
         child: Column(
           children: [
-            // AppBar
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text(
@@ -446,7 +485,6 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                 ).textTheme.headlineMedium?.copyWith(color: Colors.black87),
               ),
             ),
-            // Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
@@ -536,7 +574,6 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                             );
                           },
                         ),
-                        
                       ],
                     ),
                   ],
@@ -549,12 +586,10 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     );
   }
 
-  // CHAT PAGE
   Widget _buildChatPage() {
     return const ChatListScreen();
   }
 
-  // PROFIL PAGE
   Widget _buildProfilPage() {
     return const ProfilPasienScreen();
   }
@@ -754,88 +789,120 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
   }
 
   Widget _buildBloodSugarChart() {
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          horizontalInterval: 50,
-          getDrawingHorizontalLine: (value) {
-            return FlLine(color: Colors.grey.shade300, strokeWidth: 1);
-          },
-        ),
-        titlesData: FlTitlesData(
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: 50,
-              reservedSize: 40,
-              getTitlesWidget: (value, meta) {
-                return Text(
-                  value.toInt().toString(),
-                  style: const TextStyle(fontSize: 10),
-                );
-              },
-            ),
-          ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                const dates = [
-                  '15 Agustus',
-                  '16 Agustus',
-                  '17 Agustus',
-                  '18 Agustus',
-                  '19 Agustus',
-                  '20 Agustus',
-                  '21 Agustus',
-                ];
-                if (value.toInt() >= 0 && value.toInt() < dates.length) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      dates[value.toInt()],
-                      style: const TextStyle(fontSize: 8),
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      return const Center(child: Text('Login terlebih dahulu'));
+    }
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _firestore.collection('users').doc(currentUser.uid).snapshots(),
+      builder: (context, userSnapshot) {
+        if (!userSnapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final noKode = userSnapshot.data?.get('noKode') ?? '';
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: _firestore
+              .collection('blood_sugar_logs')
+              .where('noKode', isEqualTo: noKode)
+              .orderBy('tanggal', descending: false)
+              .limit(7)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Center(
+                child: Text(
+                  'Belum ada data gula darah.\nTap untuk menambah data.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              );
+            }
+
+            final docs = snapshot.data!.docs;
+            final List<FlSpot> spots = [];
+            final List<String> dates = [];
+
+            for (int i = 0; i < docs.length; i++) {
+              final data = docs[i].data() as Map<String, dynamic>;
+              final gulaDarahPuasa = (data['gulaDarahPuasa'] ?? 0).toDouble();
+              final tanggal = (data['tanggal'] as Timestamp).toDate();
+              
+              spots.add(FlSpot(i.toDouble(), gulaDarahPuasa));
+              dates.add(DateFormat('dd MMM').format(tanggal));
+            }
+
+            return LineChart(
+              LineChartData(
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: 50,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(color: Colors.grey.shade300, strokeWidth: 1);
+                  },
+                ),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 50,
+                      reservedSize: 40,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          value.toInt().toString(),
+                          style: const TextStyle(fontSize: 10),
+                        );
+                      },
                     ),
-                  );
-                }
-                return const Text('');
-              },
-            ),
-          ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-        ),
-        borderData: FlBorderData(show: false),
-        minX: 0,
-        maxX: 6,
-        minY: 0,
-        maxY: 250,
-        lineBarsData: [
-          LineChartBarData(
-            spots: [
-              const FlSpot(0, 100),
-              const FlSpot(1, 140),
-              const FlSpot(2, 160),
-              const FlSpot(3, 200),
-              const FlSpot(4, 180),
-              const FlSpot(5, 210),
-              const FlSpot(6, 150),
-            ],
-            isCurved: true,
-            color: const Color(0xFF4DD0E1),
-            barWidth: 3,
-            dotData: const FlDotData(show: true),
-            belowBarData: BarAreaData(show: false),
-          ),
-        ],
-      ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        if (value.toInt() >= 0 && value.toInt() < dates.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              dates[value.toInt()],
+                              style: const TextStyle(fontSize: 8),
+                            ),
+                          );
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                minX: 0,
+                maxX: (spots.length - 1).toDouble(),
+                minY: 0,
+                maxY: 250,
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    color: const Color(0xFF4DD0E1),
+                    barWidth: 3,
+                    dotData: const FlDotData(show: true),
+                    belowBarData: BarAreaData(show: false),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

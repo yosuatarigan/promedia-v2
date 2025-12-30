@@ -1,490 +1,423 @@
-// import 'package:flutter/material.dart';
-// import 'package:intl/intl.dart';
-// import 'glucose_service.dart';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-// class CatatanGulaDarahScreen extends StatefulWidget {
-//   const CatatanGulaDarahScreen({super.key});
+class CatatanGulaDarahScreen extends StatefulWidget {
+  const CatatanGulaDarahScreen({super.key});
 
-//   @override
-//   State<CatatanGulaDarahScreen> createState() =>
-//       _CatatanGulaDarahScreenState();
-// }
+  @override
+  State<CatatanGulaDarahScreen> createState() => _CatatanGulaDarahScreenState();
+}
 
-// class _CatatanGulaDarahScreenState extends State<CatatanGulaDarahScreen> {
-//   final GlucoseService _glucoseService = GlucoseService();
-//   final _formKey = GlobalKey<FormState>();
+class _CatatanGulaDarahScreenState extends State<CatatanGulaDarahScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _gulaPuasaController = TextEditingController();
+  final _gulaSewaktuController = TextEditingController();
+  final _gula2JamController = TextEditingController();
+  
+  bool _isLoading = false;
+  String _selectedUnit = 'mg/dL';
 
-//   final TextEditingController _gulaDarahPuasaController =
-//       TextEditingController();
-//   final TextEditingController _gulaDarahSewaktuController =
-//       TextEditingController();
-//   final TextEditingController _gulaDarah2JamPPController =
-//       TextEditingController();
+  Future<void> _simpanData() async {
+    if (!_formKey.currentState!.validate()) return;
 
-//   DateTime selectedDate = DateTime.now();
-//   TimeOfDay selectedTime = TimeOfDay.now();
-//   bool isLoading = false;
-//   Map<String, dynamic>? userData;
+    setState(() => _isLoading = true);
 
-//   @override
-//   void initState() {
-//     super.initState();
-//     _loadUserData();
-//   }
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
 
-//   @override
-//   void dispose() {
-//     _gulaDarahPuasaController.dispose();
-//     _gulaDarahSewaktuController.dispose();
-//     _gulaDarah2JamPPController.dispose();
-//     super.dispose();
-//   }
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      
+      final noKode = userDoc.data()?['noKode'] ?? '';
 
-//   Future<void> _loadUserData() async {
-//     final data = await _glucoseService.getCurrentUserData();
-//     if (mounted) {
-//       setState(() => userData = data);
-//     }
-//   }
+      final data = {
+        'noKode': noKode,
+        'gulaDarahPuasa': double.parse(_gulaPuasaController.text),
+        'gulaDarahSewaktu': double.parse(_gulaSewaktuController.text),
+        'gulaDarah2JamPP': double.parse(_gula2JamController.text),
+        'satuan': _selectedUnit,
+        'tanggal': Timestamp.now(),
+        'createdAt': FieldValue.serverTimestamp(),
+      };
 
-//   Future<void> _selectDate() async {
-//     final DateTime? picked = await showDatePicker(
-//       context: context,
-//       initialDate: selectedDate,
-//       firstDate: DateTime(2020),
-//       lastDate: DateTime.now(),
-//       builder: (context, child) {
-//         return Theme(
-//           data: Theme.of(context).copyWith(
-//             colorScheme: const ColorScheme.light(
-//               primary: Color(0xFFB83B7E),
-//             ),
-//           ),
-//           child: child!,
-//         );
-//       },
-//     );
+      await FirebaseFirestore.instance
+          .collection('blood_sugar_logs')
+          .add(data);
 
-//     if (picked != null && picked != selectedDate) {
-//       setState(() => selectedDate = picked);
-//     }
-//   }
+      if (mounted) {
+        _showSuccessDialog();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
-//   Future<void> _selectTime() async {
-//     final TimeOfDay? picked = await showTimePicker(
-//       context: context,
-//       initialTime: selectedTime,
-//       builder: (context, child) {
-//         return Theme(
-//           data: Theme.of(context).copyWith(
-//             colorScheme: const ColorScheme.light(
-//               primary: Color(0xFFB83B7E),
-//             ),
-//           ),
-//           child: child!,
-//         );
-//       },
-//     );
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: const Color(0xFF6B3D6B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Gula Darah Puasa',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFB83B7E),
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: Text(
+                  '${_gulaPuasaController.text} mg/dL',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Gula Darah Sewaktu',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFB83B7E),
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: Text(
+                  '${_gulaSewaktuController.text} mg/dL',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Gula Darah 2 Jam PP',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFB83B7E),
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: Text(
+                  '${_gula2JamController.text} mg/dL',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(context); // Close screen
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFB83B7E),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  ),
+                  child: const Text(
+                    'Simpan',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-//     if (picked != null && picked != selectedTime) {
-//       setState(() => selectedTime = picked);
-//     }
-//   }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Catatan Gula Darah',
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+      ),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Silahkan isi form dibawah ini untuk mencatat gula darah.',
+                style: TextStyle(fontSize: 14, color: Colors.black87),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
 
-//   Future<void> _simpanData() async {
-//     // Validate at least one field filled
-//     if (_gulaDarahPuasaController.text.isEmpty &&
-//         _gulaDarahSewaktuController.text.isEmpty &&
-//         _gulaDarah2JamPPController.text.isEmpty) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(
-//           content: Text('Minimal satu jenis gula darah harus diisi'),
-//           backgroundColor: Colors.red,
-//         ),
-//       );
-//       return;
-//     }
+              // Gula Darah Puasa
+              const Text(
+                'Gula Darah Puasa :',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB83B7E),
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: const Text(
+                      'mg/dL',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _gulaPuasaController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        hintText: 'Masukan Gula Darah Puasa',
+                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                        filled: true,
+                        fillColor: const Color(0xFFFFF0F5),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Gula darah puasa harus diisi';
+                        }
+                        if (double.tryParse(value) == null) {
+                          return 'Masukkan angka yang valid';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
 
-//     if (!_formKey.currentState!.validate()) return;
+              // Gula Darah Sewaktu
+              const Text(
+                'Gula Darah Sewaktu :',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB83B7E),
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: const Text(
+                      'mg/dL',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _gulaSewaktuController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        hintText: 'Masukan Gula Darah',
+                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                        filled: true,
+                        fillColor: const Color(0xFFFFF0F5),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Gula darah sewaktu harus diisi';
+                        }
+                        if (double.tryParse(value) == null) {
+                          return 'Masukkan angka yang valid';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
 
-//     setState(() => isLoading = true);
+              // Gula Darah 2 Jam PP
+              const Text(
+                'Gula Darah 2 Jam PP :',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB83B7E),
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: const Text(
+                      'mg/dL',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _gula2JamController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        hintText: 'Masukan Gula Darah 2 Jam',
+                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                        filled: true,
+                        fillColor: const Color(0xFFFFF0F5),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Gula darah 2 jam PP harus diisi';
+                        }
+                        if (double.tryParse(value) == null) {
+                          return 'Masukkan angka yang valid';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 40),
 
-//     try {
-//       final jam = '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}';
+              // Button Simpan
+              Center(
+                child: SizedBox(
+                  width: 200,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _simpanData,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFB83B7E),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Simpan',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-//       await _glucoseService.addGlucoseLog(
-//         noKode: userData!['noKode'],
-//         tanggal: selectedDate,
-//         jam: jam,
-//         gulaDarahPuasa: _gulaDarahPuasaController.text.isNotEmpty
-//             ? int.parse(_gulaDarahPuasaController.text)
-//             : null,
-//         gulaDarahSewaktu: _gulaDarahSewaktuController.text.isNotEmpty
-//             ? int.parse(_gulaDarahSewaktuController.text)
-//             : null,
-//         gulaDarah2JamPP: _gulaDarah2JamPPController.text.isNotEmpty
-//             ? int.parse(_gulaDarah2JamPPController.text)
-//             : null,
-//       );
-
-//       if (mounted) {
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           const SnackBar(
-//             content: Text('Data berhasil disimpan'),
-//             backgroundColor: Colors.green,
-//           ),
-//         );
-
-//         // Clear form
-//         _gulaDarahPuasaController.clear();
-//         _gulaDarahSewaktuController.clear();
-//         _gulaDarah2JamPPController.clear();
-//         setState(() {
-//           selectedDate = DateTime.now();
-//           selectedTime = TimeOfDay.now();
-//         });
-//       }
-//     } catch (e) {
-//       if (mounted) {
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(
-//             content: Text('Error: $e'),
-//             backgroundColor: Colors.red,
-//           ),
-//         );
-//       }
-//     } finally {
-//       if (mounted) {
-//         setState(() => isLoading = false);
-//       }
-//     }
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: Colors.white,
-//       appBar: AppBar(
-//         backgroundColor: Colors.white,
-//         elevation: 0,
-//         leading: IconButton(
-//           icon: const Icon(Icons.arrow_back, color: Colors.black87),
-//           onPressed: () => Navigator.pop(context),
-//         ),
-//         title: const Text(
-//           'Catatan Gula Darah',
-//           style: TextStyle(
-//             color: Colors.black87,
-//             fontWeight: FontWeight.bold,
-//           ),
-//         ),
-//         centerTitle: true,
-//       ),
-//       body: userData == null
-//           ? const Center(child: CircularProgressIndicator())
-//           : SingleChildScrollView(
-//               padding: const EdgeInsets.all(24),
-//               child: Form(
-//                 key: _formKey,
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     // Info Text
-//                     const Text(
-//                       'Silahkan isi form dibawah ini untuk mencatat gula darah.',
-//                       style: TextStyle(fontSize: 14, height: 1.5),
-//                     ),
-//                     const SizedBox(height: 24),
-
-//                     // Date Picker
-//                     const Text(
-//                       'Tanggal',
-//                       style: TextStyle(
-//                         fontSize: 14,
-//                         fontWeight: FontWeight.w600,
-//                       ),
-//                     ),
-//                     const SizedBox(height: 8),
-//                     InkWell(
-//                       onTap: _selectDate,
-//                       child: Container(
-//                         padding: const EdgeInsets.symmetric(
-//                           horizontal: 16,
-//                           vertical: 16,
-//                         ),
-//                         decoration: BoxDecoration(
-//                           color: const Color(0xFFF5F5F5),
-//                           borderRadius: BorderRadius.circular(12),
-//                         ),
-//                         child: Row(
-//                           children: [
-//                             const Icon(Icons.calendar_today,
-//                                 color: Color(0xFFB83B7E)),
-//                             const SizedBox(width: 12),
-//                             Text(
-//                               DateFormat('dd MMMM yyyy').format(selectedDate),
-//                               style: const TextStyle(fontSize: 14),
-//                             ),
-//                           ],
-//                         ),
-//                       ),
-//                     ),
-//                     const SizedBox(height: 20),
-
-//                     // Time Picker
-//                     const Text(
-//                       'Waktu',
-//                       style: TextStyle(
-//                         fontSize: 14,
-//                         fontWeight: FontWeight.w600,
-//                       ),
-//                     ),
-//                     const SizedBox(height: 8),
-//                     InkWell(
-//                       onTap: _selectTime,
-//                       child: Container(
-//                         padding: const EdgeInsets.symmetric(
-//                           horizontal: 16,
-//                           vertical: 16,
-//                         ),
-//                         decoration: BoxDecoration(
-//                           color: const Color(0xFFF5F5F5),
-//                           borderRadius: BorderRadius.circular(12),
-//                         ),
-//                         child: Row(
-//                           children: [
-//                             const Icon(Icons.access_time,
-//                                 color: Color(0xFFB83B7E)),
-//                             const SizedBox(width: 12),
-//                             Text(
-//                               selectedTime.format(context),
-//                               style: const TextStyle(fontSize: 14),
-//                             ),
-//                           ],
-//                         ),
-//                       ),
-//                     ),
-//                     const SizedBox(height: 24),
-
-//                     // Gula Darah Puasa
-//                     const Text(
-//                       'Gula Darah Puasa :',
-//                       style: TextStyle(
-//                         fontSize: 14,
-//                         fontWeight: FontWeight.w600,
-//                       ),
-//                     ),
-//                     const SizedBox(height: 8),
-//                     Row(
-//                       children: [
-//                         Container(
-//                           padding: const EdgeInsets.symmetric(
-//                             horizontal: 20,
-//                             vertical: 12,
-//                           ),
-//                           decoration: BoxDecoration(
-//                             color: const Color(0xFFB83B7E),
-//                             borderRadius: BorderRadius.circular(24),
-//                           ),
-//                           child: const Text(
-//                             'mg/dL',
-//                             style: TextStyle(
-//                               color: Colors.white,
-//                               fontWeight: FontWeight.w600,
-//                             ),
-//                           ),
-//                         ),
-//                         const SizedBox(width: 12),
-//                         Expanded(
-//                           child: TextFormField(
-//                             controller: _gulaDarahPuasaController,
-//                             keyboardType: TextInputType.number,
-//                             decoration: InputDecoration(
-//                               hintText: 'Masukan Gula Darah Puasa',
-//                               filled: true,
-//                               fillColor: const Color(0xFFF5F5F5),
-//                               border: OutlineInputBorder(
-//                                 borderRadius: BorderRadius.circular(12),
-//                                 borderSide: BorderSide.none,
-//                               ),
-//                               contentPadding: const EdgeInsets.symmetric(
-//                                 horizontal: 16,
-//                                 vertical: 16,
-//                               ),
-//                             ),
-//                           ),
-//                         ),
-//                       ],
-//                     ),
-//                     const SizedBox(height: 20),
-
-//                     // Gula Darah Sewaktu
-//                     const Text(
-//                       'Gula Darah Sewaktu :',
-//                       style: TextStyle(
-//                         fontSize: 14,
-//                         fontWeight: FontWeight.w600,
-//                       ),
-//                     ),
-//                     const SizedBox(height: 8),
-//                     Row(
-//                       children: [
-//                         Container(
-//                           padding: const EdgeInsets.symmetric(
-//                             horizontal: 20,
-//                             vertical: 12,
-//                           ),
-//                           decoration: BoxDecoration(
-//                             color: const Color(0xFFB83B7E),
-//                             borderRadius: BorderRadius.circular(24),
-//                           ),
-//                           child: const Text(
-//                             'mg/dL',
-//                             style: TextStyle(
-//                               color: Colors.white,
-//                               fontWeight: FontWeight.w600,
-//                             ),
-//                           ),
-//                         ),
-//                         const SizedBox(width: 12),
-//                         Expanded(
-//                           child: TextFormField(
-//                             controller: _gulaDarahSewaktuController,
-//                             keyboardType: TextInputType.number,
-//                             decoration: InputDecoration(
-//                               hintText: 'Masukan Gula Darah',
-//                               filled: true,
-//                               fillColor: const Color(0xFFF5F5F5),
-//                               border: OutlineInputBorder(
-//                                 borderRadius: BorderRadius.circular(12),
-//                                 borderSide: BorderSide.none,
-//                               ),
-//                               contentPadding: const EdgeInsets.symmetric(
-//                                 horizontal: 16,
-//                                 vertical: 16,
-//                               ),
-//                             ),
-//                           ),
-//                         ),
-//                       ],
-//                     ),
-//                     const SizedBox(height: 20),
-
-//                     // Gula Darah 2 Jam PP
-//                     const Text(
-//                       'Gula Darah 2 Jam PP :',
-//                       style: TextStyle(
-//                         fontSize: 14,
-//                         fontWeight: FontWeight.w600,
-//                       ),
-//                     ),
-//                     const SizedBox(height: 8),
-//                     Row(
-//                       children: [
-//                         Container(
-//                           padding: const EdgeInsets.symmetric(
-//                             horizontal: 20,
-//                             vertical: 12,
-//                           ),
-//                           decoration: BoxDecoration(
-//                             color: const Color(0xFFB83B7E),
-//                             borderRadius: BorderRadius.circular(24),
-//                           ),
-//                           child: const Text(
-//                             'mg/dL',
-//                             style: TextStyle(
-//                               color: Colors.white,
-//                               fontWeight: FontWeight.w600,
-//                             ),
-//                           ),
-//                         ),
-//                         const SizedBox(width: 12),
-//                         Expanded(
-//                           child: TextFormField(
-//                             controller: _gulaDarah2JamPPController,
-//                             keyboardType: TextInputType.number,
-//                             decoration: InputDecoration(
-//                               hintText: 'Masukan Gula Darah 2 Jam',
-//                               filled: true,
-//                               fillColor: const Color(0xFFF5F5F5),
-//                               border: OutlineInputBorder(
-//                                 borderRadius: BorderRadius.circular(12),
-//                                 borderSide: BorderSide.none,
-//                               ),
-//                               contentPadding: const EdgeInsets.symmetric(
-//                                 horizontal: 16,
-//                                 vertical: 16,
-//                               ),
-//                             ),
-//                           ),
-//                         ),
-//                       ],
-//                     ),
-//                     const SizedBox(height: 32),
-
-//                     // Info Box
-//                     Container(
-//                       padding: const EdgeInsets.all(16),
-//                       decoration: BoxDecoration(
-//                         color: Colors.blue.shade50,
-//                         borderRadius: BorderRadius.circular(12),
-//                         border: Border.all(color: Colors.blue.shade200),
-//                       ),
-//                       child: Row(
-//                         crossAxisAlignment: CrossAxisAlignment.start,
-//                         children: [
-//                           Icon(Icons.info_outline,
-//                               color: Colors.blue.shade700, size: 20),
-//                           const SizedBox(width: 12),
-//                           const Expanded(
-//                             child: Text(
-//                               'Minimal satu jenis gula darah harus diisi. Anda bisa mengisi semuanya atau hanya beberapa saja.',
-//                               style: TextStyle(fontSize: 12, height: 1.5),
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                     ),
-//                     const SizedBox(height: 32),
-
-//                     // Simpan Button
-//                     SizedBox(
-//                       width: double.infinity,
-//                       height: 56,
-//                       child: ElevatedButton(
-//                         onPressed: isLoading ? null : _simpanData,
-//                         style: ElevatedButton.styleFrom(
-//                           backgroundColor: const Color(0xFFB83B7E),
-//                           disabledBackgroundColor: Colors.grey.shade300,
-//                           shape: RoundedRectangleBorder(
-//                             borderRadius: BorderRadius.circular(16),
-//                           ),
-//                           elevation: 2,
-//                         ),
-//                         child: isLoading
-//                             ? const SizedBox(
-//                                 width: 24,
-//                                 height: 24,
-//                                 child: CircularProgressIndicator(
-//                                   strokeWidth: 2,
-//                                   valueColor: AlwaysStoppedAnimation<Color>(
-//                                       Colors.white),
-//                                 ),
-//                               )
-//                             : const Text(
-//                                 'Simpan',
-//                                 style: TextStyle(
-//                                   fontSize: 16,
-//                                   fontWeight: FontWeight.bold,
-//                                   color: Colors.white,
-//                                 ),
-//                               ),
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//             ),
-//     );
-//   }
-// }
+  @override
+  void dispose() {
+    _gulaPuasaController.dispose();
+    _gulaSewaktuController.dispose();
+    _gula2JamController.dispose();
+    super.dispose();
+  }
+}
