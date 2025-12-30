@@ -1049,72 +1049,155 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
   }
 
   Widget _buildOlahragaChart() {
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          horizontalInterval: 10,
-          getDrawingHorizontalLine: (value) {
-            return FlLine(color: Colors.grey.shade300, strokeWidth: 1);
-          },
-        ),
-        titlesData: FlTitlesData(
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: 10,
-              reservedSize: 40,
-              getTitlesWidget: (value, meta) {
-                return Text(
-                  value.toInt().toString(),
-                  style: const TextStyle(fontSize: 10),
-                );
-              },
-            ),
-          ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                const times = ['Jam 07.00', 'Jam 10.00'];
-                if (value.toInt() >= 0 && value.toInt() < times.length) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      times[value.toInt()],
-                      style: const TextStyle(fontSize: 10),
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      return const Center(child: Text('Login terlebih dahulu'));
+    }
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _firestore.collection('users').doc(currentUser.uid).snapshots(),
+      builder: (context, userSnapshot) {
+        if (!userSnapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final noKode = userSnapshot.data?.get('noKode') ?? '';
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: _firestore
+              .collection('latihan_fisik_logs')
+              .where('noKode', isEqualTo: noKode)
+              .orderBy('tanggal', descending: false)
+              .limit(7)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Center(
+                child: Text(
+                  'Belum ada data latihan fisik.\nMulai catat aktivitas olahraga Anda.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              );
+            }
+
+            final docs = snapshot.data!.docs;
+            final List<FlSpot> spots = [];
+            final List<String> labels = [];
+
+            for (int i = 0; i < docs.length; i++) {
+              final data = docs[i].data() as Map<String, dynamic>;
+              final durasi = (data['durasi'] ?? 0).toDouble();
+              final tanggal = (data['tanggal'] as Timestamp).toDate();
+              final jam = data['jam'] ?? '';
+              
+              spots.add(FlSpot(i.toDouble(), durasi));
+              labels.add('${DateFormat('dd MMM').format(tanggal)}\n$jam');
+            }
+
+            // Cari durasi maksimal untuk set maxY yang dinamis
+            double maxDurasi = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
+            double maxY = (maxDurasi * 1.2).ceilToDouble(); // Tambah 20% untuk spacing
+            if (maxY < 60) maxY = 60; // Minimal 60 menit
+
+            return LineChart(
+              LineChartData(
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxY / 4,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(color: Colors.grey.shade300, strokeWidth: 1);
+                  },
+                ),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: maxY / 4,
+                      reservedSize: 40,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          value.toInt().toString(),
+                          style: const TextStyle(fontSize: 10),
+                        );
+                      },
                     ),
-                  );
-                }
-                return const Text('');
-              },
-            ),
-          ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-        ),
-        borderData: FlBorderData(show: false),
-        minX: 0,
-        maxX: 1,
-        minY: 0,
-        maxY: 40,
-        lineBarsData: [
-          LineChartBarData(
-            spots: [const FlSpot(0, 30), const FlSpot(1, 40)],
-            isCurved: true,
-            color: const Color(0xFF4DD0E1),
-            barWidth: 3,
-            dotData: const FlDotData(show: true),
-            belowBarData: BarAreaData(show: false),
-          ),
-        ],
-      ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        if (value.toInt() >= 0 && value.toInt() < labels.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              labels[value.toInt()],
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 8),
+                            ),
+                          );
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                minX: 0,
+                maxX: (spots.length - 1).toDouble(),
+                minY: 0,
+                maxY: maxY,
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    color: const Color(0xFF4DD0E1),
+                    barWidth: 3,
+                    dotData: const FlDotData(show: true),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: const Color(0xFF4DD0E1).withOpacity(0.1),
+                    ),
+                  ),
+                ],
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipItems: (touchedSpots) {
+                      return touchedSpots.map((spot) {
+                        final index = spot.x.toInt();
+                        if (index >= 0 && index < docs.length) {
+                          final data = docs[index].data() as Map<String, dynamic>;
+                          final jenisOlahraga = data['jenisOlahraga'] ?? '';
+                          return LineTooltipItem(
+                            '$jenisOlahraga\n${spot.y.toInt()} menit',
+                            const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          );
+                        }
+                        return LineTooltipItem(
+                          '${spot.y.toInt()} menit',
+                          const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
