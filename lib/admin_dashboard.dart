@@ -1085,10 +1085,21 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
       ),
       body: Column(
         children: [
-          _buildPatientInfoCard(),
-          _buildPatientSummaryCards(),
+          // Tab menu tetap di atas
           _buildTabMenu(),
-          Expanded(child: _buildTabContent()),
+          // Konten yang bisa scroll
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  _buildPatientInfoCard(),
+                  _buildPatientSummaryCards(),
+                  // Konten tab
+                  _buildTabContent(),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1603,6 +1614,7 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
     return Container(
       height: 80,
       padding: const EdgeInsets.symmetric(vertical: 8),
+      color: Colors.white,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1615,15 +1627,15 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
               margin: const EdgeInsets.only(right: 12),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFB83B7E) : Colors.white,
+                color: isSelected ? const Color(0xFFB83B7E) : Colors.grey[100],
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
+                boxShadow: isSelected ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: const Color(0xFFB83B7E).withOpacity(0.3),
                     blurRadius: 5,
                     offset: const Offset(0, 2),
                   ),
-                ],
+                ] : [],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1673,178 +1685,181 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
   Widget _buildMakanTab() {
     if (widget.foodLogs.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.restaurant, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'Belum ada data makanan',
-              style: TextStyle(color: Colors.grey[600], fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Pasien belum mencatat aktivitas makan',
-              style: TextStyle(color: Colors.grey[500], fontSize: 14),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.restaurant, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'Belum ada data makanan',
+                style: TextStyle(color: Colors.grey[600], fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pasien belum mencatat aktivitas makan',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return ListView.builder(
+    return Padding(
       padding: const EdgeInsets.all(16),
-      itemCount: widget.foodLogs.length,
-      itemBuilder: (context, index) {
-        final item = widget.foodLogs[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item['menu'],
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+      child: Column(
+        children: widget.foodLogs.map((item) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item['menu'],
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFB83B7E).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                item['kategori'],
-                                style: const TextStyle(
-                                  color: Color(0xFFB83B7E),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFB83B7E).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  item['kategori'],
+                                  style: const TextStyle(
+                                    color: Color(0xFFB83B7E),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                item['waktuMakan'],
-                                style: const TextStyle(
-                                  color: Colors.blue,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  item['waktuMakan'],
+                                  style: const TextStyle(
+                                    color: Colors.blue,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Text(
-                    '${item['gram'].toStringAsFixed(0)}g',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFB83B7E),
+                    Text(
+                      '${item['gram'].toStringAsFixed(0)}g',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFB83B7E),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const Divider(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildNutrientInfo(
-                      'Kalori',
-                      '${item['kalori'].toStringAsFixed(0)} kkal',
-                      Colors.orange,
+                  ],
+                ),
+                const Divider(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildNutrientInfo(
+                        'Kalori',
+                        '${item['kalori'].toStringAsFixed(0)} kkal',
+                        Colors.orange,
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: _buildNutrientInfo(
-                      'Karbo',
-                      '${item['karbohidrat'].toStringAsFixed(1)}g',
-                      Colors.blue,
+                    Expanded(
+                      child: _buildNutrientInfo(
+                        'Karbo',
+                        '${item['karbohidrat'].toStringAsFixed(1)}g',
+                        Colors.blue,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildNutrientInfo(
-                      'Protein',
-                      '${item['protein'].toStringAsFixed(1)}g',
-                      Colors.red,
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildNutrientInfo(
+                        'Protein',
+                        '${item['protein'].toStringAsFixed(1)}g',
+                        Colors.red,
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: _buildNutrientInfo(
-                      'Lemak',
-                      '${item['lemak'].toStringAsFixed(1)}g',
-                      Colors.amber,
+                    Expanded(
+                      child: _buildNutrientInfo(
+                        'Lemak',
+                        '${item['lemak'].toStringAsFixed(1)}g',
+                        Colors.amber,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    item['tanggal'],
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      item['tanggal'],
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                  Text(
-                    item['waktu'],
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
+                    Text(
+                      item['waktu'],
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
+                  ],
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -1852,150 +1867,153 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
   Widget _buildObatTab() {
     if (widget.medicationLogs.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.medication, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'Belum ada data minum obat',
-              style: TextStyle(color: Colors.grey[600], fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Pasien belum mencatat aktivitas minum obat',
-              style: TextStyle(color: Colors.grey[500], fontSize: 14),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.medication, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'Belum ada data minum obat',
+                style: TextStyle(color: Colors.grey[600], fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pasien belum mencatat aktivitas minum obat',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return ListView.builder(
+    return Padding(
       padding: const EdgeInsets.all(16),
-      itemCount: widget.medicationLogs.length,
-      itemBuilder: (context, index) {
-        final item = widget.medicationLogs[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        children: widget.medicationLogs.map((item) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item['jenisObat'],
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Minum ${item['waktuMinum']}',
+                              style: const TextStyle(
+                                color: Colors.green,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          item['jenisObat'],
+                          '${item['dosis'].toStringAsFixed(item['dosis'] % 1 == 0 ? 0 : 1)}',
                           style: const TextStyle(
+                            fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            color: Color(0xFFB83B7E),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'Minum ${item['waktuMinum']}',
-                            style: const TextStyle(
-                              color: Colors.green,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        Text(
+                          item['satuan'],
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '${item['dosis'].toStringAsFixed(item['dosis'] % 1 == 0 ? 0 : 1)}',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFB83B7E),
-                        ),
-                      ),
-                      Text(
-                        item['satuan'],
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const Divider(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        item['tanggal'],
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        item['waktu'],
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Oleh: ${item['userName']}',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[500],
-                  fontStyle: FontStyle.italic,
+                  ],
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+                const Divider(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          item['tanggal'],
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          item['waktu'],
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Oleh: ${item['userName']}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[500],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -2003,299 +2021,298 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
   Widget _buildLatihanFisikTab() {
     if (widget.latihanFisikLogs.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.fitness_center, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'Belum ada data latihan fisik',
-              style: TextStyle(color: Colors.grey[600], fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Pasien belum mencatat aktivitas latihan fisik',
-              style: TextStyle(color: Colors.grey[500], fontSize: 14),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.fitness_center, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'Belum ada data latihan fisik',
+                style: TextStyle(color: Colors.grey[600], fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pasien belum mencatat aktivitas latihan fisik',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return ListView.builder(
+    return Padding(
       padding: const EdgeInsets.all(16),
-      itemCount: widget.latihanFisikLogs.length,
-      itemBuilder: (context, index) {
-        final item = widget.latihanFisikLogs[index];
-        final kategori = item['kategoriIntensitas'] as String;
-        final durasi = item['durasi'] as int;
-        final kalori = item['kaloriTerbakar'] as int;
-        final jenisOlahraga = item['jenisOlahraga'] as String;
-        final manfaat = item['manfaat'] as List<String>;
-        
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header dengan jenis olahraga dan kategori
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: _getLatihanIntensitasColor(kategori).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(10),
+      child: Column(
+        children: widget.latihanFisikLogs.map((item) {
+          final kategori = item['kategoriIntensitas'] as String;
+          final durasi = item['durasi'] as int;
+          final kalori = item['kaloriTerbakar'] as int;
+          final jenisOlahraga = item['jenisOlahraga'] as String;
+          final manfaat = item['manfaat'] as List<String>;
+          
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: _getLatihanIntensitasColor(kategori).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        _getLatihanIcon(jenisOlahraga),
+                        color: _getLatihanIntensitasColor(kategori),
+                        size: 24,
+                      ),
                     ),
-                    child: Icon(
-                      _getLatihanIcon(jenisOlahraga),
-                      color: _getLatihanIntensitasColor(kategori),
-                      size: 24,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            jenisOlahraga,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getLatihanIntensitasColor(kategori).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              kategori.split(' - ')[0],
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: _getLatihanIntensitasColor(kategori),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 20),
+                
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.timer, size: 18, color: Colors.blue),
+                                const SizedBox(width: 4),
+                                const Text(
+                                  'Durasi',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '$durasi',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const Text(
+                              'Menit',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.local_fire_department, 
+                                  size: 18, color: Colors.orange),
+                                const SizedBox(width: 4),
+                                const Text(
+                                  'Kalori',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.orange,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '$kalori',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const Text(
+                              'kal',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                
+                if (manfaat.isNotEmpty) ...[
+                  const Text(
+                    'Manfaat Utama:',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
+                  const SizedBox(height: 6),
+                  ...manfaat.take(2).map((m) => Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          jenisOlahraga,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getLatihanIntensitasColor(kategori).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
+                        const Icon(Icons.check_circle, 
+                          size: 14, color: Colors.green),
+                        const SizedBox(width: 6),
+                        Expanded(
                           child: Text(
-                            kategori.split(' - ')[0],
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: _getLatihanIntensitasColor(kategori),
+                            m.replaceAll('✓ ', ''),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.black87,
+                              height: 1.3,
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-              const Divider(height: 20),
-              
-              // Info durasi dan kalori
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue.shade200),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.timer, size: 18, color: Colors.blue),
-                              const SizedBox(width: 4),
-                              const Text(
-                                'Durasi',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '$durasi',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const Text(
-                            'Menit',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
+                  )),
+                  if (manfaat.length > 2)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '+${manfaat.length - 2} manfaat lainnya',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange.shade200),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.local_fire_department, 
-                                size: 18, color: Colors.orange),
-                              const SizedBox(width: 4),
-                              const Text(
-                                'Kalori',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.orange,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '$kalori',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const Text(
-                            'kal',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
-              ),
-              const SizedBox(height: 12),
-              
-              // Manfaat utama (max 2)
-              if (manfaat.isNotEmpty) ...[
-                const Text(
-                  'Manfaat Utama:',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                ...manfaat.take(2).map((m) => Container(
-                  margin: const EdgeInsets.only(bottom: 4),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.check_circle, 
-                        size: 14, color: Colors.green),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          m.replaceAll('✓ ', ''),
-                          style: const TextStyle(
+                const SizedBox(height: 12),
+                
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          item['tanggal'],
+                          style: TextStyle(
+                            color: Colors.grey[600],
                             fontSize: 11,
-                            color: Colors.black87,
-                            height: 1.3,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                )),
-                if (manfaat.length > 2)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      '+${manfaat.length - 2} manfaat lainnya',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
-                      ),
+                        const SizedBox(width: 8),
+                        Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          item['waktu'],
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-              ],
-              const SizedBox(height: 12),
-              
-              // Footer info
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        item['tanggal'],
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        item['waktu'],
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Oleh: ${item['userName']}',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[500],
-                  fontStyle: FontStyle.italic,
+                  ],
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+                const SizedBox(height: 4),
+                Text(
+                  'Oleh: ${item['userName']}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[500],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -2342,165 +2359,115 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
   Widget _buildPerawatanKakiTab() {
     if (widget.footCareLogs.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.health_and_safety, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'Belum ada data perawatan kaki',
-              style: TextStyle(color: Colors.grey[600], fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Pasien belum mencatat observasi perawatan kaki',
-              style: TextStyle(color: Colors.grey[500], fontSize: 14),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.health_and_safety, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'Belum ada data perawatan kaki',
+                style: TextStyle(color: Colors.grey[600], fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pasien belum mencatat observasi perawatan kaki',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return ListView.builder(
+    return Padding(
       padding: const EdgeInsets.all(16),
-      itemCount: widget.footCareLogs.length,
-      itemBuilder: (context, index) {
-        final item = widget.footCareLogs[index];
-        final skorRisiko = item['skorRisiko'] as int;
-        final kondisiKaki = item['kondisiKaki'] as List<String>;
-        final rekomendasi = item['rekomendasi'] as List<String>;
-        
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header dengan status dan skor
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: _getFootCareStatusColor(skorRisiko),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Icon(
-                                _getFootCareIcon(skorRisiko),
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                item['statusKondisi'],
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: _getFootCareStatusColor(skorRisiko),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getFootCareStatusColor(skorRisiko).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Skor Risiko: $skorRisiko',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: _getFootCareStatusColor(skorRisiko),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const Divider(height: 20),
-              
-              // Kondisi kaki yang terdeteksi
-              const Text(
-                'Kondisi yang Terdeteksi:',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: kondisiKaki.take(3).map((kondisi) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF0F7),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: const Color(0xFFB83B7E).withOpacity(0.3),
-                      ),
-                    ),
-                    child: Text(
-                      kondisi,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFFB83B7E),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              if (kondisiKaki.length > 3) ...[
-                const SizedBox(height: 4),
-                Text(
-                  '+${kondisiKaki.length - 3} kondisi lainnya',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                    fontStyle: FontStyle.italic,
-                  ),
+      child: Column(
+        children: widget.footCareLogs.map((item) {
+          final skorRisiko = item['skorRisiko'] as int;
+          final kondisiKaki = item['kondisiKaki'] as List<String>;
+          final rekomendasi = item['rekomendasi'] as List<String>;
+          
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
                 ),
               ],
-              const SizedBox(height: 12),
-              
-              // Rekomendasi prioritas
-              if (rekomendasi.isNotEmpty) ...[
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: _getFootCareStatusColor(skorRisiko),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Icon(
+                                  _getFootCareIcon(skorRisiko),
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  item['statusKondisi'],
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: _getFootCareStatusColor(skorRisiko),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getFootCareStatusColor(skorRisiko).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Skor Risiko: $skorRisiko',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: _getFootCareStatusColor(skorRisiko),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 20),
+                
                 const Text(
-                  'Rekomendasi Utama:',
+                  'Kondisi yang Terdeteksi:',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -2508,92 +2475,141 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: rekomendasi.first.contains('SEGERA')
-                        ? const Color(0xFFFFEBEE)
-                        : Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: rekomendasi.first.contains('SEGERA')
-                          ? Colors.red.shade200
-                          : Colors.grey.shade300,
-                    ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        rekomendasi.first.contains('SEGERA')
-                            ? Icons.priority_high
-                            : Icons.info_outline,
-                        size: 16,
-                        color: rekomendasi.first.contains('SEGERA')
-                            ? Colors.red
-                            : Colors.grey[700],
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: kondisiKaki.take(3).map((kondisi) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          rekomendasi.first,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.black87,
-                            height: 1.4,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF0F7),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: const Color(0xFFB83B7E).withOpacity(0.3),
                         ),
                       ),
-                    ],
+                      child: Text(
+                        kondisi,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFFB83B7E),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                if (kondisiKaki.length > 3) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '+${kondisiKaki.length - 3} kondisi lainnya',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                
+                if (rekomendasi.isNotEmpty) ...[
+                  const Text(
+                    'Rekomendasi Utama:',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: rekomendasi.first.contains('SEGERA')
+                          ? const Color(0xFFFFEBEE)
+                          : Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: rekomendasi.first.contains('SEGERA')
+                            ? Colors.red.shade200
+                            : Colors.grey.shade300,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          rekomendasi.first.contains('SEGERA')
+                              ? Icons.priority_high
+                              : Icons.info_outline,
+                          size: 16,
+                          color: rekomendasi.first.contains('SEGERA')
+                              ? Colors.red
+                              : Colors.grey[700],
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            rekomendasi.first,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.black87,
+                              height: 1.4,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          item['tanggal'],
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 11,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          item['waktu'],
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Oleh: ${item['userName']}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[500],
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
               ],
-              const SizedBox(height: 12),
-              
-              // Footer info
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        item['tanggal'],
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        item['waktu'],
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Oleh: ${item['userName']}',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[500],
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -2601,337 +2617,295 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
   Widget _buildManajemenStressTab() {
     if (widget.stressLogs.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.psychology, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'Belum ada data manajemen stress',
-              style: TextStyle(color: Colors.grey[600], fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Pasien belum mencatat aktivitas manajemen stress',
-              style: TextStyle(color: Colors.grey[500], fontSize: 14),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.psychology, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'Belum ada data manajemen stress',
+                style: TextStyle(color: Colors.grey[600], fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pasien belum mencatat aktivitas manajemen stress',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return ListView.builder(
+    return Padding(
       padding: const EdgeInsets.all(16),
-      itemCount: widget.stressLogs.length,
-      itemBuilder: (context, index) {
-        final item = widget.stressLogs[index];
-        final skorStress = item['skorStress'] as int;
-        final tekananDarah = item['tekananDarah'] as String;
-        final perasaan = item['perasaan'] as String;
-        final rekomendasi = item['rekomendasi'] as List<String>;
-        
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header dengan status dan skor
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _getStressStatusColor(skorStress),
-                      borderRadius: BorderRadius.circular(8),
+      child: Column(
+        children: widget.stressLogs.map((item) {
+          final skorStress = item['skorStress'] as int;
+          final tekananDarah = item['tekananDarah'] as String;
+          final perasaan = item['perasaan'] as String;
+          final rekomendasi = item['rekomendasi'] as List<String>;
+          
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _getStressStatusColor(skorStress),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        _getStressIcon(skorStress),
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
-                    child: Icon(
-                      _getStressIcon(skorStress),
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item['statusStress'],
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: _getStressStatusColor(skorStress),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getStressStatusColor(skorStress).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            'Skor: $skorStress',
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item['statusStress'],
                             style: TextStyle(
-                              fontSize: 10,
                               fontWeight: FontWeight.bold,
+                              fontSize: 14,
                               color: _getStressStatusColor(skorStress),
                             ),
+                          ),
+                          const SizedBox(height: 2),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getStressStatusColor(skorStress).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              'Skor: $skorStress',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: _getStressStatusColor(skorStress),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 20),
+                
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF3E0),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFFFE0B2)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.favorite, size: 14, color: Color(0xFFE65100)),
+                                const SizedBox(width: 4),
+                                const Text(
+                                  'Tekanan Darah',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFE65100),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '$tekananDarah mmHg',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFC8E6C9)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  _getEmotionIcon(perasaan),
+                                  size: 14,
+                                  color: const Color(0xFF2E7D32),
+                                ),
+                                const SizedBox(width: 4),
+                                const Expanded(
+                                  child: Text(
+                                    'Perasaan',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2E7D32),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              perasaan.replaceAll('Perasaan ', ''),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                
+                if (rekomendasi.isNotEmpty) ...[
+                  const Text(
+                    'Rekomendasi Utama:',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: rekomendasi.first.contains('SEGERA') || rekomendasi.first.contains('PENTING')
+                          ? const Color(0xFFFFEBEE)
+                          : const Color(0xFFF3E5F5),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: rekomendasi.first.contains('SEGERA') || rekomendasi.first.contains('PENTING')
+                            ? Colors.red.shade200
+                            : Colors.purple.shade200,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          rekomendasi.first.contains('SEGERA') || rekomendasi.first.contains('PENTING')
+                              ? Icons.priority_high
+                              : Icons.lightbulb_outline,
+                          size: 16,
+                          color: rekomendasi.first.contains('SEGERA') || rekomendasi.first.contains('PENTING')
+                              ? Colors.red
+                              : Colors.purple[700],
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            rekomendasi.first,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.black87,
+                              height: 1.4,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
                   ),
                 ],
-              ),
-              const Divider(height: 20),
-              
-              // Info vital signs
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3E0),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFFFE0B2)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.favorite, size: 14, color: Color(0xFFE65100)),
-                              const SizedBox(width: 4),
-                              const Text(
-                                'Tekanan Darah',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFE65100),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '$tekananDarah mmHg',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFC8E6C9)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                _getEmotionIcon(perasaan),
-                                size: 14,
-                                color: const Color(0xFF2E7D32),
-                              ),
-                              const SizedBox(width: 4),
-                              const Expanded(
-                                child: Text(
-                                  'Perasaan',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2E7D32),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            perasaan.replaceAll('Perasaan ', ''),
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              
-              // Rekomendasi prioritas
-              if (rekomendasi.isNotEmpty) ...[
-                const Text(
-                  'Rekomendasi Utama:',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: rekomendasi.first.contains('SEGERA') || rekomendasi.first.contains('PENTING')
-                        ? const Color(0xFFFFEBEE)
-                        : const Color(0xFFF3E5F5),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: rekomendasi.first.contains('SEGERA') || rekomendasi.first.contains('PENTING')
-                          ? Colors.red.shade200
-                          : Colors.purple.shade200,
-                    ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        rekomendasi.first.contains('SEGERA') || rekomendasi.first.contains('PENTING')
-                            ? Icons.priority_high
-                            : Icons.lightbulb_outline,
-                        size: 16,
-                        color: rekomendasi.first.contains('SEGERA') || rekomendasi.first.contains('PENTING')
-                            ? Colors.red
-                            : Colors.purple[700],
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          rekomendasi.first,
+                const SizedBox(height: 12),
+                
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          item['tanggal'],
                           style: TextStyle(
+                            color: Colors.grey[600],
                             fontSize: 11,
-                            color: Colors.black87,
-                            height: 1.4,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          item['waktu'],
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Oleh: ${item['userName']}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[500],
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
               ],
-              const SizedBox(height: 12),
-              
-              // Footer info
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        item['tanggal'],
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        item['waktu'],
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Oleh: ${item['userName']}',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[500],
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+            ),
+          );
+        }).toList(),
+      ),
     );
-  }
-
-  // Tab khusus untuk data latihan fisik (real data dari Firestore)
-  
-
-  Color _getLatihanFisikColor(String kategori) {
-    if (kategori.contains('TINGGI')) {
-      return Colors.green;
-    } else if (kategori.contains('SEDANG')) {
-      return Colors.blue;
-    } else if (kategori.contains('RINGAN')) {
-      return Colors.orange;
-    } else {
-      return Colors.grey;
-    }
-  }
-
-  IconData _getLatihanFisikIcon(String jenisOlahraga) {
-    switch (jenisOlahraga) {
-      case 'Jalan Kaki':
-        return Icons.directions_walk;
-      case 'Jogging':
-      case 'Lari':
-        return Icons.directions_run;
-      case 'Bersepeda':
-        return Icons.directions_bike;
-      case 'Berenang':
-        return Icons.pool;
-      case 'Senam':
-      case 'Yoga':
-        return Icons.self_improvement;
-      case 'Angkat Beban':
-        return Icons.fitness_center;
-      case 'Badminton':
-      case 'Futsal':
-      case 'Basket':
-      case 'Tenis':
-        return Icons.sports_tennis;
-      default:
-        return Icons.sports;
-    }
   }
 
   Color _getStressStatusColor(int skorStress) {
@@ -3029,7 +3003,7 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
   }
 
   Widget _buildGrafikTab() {
-    return SingleChildScrollView(
+    return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
@@ -3364,5 +3338,4 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
       ),
     );
   }
-
 }
