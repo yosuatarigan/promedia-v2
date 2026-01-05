@@ -1067,6 +1067,12 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
   final _firestore = FirebaseFirestore.instance;
   int _selectedTab = 0;
 
+  String _maskNIK(String? nik) {
+    if (nik == null || nik.isEmpty) return '-';
+    if (nik.length < 6) return nik;
+    return '${nik.substring(0, 2)}${'*' * (nik.length - 4)}${nik.substring(nik.length - 2)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1080,6 +1086,7 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
       body: Column(
         children: [
           _buildPatientInfoCard(),
+          _buildPatientSummaryCards(),
           _buildTabMenu(),
           Expanded(child: _buildTabContent()),
         ],
@@ -1131,6 +1138,451 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
                   style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPatientSummaryCards() {
+    final noKode = widget.userData['noKode'] as String?;
+    
+    if (noKode == null || noKode.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(bottom: 12),
+            child: Text(
+              'Ringkasan Profil Pasien',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFB83B7E),
+              ),
+            ),
+          ),
+          // Row 1: Data Diri & Profil Kesehatan
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _buildDataDiriCard()),
+              const SizedBox(width: 12),
+              Expanded(child: _buildProfilKesehatanCard(noKode)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Row 2: Riwayat Makan & Obat
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _buildRiwayatMakanCard(noKode)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildRiwayatObatCard(noKode)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Row 3: Perawatan Kaki & Manajemen Stress
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _buildPerawatanKakiCard(noKode)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildManajemenStressCard(noKode)),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataDiriCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF0F5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFE0EC)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.person, size: 16, color: Color(0xFFB83B7E)),
+              const SizedBox(width: 6),
+              const Text(
+                'Data Diri',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFB83B7E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _buildSummaryItem('NIK', _maskNIK(widget.userData['nik'])),
+          _buildSummaryItem('Jenis Kelamin', widget.userData['jenisKelamin'] ?? '-'),
+          _buildSummaryItem('No. Kode', widget.userData['noKode'] ?? '-'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfilKesehatanCard(String noKode) {
+    final kebutuhanKalori = widget.userData['kebutuhanKalori'];
+    
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF0F5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFE0EC)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.favorite, size: 16, color: Color(0xFFB83B7E)),
+              const SizedBox(width: 6),
+              const Text(
+                'Profil Kesehatan',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFB83B7E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (kebutuhanKalori != null) ...[
+            _buildSummaryItem(
+              'Kebutuhan Kalori',
+              '${kebutuhanKalori.toStringAsFixed(0)} kal/hari',
+            ),
+            _buildSummaryItem(
+              'TB / BB',
+              '${widget.userData['tbKalori']?.toStringAsFixed(0) ?? '-'} cm / ${widget.userData['bbKalori']?.toStringAsFixed(0) ?? '-'} kg',
+            ),
+          ] else ...[
+            StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('food_logs')
+                  .where('noKode', isEqualTo: noKode)
+                  .orderBy('tanggal', descending: true)
+                  .limit(1)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                  final latestFood = snapshot.data!.docs.first.data() as Map<String, dynamic>;
+                  final totalCalories = latestFood['calories'] ?? 0;
+                  final date = (latestFood['tanggal'] as Timestamp).toDate();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSummaryItem(
+                        'Kalori Terakhir',
+                        '${totalCalories.toStringAsFixed(0)} kal',
+                      ),
+                      _buildSummaryItem(
+                        'Tanggal',
+                        DateFormat('dd MMM yyyy').format(date),
+                      ),
+                    ],
+                  );
+                }
+                return _buildSummaryItem('Status', 'Belum ada data');
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRiwayatMakanCard(String noKode) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF0F5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFE0EC)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.restaurant, size: 16, color: Color(0xFFB83B7E)),
+              const SizedBox(width: 6),
+              const Text(
+                'Riwayat Makan',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFB83B7E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          StreamBuilder<QuerySnapshot>(
+            stream: _firestore
+                .collection('food_logs')
+                .where('noKode', isEqualTo: noKode)
+                .orderBy('tanggal', descending: true)
+                .limit(2)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return _buildSummaryItem('Status', 'Belum ada data');
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: snapshot.data!.docs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final waktu = data['waktu'] ?? '';
+                  final foodName = data['foodName'] ?? '';
+                  final calories = data['calories'] ?? 0;
+
+                  return _buildSummaryItem(
+                    waktu,
+                    '${foodName.length > 15 ? foodName.substring(0, 15) + '...' : foodName} (${calories.toStringAsFixed(0)} kal)',
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRiwayatObatCard(String noKode) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF0F5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFE0EC)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.medication, size: 16, color: Color(0xFFB83B7E)),
+              const SizedBox(width: 6),
+              const Text(
+                'Riwayat Obat',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFB83B7E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          StreamBuilder<QuerySnapshot>(
+            stream: _firestore
+                .collection('medication_logs')
+                .where('noKode', isEqualTo: noKode)
+                .orderBy('tanggal', descending: true)
+                .limit(2)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return _buildSummaryItem('Status', 'Belum ada data');
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: snapshot.data!.docs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final waktu = data['waktu'] ?? '';
+                  final jenisObat = data['jenisObat'] ?? '';
+                  final dosis = data['dosis'] ?? 0;
+                  final satuan = data['satuan'] ?? '';
+
+                  return _buildSummaryItem(
+                    waktu,
+                    '$jenisObat ($dosis $satuan)',
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerawatanKakiCard(String noKode) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF0F5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFE0EC)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.accessibility, size: 16, color: Color(0xFFB83B7E)),
+              const SizedBox(width: 6),
+              const Text(
+                'Perawatan Kaki',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFB83B7E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          StreamBuilder<QuerySnapshot>(
+            stream: _firestore
+                .collection('foot_care_logs')
+                .where('noKode', isEqualTo: noKode)
+                .orderBy('tanggal', descending: true)
+                .limit(1)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return _buildSummaryItem('Status', 'Belum ada data');
+              }
+
+              final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
+              final statusKondisi = data['statusKondisi'] ?? '-';
+              final skorRisiko = data['skorRisiko'] ?? 0;
+              final date = (data['tanggal'] as Timestamp).toDate();
+              final waktu = DateFormat('dd MMM').format(date);
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSummaryItem('Terakhir', waktu),
+                  _buildSummaryItem('Status', statusKondisi),
+                  _buildSummaryItem('Skor Risiko', skorRisiko.toString()),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildManajemenStressCard(String noKode) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF0F5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFE0EC)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.psychology, size: 16, color: Color(0xFFB83B7E)),
+              const SizedBox(width: 6),
+              const Text(
+                'Manajemen Stress',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFB83B7E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          StreamBuilder<QuerySnapshot>(
+            stream: _firestore
+                .collection('stress_management_logs')
+                .where('noKode', isEqualTo: noKode)
+                .orderBy('tanggal', descending: true)
+                .limit(1)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSummaryItem('Tekanan Darah', '-'),
+                    _buildSummaryItem('Status', 'Belum ada data'),
+                  ],
+                );
+              }
+
+              final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
+              final tekananDarah = data['tekananDarah'] ?? '-';
+              final statusStress = data['statusStress'] ?? '-';
+              final status = statusStress.split(' - ')[0];
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSummaryItem('Tekanan Darah', '$tekananDarah mmHg'),
+                  _buildSummaryItem('Status', status),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const Text(
+            ': ',
+            style: TextStyle(fontSize: 11, color: Colors.black54),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.black54,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -2442,272 +2894,7 @@ class _PasienDetailScreenState extends State<_PasienDetailScreen> {
   }
 
   // Tab khusus untuk data latihan fisik (real data dari Firestore)
-  // Widget _buildLatihanFisikTab() {
-  //   if (widget.latihanFisikLogs.isEmpty) {
-  //     return Center(
-  //       child: Column(
-  //         mainAxisAlignment: MainAxisAlignment.center,
-  //         children: [
-  //           Icon(Icons.fitness_center, size: 64, color: Colors.grey[400]),
-  //           const SizedBox(height: 16),
-  //           Text(
-  //             'Belum ada data latihan fisik',
-  //             style: TextStyle(color: Colors.grey[600], fontSize: 16),
-  //           ),
-  //           const SizedBox(height: 8),
-  //           Text(
-  //             'Pasien belum mencatat aktivitas latihan fisik',
-  //             style: TextStyle(color: Colors.grey[500], fontSize: 14),
-  //           ),
-  //         ],
-  //       ),
-  //     );
-  //   }
-
-  //   return ListView.builder(
-  //     padding: const EdgeInsets.all(16),
-  //     itemCount: widget.latihanFisikLogs.length,
-  //     itemBuilder: (context, index) {
-  //       final item = widget.latihanFisikLogs[index];
-  //       final durasi = item['durasi'] as int;
-  //       final kalori = item['kaloriTerbakar'] as int;
-  //       final kategori = item['kategoriIntensitas'] as String;
-  //       final manfaat = item['manfaat'] as List<String>;
-  //       final rekomendasi = item['rekomendasi'] as List<String>;
-        
-  //       return Container(
-  //         margin: const EdgeInsets.only(bottom: 12),
-  //         padding: const EdgeInsets.all(16),
-  //         decoration: BoxDecoration(
-  //           color: Colors.white,
-  //           borderRadius: BorderRadius.circular(12),
-  //           boxShadow: [
-  //             BoxShadow(
-  //               color: Colors.black.withOpacity(0.05),
-  //               blurRadius: 5,
-  //               offset: const Offset(0, 2),
-  //             ),
-  //           ],
-  //         ),
-  //         child: Column(
-  //           crossAxisAlignment: CrossAxisAlignment.start,
-  //           children: [
-  //             // Header dengan jenis olahraga
-  //             Row(
-  //               children: [
-  //                 Container(
-  //                   padding: const EdgeInsets.all(10),
-  //                   decoration: BoxDecoration(
-  //                     color: _getLatihanFisikColor(kategori).withOpacity(0.2),
-  //                     borderRadius: BorderRadius.circular(10),
-  //                   ),
-  //                   child: Icon(
-  //                     _getLatihanFisikIcon(item['jenisOlahraga']),
-  //                     color: _getLatihanFisikColor(kategori),
-  //                     size: 24,
-  //                   ),
-  //                 ),
-  //                 const SizedBox(width: 12),
-  //                 Expanded(
-  //                   child: Column(
-  //                     crossAxisAlignment: CrossAxisAlignment.start,
-  //                     children: [
-  //                       Text(
-  //                         item['jenisOlahraga'],
-  //                         style: const TextStyle(
-  //                           fontWeight: FontWeight.bold,
-  //                           fontSize: 16,
-  //                           color: Colors.black87,
-  //                         ),
-  //                       ),
-  //                       const SizedBox(height: 4),
-  //                       Container(
-  //                         padding: const EdgeInsets.symmetric(
-  //                           horizontal: 8,
-  //                           vertical: 3,
-  //                         ),
-  //                         decoration: BoxDecoration(
-  //                           color: _getLatihanFisikColor(kategori),
-  //                           borderRadius: BorderRadius.circular(10),
-  //                         ),
-  //                         child: Text(
-  //                           kategori.split(' - ')[0],
-  //                           style: const TextStyle(
-  //                             fontSize: 10,
-  //                             fontWeight: FontWeight.bold,
-  //                             color: Colors.white,
-  //                           ),
-  //                         ),
-  //                       ),
-  //                     ],
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //             const Divider(height: 20),
-              
-  //             // Info durasi dan kalori
-  //             Row(
-  //               children: [
-  //                 Expanded(
-  //                   child: Container(
-  //                     padding: const EdgeInsets.all(12),
-  //                     decoration: BoxDecoration(
-  //                       color: const Color(0xFFE3F2FD),
-  //                       borderRadius: BorderRadius.circular(8),
-  //                       border: Border.all(color: const Color(0xFFBBDEFB)),
-  //                     ),
-  //                     child: Column(
-  //                       children: [
-  //                         const Icon(Icons.timer, color: Colors.blue, size: 28),
-  //                         const SizedBox(height: 4),
-  //                         Text(
-  //                           '$durasi',
-  //                           style: const TextStyle(
-  //                             fontSize: 20,
-  //                             fontWeight: FontWeight.bold,
-  //                             color: Colors.black87,
-  //                           ),
-  //                         ),
-  //                         const Text(
-  //                           'Menit',
-  //                           style: TextStyle(
-  //                             fontSize: 11,
-  //                             color: Colors.black54,
-  //                           ),
-  //                         ),
-  //                       ],
-  //                     ),
-  //                   ),
-  //                 ),
-  //                 const SizedBox(width: 10),
-  //                 Expanded(
-  //                   child: Container(
-  //                     padding: const EdgeInsets.all(12),
-  //                     decoration: BoxDecoration(
-  //                       color: const Color(0xFFFFF3E0),
-  //                       borderRadius: BorderRadius.circular(8),
-  //                       border: Border.all(color: const Color(0xFFFFE0B2)),
-  //                     ),
-  //                     child: Column(
-  //                       children: [
-  //                         const Icon(Icons.local_fire_department, 
-  //                           color: Colors.orange, size: 28),
-  //                         const SizedBox(height: 4),
-  //                         Text(
-  //                           '$kalori',
-  //                           style: const TextStyle(
-  //                             fontSize: 20,
-  //                             fontWeight: FontWeight.bold,
-  //                             color: Colors.black87,
-  //                           ),
-  //                         ),
-  //                         const Text(
-  //                           'Kalori',
-  //                           style: TextStyle(
-  //                             fontSize: 11,
-  //                             color: Colors.black54,
-  //                           ),
-  //                         ),
-  //                       ],
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //             const SizedBox(height: 12),
-              
-  //             // Manfaat highlight (tampilkan 2 manfaat pertama)
-  //             if (manfaat.isNotEmpty) ...[
-  //               const Text(
-  //                 'Manfaat Utama:',
-  //                 style: TextStyle(
-  //                   fontSize: 13,
-  //                   fontWeight: FontWeight.bold,
-  //                   color: Colors.black87,
-  //                 ),
-  //               ),
-  //               const SizedBox(height: 6),
-  //               Container(
-  //                 padding: const EdgeInsets.all(10),
-  //                 decoration: BoxDecoration(
-  //                   color: const Color(0xFFE8F5E9),
-  //                   borderRadius: BorderRadius.circular(8),
-  //                   border: Border.all(color: const Color(0xFFC8E6C9)),
-  //                 ),
-  //                 child: Column(
-  //                   crossAxisAlignment: CrossAxisAlignment.start,
-  //                   children: manfaat.take(2).map((m) => Padding(
-  //                     padding: const EdgeInsets.only(bottom: 4),
-  //                     child: Text(
-  //                       m,
-  //                       style: const TextStyle(
-  //                         fontSize: 11,
-  //                         color: Colors.black87,
-  //                         height: 1.3,
-  //                       ),
-  //                     ),
-  //                   )).toList(),
-  //                 ),
-  //               ),
-  //               if (manfaat.length > 2) ...[
-  //                 const SizedBox(height: 4),
-  //                 Text(
-  //                   '+${manfaat.length - 2} manfaat lainnya',
-  //                   style: TextStyle(
-  //                     fontSize: 10,
-  //                     color: Colors.grey[600],
-  //                     fontStyle: FontStyle.italic,
-  //                   ),
-  //                 ),
-  //               ],
-  //             ],
-  //             const SizedBox(height: 12),
-              
-  //             // Footer info
-  //             Row(
-  //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //               children: [
-  //                 Row(
-  //                   children: [
-  //                     Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
-  //                     const SizedBox(width: 4),
-  //                     Text(
-  //                       item['tanggal'],
-  //                       style: TextStyle(
-  //                         color: Colors.grey[600],
-  //                         fontSize: 11,
-  //                       ),
-  //                     ),
-  //                     const SizedBox(width: 8),
-  //                     Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
-  //                     const SizedBox(width: 4),
-  //                     Text(
-  //                       item['waktu'],
-  //                       style: TextStyle(
-  //                         color: Colors.grey[600],
-  //                         fontSize: 11,
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 ),
-  //               ],
-  //             ),
-  //             const SizedBox(height: 4),
-  //             Text(
-  //               'Oleh: ${item['userName']}',
-  //               style: TextStyle(
-  //                 fontSize: 11,
-  //                 color: Colors.grey[500],
-  //                 fontStyle: FontStyle.italic,
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
+  
 
   Color _getLatihanFisikColor(String kategori) {
     if (kategori.contains('TINGGI')) {

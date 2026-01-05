@@ -314,6 +314,7 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
     );
   }
 
+  // ✨ METHOD YANG DIUPDATE - Menambahkan 2 fitur baru
   Widget _buildKomplikasiKaki() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,14 +394,260 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
           const Color(0xFFEC4899),
         ),
         const SizedBox(height: 16),
+        
+        // ✨ TAMBAHAN BARU 1: Tips Penggunaan Lotion
+        _buildTipsLotion(),
+        
         _buildKisahBox(
           'Kisah Pak Yaya',
           'Kaki dingin, dijulurkan ke tungku api. Pagi hari kulit melepuh dan gosong tanpa terasa. Sejak itu selalu pakai kaus kaki hangat, bukan api.',
           const Color(0xFFEF4444),
         ),
         const SizedBox(height: 16),
+        
+        // ✨ TAMBAHAN BARU 2: Form Observasi Perawatan Kaki
+        _buildObservasiKaki(),
+        
         _buildPerawatanLukaSection(),
       ],
+    );
+  }
+
+  // ✨ METHOD BARU 1: Tips Penggunaan Lotion
+  Widget _buildTipsLotion() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF06B6D4).withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF06B6D4).withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF06B6D4).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.spa_rounded,
+              color: Color(0xFF06B6D4),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tips4: Penggunaan Lotion',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF06B6D4),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Jangan hanya murah namun kualitas, jangan yang banyak mengandung air',
+                  style: TextStyle(
+                    fontSize: 11,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✨ METHOD BARU 2: Form Observasi Perawatan Kaki
+  Widget _buildObservasiKaki() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8B5CF6).withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.assignment_turned_in_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Observasi Perawatan Kaki Diabetes',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildObservasiItem(
+            '1. Bagaimana kondisi kaki Anda hari ini?',
+            'Periksa: lepuh, luka gores, perubahan warna kulit, kulit kering, kapur/tumit tebal, atau bengkak',
+          ),
+          const SizedBox(height: 10),
+          _buildObservasiCheckItem(
+            '2. Saya selalu memeriksa bagian dalam sepatu sebelum digunakan',
+          ),
+          const SizedBox(height: 10),
+          _buildObservasiCheckItem(
+            '3. Setelah dicuci, kaki dikeringkan dengan baik',
+          ),
+          const SizedBox(height: 10),
+          _buildObservasiCheckItem(
+            '4. Menggunakan alas kaki setiap keluar rumah',
+          ),
+          const SizedBox(height: 10),
+          _buildObservasiCheckItem(
+            '5. Menggunakan pelembab atau lotion',
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.info_outline_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Lakukan observasi ini setiap hari untuk pencegahan komplikasi kaki diabetes',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.white.withOpacity(0.95),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✨ HELPER METHOD 1: Observasi Item dengan subtitle
+  Widget _buildObservasiItem(String title, String subtitle) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.white.withOpacity(0.9),
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✨ HELPER METHOD 2: Observasi Checklist Item
+  Widget _buildObservasiCheckItem(String text) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Icon(
+              Icons.check_box_outline_blank_rounded,
+              color: Colors.white,
+              size: 14,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.white,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -710,93 +957,6 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildStressCard(String title, String desc, IconData icon, Color color) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  desc,
-                  style: const TextStyle(fontSize: 11, height: 1.4),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDefinitionBox(String title, String desc, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(Icons.info_rounded, color: color, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(desc, style: const TextStyle(fontSize: 11, height: 1.4)),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
