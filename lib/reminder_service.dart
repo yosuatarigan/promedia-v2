@@ -104,4 +104,65 @@ class ReminderService {
       throw Exception('Gagal menghapus pengingat: $e');
     }
   }
+
+  // Get latest unread dan unsnoozed reminder untuk pop-up
+  Future<DocumentSnapshot?> getLatestUnreadReminder() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) return null;
+
+    try {
+      final now = Timestamp.now();
+
+      final query = await _firestore
+          .collection('reminders')
+          .where('toUserId', isEqualTo: currentUser.uid)
+          .where('isRead', isEqualTo: false)
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .get();
+
+      if (query.docs.isEmpty) return null;
+
+      final reminder = query.docs.first;
+      final data = reminder.data();
+
+      // Check if snoozed
+      final isSnoozed = data['isSnoozed'] as bool? ?? false;
+      final snoozedUntil = data['snoozedUntil'] as Timestamp?;
+
+      if (isSnoozed && snoozedUntil != null) {
+        // Check if snooze time has passed
+        if (snoozedUntil.compareTo(now) > 0) {
+          // Still snoozed, return null
+          return null;
+        } else {
+          // Snooze expired, unsnooze it
+          await _firestore.collection('reminders').doc(reminder.id).update({
+            'isSnoozed': false,
+            'snoozedUntil': null,
+          });
+        }
+      }
+
+      return reminder;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Snooze reminder for 10 minutes
+  Future<void> snoozeReminder(String reminderId) async {
+    try {
+      final snoozedUntil = Timestamp.fromDate(
+        DateTime.now().add(const Duration(minutes: 10)),
+      );
+
+      await _firestore.collection('reminders').doc(reminderId).update({
+        'isSnoozed': true,
+        'snoozedUntil': snoozedUntil,
+      });
+    } catch (e) {
+      throw Exception('Gagal tunda pengingat: $e');
+    }
+  }
 }

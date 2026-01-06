@@ -10,6 +10,7 @@ import 'package:promedia_v2/manajemen_stress.dart';
 import 'package:promedia_v2/profile_pasien.dart';
 import 'package:promedia_v2/catatan_gula_darah_screen.dart';
 import 'package:promedia_v2/reminder_service.dart';
+import 'package:promedia_v2/reminder_popup_banner.dart';
 import 'detail_makan_screen.dart';
 import 'detail_minum_obat_screen.dart';
 import 'detail_perawatan_kaki_screen.dart';
@@ -33,6 +34,27 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
   final _reminderService = ReminderService();
+  
+  // Pop-up notifikasi state
+  bool _isCheckingReminder = false;
+  String? _currentReminderId;
+  OverlayEntry? _popupOverlay;
+
+  @override
+  void initState() {
+    super.initState();
+    // Check for reminders setelah build selesai
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndShowReminder();
+    });
+  }
+
+  @override
+  void dispose() {
+    _popupOverlay?.remove();
+    _popupOverlay = null;
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -41,6 +63,140 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     precacheImage(const AssetImage('assets/22.png'), context);
     precacheImage(const AssetImage('assets/23.png'), context);
     precacheImage(const AssetImage('assets/24.png'), context);
+  }
+
+  // Check dan tampilkan reminder pop-up
+  Future<void> _checkAndShowReminder() async {
+    if (_isCheckingReminder) return;
+    
+    setState(() => _isCheckingReminder = true);
+
+    try {
+      final latestReminder = await _reminderService.getLatestUnreadReminder();
+      
+      if (latestReminder != null && mounted) {
+        final data = latestReminder.data() as Map<String, dynamic>;
+        final type = data['type'] as String;
+        final message = data['message'] as String;
+        
+        _currentReminderId = latestReminder.id;
+
+        String title = _getTitleFromType(type);
+        String subtitle = message;
+
+        _showReminderPopup(
+          type: type,
+          title: title,
+          subtitle: subtitle,
+          reminderId: latestReminder.id,
+        );
+      }
+    } catch (e) {
+      print('Error checking reminder: $e');
+    } finally {
+      setState(() => _isCheckingReminder = false);
+    }
+  }
+
+  String _getTitleFromType(String type) {
+    switch (type) {
+      case 'makan':
+        return 'Waktunya Makan!';
+      case 'minum_obat':
+        return 'Waktunya Minum Obat!';
+      case 'perawatan_kaki':
+        return 'Waktunya Perawatan Kaki!';
+      case 'manajemen_stress':
+        return 'Waktunya Kelola Stress!';
+      case 'latihan_fisik':
+        return 'Waktunya Olahraga!';
+      default:
+        return 'Pengingat untuk Anda';
+    }
+  }
+
+  Widget? _getActivityScreen(String type) {
+    switch (type) {
+      case 'makan':
+        return const PengelolaanMakananScreen();
+      case 'minum_obat':
+        return const TerapiObatScreen();
+      case 'perawatan_kaki':
+        return const PerawatanKakiScreen();
+      case 'manajemen_stress':
+        return const ManajemenStressScreen();
+      case 'latihan_fisik':
+        return const LatihanFisikScreen();
+      default:
+        return null;
+    }
+  }
+
+  void _showReminderPopup({
+    required String type,
+    required String title,
+    required String subtitle,
+    required String reminderId,
+  }) {
+    _popupOverlay?.remove();
+    _popupOverlay = null;
+
+    _popupOverlay = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 10,
+        left: 0,
+        right: 0,
+        child: Material(
+          color: Colors.transparent,
+          child: ReminderPopupBanner(
+            activityType: type,
+            title: title,
+            subtitle: subtitle,
+            onMulaSekarang: () async {
+              _popupOverlay?.remove();
+              _popupOverlay = null;
+
+              await _reminderService.markAsRead(reminderId);
+
+              final screen = _getActivityScreen(type);
+              if (screen != null && mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => screen),
+                );
+              }
+            },
+            onTunda: () async {
+              _popupOverlay?.remove();
+              _popupOverlay = null;
+
+              await _reminderService.snoozeReminder(reminderId);
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Pengingat ditunda 10 menit'),
+                    duration: Duration(seconds: 2),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              }
+            },
+            onDismiss: () {
+              _popupOverlay?.remove();
+              _popupOverlay = null;
+            },
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(_popupOverlay!);
+
+    Future.delayed(const Duration(seconds: 30), () {
+      _popupOverlay?.remove();
+      _popupOverlay = null;
+    });
   }
 
   String _getGreeting() {
@@ -83,6 +239,11 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
   }
 
   Widget _buildBerandaPage() {
+    // Check reminder when beranda is opened
+    if (_selectedIndex == 0 && !_isCheckingReminder) {
+      Future.delayed(Duration.zero, () => _checkAndShowReminder());
+    }
+
     final currentUser = _auth.currentUser;
 
     return Container(
@@ -1135,13 +1296,12 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               labels.add('${DateFormat('dd MMM').format(tanggal)}\n$jam');
             }
 
-            // Cari durasi maksimal untuk set maxY yang dinamis
             double maxDurasi = spots
                 .map((s) => s.y)
                 .reduce((a, b) => a > b ? a : b);
             double maxY =
-                (maxDurasi * 1.2).ceilToDouble(); // Tambah 20% untuk spacing
-            if (maxY < 60) maxY = 60; // Minimal 60 menit
+                (maxDurasi * 1.2).ceilToDouble();
+            if (maxY < 60) maxY = 60;
 
             return LineChart(
               LineChartData(
