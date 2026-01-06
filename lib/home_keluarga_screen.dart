@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:promedia_v2/detail_latihan_fisik.dart';
 import 'package:promedia_v2/detail_manajemen_screen.dart';
 import 'package:promedia_v2/edukasi_diabetes.dart';
 import 'package:promedia_v2/manajemen_stress.dart';
@@ -94,12 +95,13 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
           children: [
             // Header with StreamBuilder
             StreamBuilder<DocumentSnapshot>(
-              stream: currentUser != null
-                  ? _firestore
-                      .collection('users')
-                      .doc(currentUser.uid)
-                      .snapshots()
-                  : null,
+              stream:
+                  currentUser != null
+                      ? _firestore
+                          .collection('users')
+                          .doc(currentUser.uid)
+                          .snapshots()
+                      : null,
               builder: (context, snapshot) {
                 // Default values
                 String namaLengkap = 'User';
@@ -107,7 +109,8 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                 String jenisKelamin = 'Laki-laki';
 
                 if (snapshot.hasData && snapshot.data!.exists) {
-                  final userData = snapshot.data!.data() as Map<String, dynamic>;
+                  final userData =
+                      snapshot.data!.data() as Map<String, dynamic>;
                   namaLengkap = userData['namaLengkap'] ?? 'User';
                   photoUrl = userData['photoUrl'];
                   jenisKelamin = userData['jenisKelamin'] ?? 'Laki-laki';
@@ -128,36 +131,37 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                           borderRadius: BorderRadius.circular(12),
                           color: const Color(0xFFB83B7E),
                         ),
-                        child: photoUrl != null && photoUrl.isNotEmpty
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.network(
-                                  photoUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Center(
-                                      child: Text(
-                                        _getInitials(namaLengkap),
-                                        style: const TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                        child:
+                            photoUrl != null && photoUrl.isNotEmpty
+                                ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.network(
+                                    photoUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Center(
+                                        child: Text(
+                                          _getInitials(namaLengkap),
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              )
-                            : Center(
-                                child: Text(
-                                  _getInitials(namaLengkap),
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                      );
+                                    },
+                                  ),
+                                )
+                                : Center(
+                                  child: Text(
+                                    _getInitials(namaLengkap),
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
-                              ),
                       ),
                       const SizedBox(width: 12),
                       // Greeting Text
@@ -206,46 +210,7 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                         ),
                       ),
                       // Notification Icon
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const NotifikasiScreen(),
-                            ),
-                          );
-                        },
-                        child: Stack(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.yellow.shade600,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.notifications,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                            ),
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                  border:
-                                      Border.all(color: Colors.white, width: 2),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                   
                     ],
                   ),
                 );
@@ -269,7 +234,6 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Aktivitas Saya Hari Ini
-                     
 
                       // Program Manajemen Diabetes
                       Padding(
@@ -279,20 +243,20 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                           children: [
                             Text(
                               'Materi Edukasi Diabetes Melitus',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
+                              style: Theme.of(context).textTheme.headlineSmall
                                   ?.copyWith(color: Colors.black87),
                             ),
                             const SizedBox(height: 16),
                             InkWell(
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const DiabetesEducationPage(),
-                                ),
-                              ),
+                              onTap:
+                                  () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) =>
+                                              const DiabetesEducationPage(),
+                                    ),
+                                  ),
                               child: _buildProgramCard(
                                 'assets/25.png',
                                 'Pengelolaan\nDiabetes',
@@ -303,9 +267,7 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                             // Catatan - Horizontal Scroll
                             Text(
                               'Catatan Kesehatan',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
+                              style: Theme.of(context).textTheme.headlineSmall
                                   ?.copyWith(color: Colors.black87),
                             ),
                             const SizedBox(height: 16),
@@ -467,6 +429,21 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                                 builder:
                                     (context) =>
                                         const DetailManajemenStressScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildRiwayatCard(
+                          'assets/exercise.png',
+                          'Latihan Fisik',
+                          true,
+                          () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        const DetailLatihanFisikScreen(),
                               ),
                             );
                           },

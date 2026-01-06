@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:promedia_v2/foot_care_service.dart';
+import 'package:promedia_v2/reminder_confirmation.dart';
+import 'package:promedia_v2/reminder_service.dart';
 
 class DetailPerawatanKakiScreen extends StatefulWidget {
   const DetailPerawatanKakiScreen({super.key});
@@ -14,22 +17,41 @@ class DetailPerawatanKakiScreen extends StatefulWidget {
 class _DetailPerawatanKakiScreenState
     extends State<DetailPerawatanKakiScreen> {
   final FootCareService _footCareService = FootCareService();
+  final ReminderService _reminderService = ReminderService();
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
   DateTime selectedDate = DateTime.now();
   String? noKode;
+  String? userRole;
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadNoKode();
+    _loadUserData();
   }
 
-  Future<void> _loadNoKode() async {
-    final userNoKode = await _footCareService.getCurrentUserNoKode();
-    setState(() {
-      noKode = userNoKode;
-      isLoading = false;
-    });
+  Future<void> _loadUserData() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    final userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
+    if (userDoc.exists) {
+      setState(() {
+        noKode = userDoc.data()?['noKode'];
+        userRole = userDoc.data()?['role'];
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> _selectDate() async {
@@ -104,6 +126,52 @@ class _DetailPerawatanKakiScreenState
     }
   }
 
+  Future<void> _sendReminderForFootCare({
+    required String statusKondisi,
+    required int skorRisiko,
+    required String jam,
+  }) async {
+    if (noKode == null) return;
+
+    // Tampilkan dialog konfirmasi
+    final confirmed = await ReminderConfirmationDialog.show(
+      context: context,
+      activityType: 'Perawatan Kaki',
+      details: 'jam $jam WIB',
+    );
+
+    if (confirmed != true) return;
+
+    final message = 'Jangan lupa perawatan kaki ya! Hasil observasi terakhir: $statusKondisi (Skor: $skorRisiko). Tetap jaga kebersihan kaki! 🦶';
+
+    try {
+      await _reminderService.sendReminder(
+        noKode: noKode!,
+        type: 'perawatan_kaki',
+        message: message,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pengingat berhasil dikirim ke pasien'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengirim pengingat: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _showDetailDialog(Map<String, dynamic> data) {
     final skorRisiko = data['skorRisiko'] as int;
     final statusKondisi = data['statusKondisi'] as String;
@@ -121,7 +189,6 @@ class _DetailPerawatanKakiScreenState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -138,8 +205,7 @@ class _DetailPerawatanKakiScreenState
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.assessment,
-                        color: Colors.white, size: 28),
+                    const Icon(Icons.assessment, color: Colors.white, size: 28),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Text(
@@ -159,7 +225,6 @@ class _DetailPerawatanKakiScreenState
                 ),
               ),
 
-              // Content
               Container(
                 constraints: const BoxConstraints(maxHeight: 500),
                 child: SingleChildScrollView(
@@ -167,15 +232,13 @@ class _DetailPerawatanKakiScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Status Risiko
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: _getStatusColor(skorRisiko).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color:
-                                  _getStatusColor(skorRisiko).withOpacity(0.3),
+                              color: _getStatusColor(skorRisiko).withOpacity(0.3),
                               width: 2),
                         ),
                         child: Column(
@@ -203,8 +266,7 @@ class _DetailPerawatanKakiScreenState
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         statusKondisi,
@@ -231,7 +293,6 @@ class _DetailPerawatanKakiScreenState
                       ),
                       const SizedBox(height: 16),
 
-                      // Kondisi Terdeteksi
                       const Text(
                         'Kondisi yang Terdeteksi:',
                         style: TextStyle(
@@ -266,7 +327,6 @@ class _DetailPerawatanKakiScreenState
                           )),
                       const SizedBox(height: 16),
 
-                      // Rekomendasi
                       const Text(
                         'Rekomendasi:',
                         style: TextStyle(
@@ -339,7 +399,6 @@ class _DetailPerawatanKakiScreenState
                 ),
               ),
 
-              // Footer
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: const BoxDecoration(
@@ -447,7 +506,6 @@ class _DetailPerawatanKakiScreenState
       ),
       body: Column(
         children: [
-          // Date Selector
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: GestureDetector(
@@ -483,17 +541,14 @@ class _DetailPerawatanKakiScreenState
             ),
           ),
 
-          // Content
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _footCareService.getFootCareLogsByDate(
-                  noKode!, selectedDate),
+              stream: _footCareService.getFootCareLogsByDate(noKode!, selectedDate),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
                     child: CircularProgressIndicator(
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(Color(0xFFB83B7E)),
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFB83B7E)),
                     ),
                   );
                 }
@@ -535,7 +590,6 @@ class _DetailPerawatanKakiScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Description Text
                       Text(
                         'Berikut ini adalah list observasi perawatan kaki pada tanggal ${DateFormat('dd MMMM yyyy').format(selectedDate)}',
                         textAlign: TextAlign.start,
@@ -547,18 +601,13 @@ class _DetailPerawatanKakiScreenState
                       ),
                       const SizedBox(height: 24),
 
-                      // Title
                       Row(
                         children: [
-                          const Icon(Icons.health_and_safety,
-                              color: Color(0xFFB83B7E)),
+                          const Icon(Icons.health_and_safety, color: Color(0xFFB83B7E)),
                           const SizedBox(width: 8),
                           Text(
                             'Perawatan Kaki (${logs.length} item)',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                   color: Colors.black87,
                                 ),
                           ),
@@ -566,7 +615,6 @@ class _DetailPerawatanKakiScreenState
                       ),
                       const SizedBox(height: 16),
 
-                      // List Perawatan Kaki
                       ...logs.map((doc) {
                         final data = doc.data() as Map<String, dynamic>;
 
@@ -623,8 +671,7 @@ class _DetailPerawatanKakiScreenState
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: _getStatusColor(skorRisiko),
                             borderRadius: BorderRadius.circular(12),
@@ -670,12 +717,13 @@ class _DetailPerawatanKakiScreenState
                     constraints: const BoxConstraints(),
                   ),
                   const SizedBox(height: 8),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                    onPressed: () => _deleteLog(logId),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
+                  if (userRole == 'pasien')
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                      onPressed: () => _deleteLog(logId),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                 ],
               ),
             ],
@@ -710,6 +758,32 @@ class _DetailPerawatanKakiScreenState
               ),
             ],
           ),
+
+          if (userRole == 'keluarga') ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _sendReminderForFootCare(
+                  statusKondisi: kondisi,
+                  skorRisiko: skorRisiko,
+                  jam: time,
+                ),
+                icon: const Icon(Icons.notifications_active, size: 16, color: Colors.white),
+                label: const Text(
+                  'Ingatkan',
+                  style: TextStyle(fontSize: 13, color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

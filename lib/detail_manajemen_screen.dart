@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:promedia_v2/reminder_confirmation.dart';
 import 'package:promedia_v2/stress_managemen_service.dart';
+import 'package:promedia_v2/reminder_service.dart';
 
 class DetailManajemenStressScreen extends StatefulWidget {
   const DetailManajemenStressScreen({super.key});
@@ -14,22 +17,41 @@ class DetailManajemenStressScreen extends StatefulWidget {
 class _DetailManajemenStressScreenState
     extends State<DetailManajemenStressScreen> {
   final StressManagementService _stressService = StressManagementService();
+  final ReminderService _reminderService = ReminderService();
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
   DateTime selectedDate = DateTime.now();
   String? noKode;
+  String? userRole;
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadNoKode();
+    _loadUserData();
   }
 
-  Future<void> _loadNoKode() async {
-    final userNoKode = await _stressService.getCurrentUserNoKode();
-    setState(() {
-      noKode = userNoKode;
-      isLoading = false;
-    });
+  Future<void> _loadUserData() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    final userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
+    if (userDoc.exists) {
+      setState(() {
+        noKode = userDoc.data()?['noKode'];
+        userRole = userDoc.data()?['role'];
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> _selectDate() async {
@@ -104,6 +126,53 @@ class _DetailManajemenStressScreenState
     }
   }
 
+  Future<void> _sendReminderForStress({
+    required String statusStress,
+    required String tekananDarah,
+    required int skorStress,
+    required String jam,
+  }) async {
+    if (noKode == null) return;
+
+    // Tampilkan dialog konfirmasi
+    final confirmed = await ReminderConfirmationDialog.show(
+      context: context,
+      activityType: 'Manajemen Stress',
+      details: 'jam $jam WIB',
+    );
+
+    if (confirmed != true) return;
+
+    final message = 'Jangan lupa kelola stress ya! Status terakhir: $statusStress (TD: $tekananDarah mmHg, Skor: $skorStress). Luangkan waktu untuk relaksasi! 🧘';
+
+    try {
+      await _reminderService.sendReminder(
+        noKode: noKode!,
+        type: 'manajemen_stress',
+        message: message,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pengingat berhasil dikirim ke pasien'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengirim pengingat: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _showDetailDialog(Map<String, dynamic> data) {
     final skorStress = data['skorStress'] as int;
     final statusStress = data['statusStress'] as String;
@@ -122,7 +191,6 @@ class _DetailManajemenStressScreenState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -160,7 +228,6 @@ class _DetailManajemenStressScreenState
                 ),
               ),
 
-              // Content
               Container(
                 constraints: const BoxConstraints(maxHeight: 500),
                 child: SingleChildScrollView(
@@ -168,7 +235,6 @@ class _DetailManajemenStressScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Status Stress
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -234,7 +300,6 @@ class _DetailManajemenStressScreenState
                       ),
                       const SizedBox(height: 16),
 
-                      // Analisis Detail
                       const Text(
                         'Analisis Detail:',
                         style: TextStyle(
@@ -245,7 +310,6 @@ class _DetailManajemenStressScreenState
                       ),
                       const SizedBox(height: 8),
 
-                      // Tekanan Darah
                       Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.all(12),
@@ -285,7 +349,6 @@ class _DetailManajemenStressScreenState
                         ),
                       ),
 
-                      // Kondisi Emosional
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -325,7 +388,6 @@ class _DetailManajemenStressScreenState
                       ),
                       const SizedBox(height: 16),
 
-                      // Rekomendasi
                       const Text(
                         'Rekomendasi:',
                         style: TextStyle(
@@ -398,7 +460,6 @@ class _DetailManajemenStressScreenState
                 ),
               ),
 
-              // Footer
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: const BoxDecoration(
@@ -508,7 +569,6 @@ class _DetailManajemenStressScreenState
       ),
       body: Column(
         children: [
-          // Date Selector
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: GestureDetector(
@@ -544,7 +604,6 @@ class _DetailManajemenStressScreenState
             ),
           ),
 
-          // Content
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: _stressService.getStressLogsByDate(
@@ -596,7 +655,6 @@ class _DetailManajemenStressScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Description Text
                       Text(
                         'Berikut ini adalah list manajemen stress pada tanggal ${DateFormat('dd MMMM yyyy').format(selectedDate)}',
                         textAlign: TextAlign.start,
@@ -608,7 +666,6 @@ class _DetailManajemenStressScreenState
                       ),
                       const SizedBox(height: 24),
 
-                      // Title
                       Row(
                         children: [
                           const Icon(Icons.psychology,
@@ -627,7 +684,6 @@ class _DetailManajemenStressScreenState
                       ),
                       const SizedBox(height: 16),
 
-                      // List Manajemen Stress
                       ...logs.map((doc) {
                         final data = doc.data() as Map<String, dynamic>;
 
@@ -741,12 +797,13 @@ class _DetailManajemenStressScreenState
                     constraints: const BoxConstraints(),
                   ),
                   const SizedBox(height: 8),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                    onPressed: () => _deleteLog(logId),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
+                  if (userRole == 'pasien')
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                      onPressed: () => _deleteLog(logId),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                 ],
               ),
             ],
@@ -781,6 +838,33 @@ class _DetailManajemenStressScreenState
               ),
             ],
           ),
+
+          if (userRole == 'keluarga') ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _sendReminderForStress(
+                  statusStress: statusStress,
+                  tekananDarah: tekananDarah,
+                  skorStress: skorStress,
+                  jam: time,
+                ),
+                icon: const Icon(Icons.notifications_active, size: 16, color: Colors.white),
+                label: const Text(
+                  'Ingatkan',
+                  style: TextStyle(fontSize: 13, color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:promedia_v2/medication_log_service.dart';
+import 'package:promedia_v2/reminder_confirmation.dart';
+import 'package:promedia_v2/reminder_service.dart';
 
 class DetailMinumObatScreen extends StatefulWidget {
   const DetailMinumObatScreen({super.key});
@@ -12,22 +15,41 @@ class DetailMinumObatScreen extends StatefulWidget {
 
 class _DetailMinumObatScreenState extends State<DetailMinumObatScreen> {
   final MedicationLogService _medicationService = MedicationLogService();
+  final ReminderService _reminderService = ReminderService();
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
   DateTime selectedDate = DateTime.now();
   String? noKode;
+  String? userRole;
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadNoKode();
+    _loadUserData();
   }
 
-  Future<void> _loadNoKode() async {
-    final userNoKode = await _medicationService.getCurrentUserNoKode();
-    setState(() {
-      noKode = userNoKode;
-      isLoading = false;
-    });
+  Future<void> _loadUserData() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    final userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
+    if (userDoc.exists) {
+      setState(() {
+        noKode = userDoc.data()?['noKode'];
+        userRole = userDoc.data()?['role'];
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> _selectDate() async {
@@ -102,6 +124,53 @@ class _DetailMinumObatScreenState extends State<DetailMinumObatScreen> {
     }
   }
 
+  Future<void> _sendReminderForMedication({
+    required String waktu,
+    required String jenisObat,
+    required String dosis,
+    required String jam,
+  }) async {
+    if (noKode == null) return;
+
+    // Tampilkan dialog konfirmasi
+    final confirmed = await ReminderConfirmationDialog.show(
+      context: context,
+      activityType: 'Minum Obat $waktu',
+      details: 'jam $jam WIB',
+    );
+
+    if (confirmed != true) return;
+
+    final message = 'Jangan lupa minum obat $waktu: $jenisObat dengan dosis $dosis ya! 💊';
+
+    try {
+      await _reminderService.sendReminder(
+        noKode: noKode!,
+        type: 'minum_obat',
+        message: message,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pengingat berhasil dikirim ke pasien'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengirim pengingat: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -167,7 +236,6 @@ class _DetailMinumObatScreenState extends State<DetailMinumObatScreen> {
       ),
       body: Column(
         children: [
-          // Date Selector
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: GestureDetector(
@@ -203,17 +271,14 @@ class _DetailMinumObatScreenState extends State<DetailMinumObatScreen> {
             ),
           ),
 
-          // Content
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream:
-                  _medicationService.getMedicationLogsByDate(noKode!, selectedDate),
+              stream: _medicationService.getMedicationLogsByDate(noKode!, selectedDate),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
                     child: CircularProgressIndicator(
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(Color(0xFFB83B7E)),
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFB83B7E)),
                     ),
                   );
                 }
@@ -255,7 +320,6 @@ class _DetailMinumObatScreenState extends State<DetailMinumObatScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Description Text
                       Text(
                         'Berikut ini adalah list aktivitas minum obat pada tanggal ${DateFormat('dd MMMM yyyy').format(selectedDate)}',
                         textAlign: TextAlign.start,
@@ -267,18 +331,13 @@ class _DetailMinumObatScreenState extends State<DetailMinumObatScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Title
                       Row(
                         children: [
-                          const Icon(Icons.medication,
-                              color: Color(0xFFB83B7E)),
+                          const Icon(Icons.medication, color: Color(0xFFB83B7E)),
                           const SizedBox(width: 8),
                           Text(
                             'Minum Obat (${logs.length} item)',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                   color: Colors.black87,
                                 ),
                           ),
@@ -286,7 +345,6 @@ class _DetailMinumObatScreenState extends State<DetailMinumObatScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // List Minum Obat
                       ...logs.map((doc) {
                         final data = doc.data() as Map<String, dynamic>;
 
@@ -296,6 +354,7 @@ class _DetailMinumObatScreenState extends State<DetailMinumObatScreen> {
                             context,
                             doc.id,
                             'Minum Obat ${data['waktu'] ?? ''}',
+                            data['waktu'] ?? '',
                             data['jam'] ?? '',
                             data['jenisObat'] ?? '',
                             'Dosis : ${(data['dosis'] as num).toStringAsFixed(data['dosis'] is int ? 0 : 1)} ${data['satuan'] ?? ''}',
@@ -318,6 +377,7 @@ class _DetailMinumObatScreenState extends State<DetailMinumObatScreen> {
     BuildContext context,
     String logId,
     String title,
+    String waktu,
     String time,
     String obat,
     String dosis,
@@ -394,14 +454,42 @@ class _DetailMinumObatScreenState extends State<DetailMinumObatScreen> {
                   fontStyle: FontStyle.italic,
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                onPressed: () => _deleteLog(logId),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
+              if (userRole == 'pasien')
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                  onPressed: () => _deleteLog(logId),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
             ],
           ),
+
+          if (userRole == 'keluarga') ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _sendReminderForMedication(
+                  waktu: waktu,
+                  jenisObat: obat,
+                  dosis: dosis,
+                  jam: time,
+                ),
+                icon: const Icon(Icons.notifications_active, size: 16, color: Colors.white),
+                label: const Text(
+                  'Ingatkan',
+                  style: TextStyle(fontSize: 13, color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

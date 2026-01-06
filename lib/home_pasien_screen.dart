@@ -9,6 +9,7 @@ import 'package:promedia_v2/edukasi_diabetes.dart';
 import 'package:promedia_v2/manajemen_stress.dart';
 import 'package:promedia_v2/profile_pasien.dart';
 import 'package:promedia_v2/catatan_gula_darah_screen.dart';
+import 'package:promedia_v2/reminder_service.dart';
 import 'detail_makan_screen.dart';
 import 'detail_minum_obat_screen.dart';
 import 'detail_perawatan_kaki_screen.dart';
@@ -31,6 +32,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
   int _selectedIndex = 0;
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
+  final _reminderService = ReminderService();
 
   @override
   void didChangeDependencies() {
@@ -214,37 +216,59 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                             ),
                           );
                         },
-                        child: Stack(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.yellow.shade600,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.notifications,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                            ),
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
+                        child: StreamBuilder<int>(
+                          stream: _reminderService.getUnreadReminderCount(),
+                          builder: (context, snapshot) {
+                            final unreadCount = snapshot.data ?? 0;
+
+                            return Stack(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.yellow.shade600,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.notifications,
                                     color: Colors.white,
-                                    width: 2,
+                                    size: 28,
                                   ),
                                 ),
-                              ),
-                            ),
-                          ],
+                                if (unreadCount > 0)
+                                  Positioned(
+                                    right: 0,
+                                    top: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      constraints: const BoxConstraints(
+                                        minWidth: 20,
+                                        minHeight: 20,
+                                      ),
+                                      child: Text(
+                                        unreadCount > 9
+                                            ? '9+'
+                                            : unreadCount.toString(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -367,7 +391,9 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const CatatanGulaDarahScreen(),
+                                    builder:
+                                        (context) =>
+                                            const CatatanGulaDarahScreen(),
                                   ),
                                 );
                               },
@@ -380,7 +406,8 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const CatatanHbA1cScreen(),
+                                    builder:
+                                        (context) => const CatatanHbA1cScreen(),
                                   ),
                                 );
                               },
@@ -439,7 +466,11 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     );
   }
 
-  Widget _buildChartCardWithTap(String title, Widget chart, {VoidCallback? onTap}) {
+  Widget _buildChartCardWithTap(
+    String title,
+    Widget chart, {
+    VoidCallback? onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -580,8 +611,9 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    const DetailLatihanFisikScreen(),
+                                builder:
+                                    (context) =>
+                                        const DetailLatihanFisikScreen(),
                               ),
                             );
                           },
@@ -816,12 +848,13 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
         final noKode = userSnapshot.data?.get('noKode') ?? '';
 
         return StreamBuilder<QuerySnapshot>(
-          stream: _firestore
-              .collection('blood_sugar_logs')
-              .where('noKode', isEqualTo: noKode)
-              .orderBy('tanggal', descending: false)
-              .limit(7)
-              .snapshots(),
+          stream:
+              _firestore
+                  .collection('blood_sugar_logs')
+                  .where('noKode', isEqualTo: noKode)
+                  .orderBy('tanggal', descending: false)
+                  .limit(7)
+                  .snapshots(),
           builder: (context, snapshot) {
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return const Center(
@@ -841,7 +874,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               final data = docs[i].data() as Map<String, dynamic>;
               final gulaDarahPuasa = (data['gulaDarahPuasa'] ?? 0).toDouble();
               final tanggal = (data['tanggal'] as Timestamp).toDate();
-              
+
               spots.add(FlSpot(i.toDouble(), gulaDarahPuasa));
               dates.add(DateFormat('dd MMM').format(tanggal));
             }
@@ -875,7 +908,8 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                       showTitles: true,
                       interval: 1,
                       getTitlesWidget: (value, meta) {
-                        if (value.toInt() >= 0 && value.toInt() < dates.length) {
+                        if (value.toInt() >= 0 &&
+                            value.toInt() < dates.length) {
                           return Padding(
                             padding: const EdgeInsets.only(top: 8.0),
                             child: Text(
@@ -934,12 +968,13 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
         final noKode = userSnapshot.data?.get('noKode') ?? '';
 
         return StreamBuilder<QuerySnapshot>(
-          stream: _firestore
-              .collection('hba1c_logs')
-              .where('noKode', isEqualTo: noKode)
-              .orderBy('tanggal', descending: false)
-              .limit(7)
-              .snapshots(),
+          stream:
+              _firestore
+                  .collection('hba1c_logs')
+                  .where('noKode', isEqualTo: noKode)
+                  .orderBy('tanggal', descending: false)
+                  .limit(7)
+                  .snapshots(),
           builder: (context, snapshot) {
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return const Center(
@@ -959,7 +994,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               final data = docs[i].data() as Map<String, dynamic>;
               final nilaiHbA1c = (data['nilaiHbA1c'] ?? 0).toDouble();
               final tanggal = (data['tanggal'] as Timestamp).toDate();
-              
+
               spots.add(FlSpot(i.toDouble(), nilaiHbA1c));
               dates.add(DateFormat('dd MMM').format(tanggal));
             }
@@ -993,7 +1028,8 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                       showTitles: true,
                       interval: 1,
                       getTitlesWidget: (value, meta) {
-                        if (value.toInt() >= 0 && value.toInt() < dates.length) {
+                        if (value.toInt() >= 0 &&
+                            value.toInt() < dates.length) {
                           return Padding(
                             padding: const EdgeInsets.only(top: 8.0),
                             child: Text(
@@ -1034,7 +1070,10 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                       return touchedSpots.map((spot) {
                         return LineTooltipItem(
                           '${spot.y.toStringAsFixed(1)}%',
-                          const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         );
                       }).toList();
                     },
@@ -1064,12 +1103,13 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
         final noKode = userSnapshot.data?.get('noKode') ?? '';
 
         return StreamBuilder<QuerySnapshot>(
-          stream: _firestore
-              .collection('latihan_fisik_logs')
-              .where('noKode', isEqualTo: noKode)
-              .orderBy('tanggal', descending: false)
-              .limit(7)
-              .snapshots(),
+          stream:
+              _firestore
+                  .collection('latihan_fisik_logs')
+                  .where('noKode', isEqualTo: noKode)
+                  .orderBy('tanggal', descending: false)
+                  .limit(7)
+                  .snapshots(),
           builder: (context, snapshot) {
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return const Center(
@@ -1090,14 +1130,17 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               final durasi = (data['durasi'] ?? 0).toDouble();
               final tanggal = (data['tanggal'] as Timestamp).toDate();
               final jam = data['jam'] ?? '';
-              
+
               spots.add(FlSpot(i.toDouble(), durasi));
               labels.add('${DateFormat('dd MMM').format(tanggal)}\n$jam');
             }
 
             // Cari durasi maksimal untuk set maxY yang dinamis
-            double maxDurasi = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
-            double maxY = (maxDurasi * 1.2).ceilToDouble(); // Tambah 20% untuk spacing
+            double maxDurasi = spots
+                .map((s) => s.y)
+                .reduce((a, b) => a > b ? a : b);
+            double maxY =
+                (maxDurasi * 1.2).ceilToDouble(); // Tambah 20% untuk spacing
             if (maxY < 60) maxY = 60; // Minimal 60 menit
 
             return LineChart(
@@ -1129,7 +1172,8 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                       showTitles: true,
                       interval: 1,
                       getTitlesWidget: (value, meta) {
-                        if (value.toInt() >= 0 && value.toInt() < labels.length) {
+                        if (value.toInt() >= 0 &&
+                            value.toInt() < labels.length) {
                           return Padding(
                             padding: const EdgeInsets.only(top: 8.0),
                             child: Text(
@@ -1174,7 +1218,8 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                       return touchedSpots.map((spot) {
                         final index = spot.x.toInt();
                         if (index >= 0 && index < docs.length) {
-                          final data = docs[index].data() as Map<String, dynamic>;
+                          final data =
+                              docs[index].data() as Map<String, dynamic>;
                           final jenisOlahraga = data['jenisOlahraga'] ?? '';
                           return LineTooltipItem(
                             '$jenisOlahraga\n${spot.y.toInt()} menit',
@@ -1187,7 +1232,10 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                         }
                         return LineTooltipItem(
                           '${spot.y.toInt()} menit',
-                          const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         );
                       }).toList();
                     },

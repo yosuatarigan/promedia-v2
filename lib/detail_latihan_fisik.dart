@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:promedia_v2/latihan_fisik_service.dart';
+import 'package:promedia_v2/reminder_confirmation.dart';
+import 'package:promedia_v2/reminder_service.dart';
 
 class DetailLatihanFisikScreen extends StatefulWidget {
   const DetailLatihanFisikScreen({super.key});
@@ -13,22 +16,41 @@ class DetailLatihanFisikScreen extends StatefulWidget {
 
 class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
   final LatihanFisikService _latihanFisikService = LatihanFisikService();
+  final ReminderService _reminderService = ReminderService();
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
   DateTime selectedDate = DateTime.now();
   String? noKode;
+  String? userRole;
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadNoKode();
+    _loadUserData();
   }
 
-  Future<void> _loadNoKode() async {
-    final userNoKode = await _latihanFisikService.getCurrentUserNoKode();
-    setState(() {
-      noKode = userNoKode;
-      isLoading = false;
-    });
+  Future<void> _loadUserData() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    final userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
+    if (userDoc.exists) {
+      setState(() {
+        noKode = userDoc.data()?['noKode'];
+        userRole = userDoc.data()?['role'];
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> _selectDate() async {
@@ -103,6 +125,53 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
     }
   }
 
+  Future<void> _sendReminderForExercise({
+    required String jenisOlahraga,
+    required int durasi,
+    required String kategori,
+    required String jam,
+  }) async {
+    if (noKode == null) return;
+
+    // Tampilkan dialog konfirmasi
+    final confirmed = await ReminderConfirmationDialog.show(
+      context: context,
+      activityType: 'Latihan Fisik',
+      details: 'jam $jam WIB',
+    );
+
+    if (confirmed != true) return;
+
+    final message = 'Ayo semangat olahraga! Terakhir kamu $jenisOlahraga selama $durasi menit ($kategori). Tetap aktif bergerak ya! 💪';
+
+    try {
+      await _reminderService.sendReminder(
+        noKode: noKode!,
+        type: 'latihan_fisik',
+        message: message,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pengingat berhasil dikirim ke pasien'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengirim pengingat: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _showDetailDialog(Map<String, dynamic> data) {
     final kategori = data['kategoriIntensitas'] as String;
     final manfaat = List<String>.from(data['manfaat'] ?? []);
@@ -121,7 +190,6 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -159,7 +227,6 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
                 ),
               ),
 
-              // Content
               Container(
                 constraints: const BoxConstraints(maxHeight: 500),
                 child: SingleChildScrollView(
@@ -167,7 +234,6 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Info Singkat
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -222,7 +288,6 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Kategori
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -263,7 +328,6 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Manfaat
                       const Text(
                         'Manfaat:',
                         style: TextStyle(
@@ -299,7 +363,6 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Rekomendasi
                       const Text(
                         'Rekomendasi:',
                         style: TextStyle(
@@ -357,7 +420,6 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
                 ),
               ),
 
-              // Footer
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: const BoxDecoration(
@@ -465,7 +527,6 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
       ),
       body: Column(
         children: [
-          // Date Selector
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: GestureDetector(
@@ -501,7 +562,6 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
             ),
           ),
 
-          // Content
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: _latihanFisikService.getLatihanFisikByDate(
@@ -553,7 +613,6 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Description
                       Text(
                         'Berikut ini adalah list latihan fisik pada tanggal ${DateFormat('dd MMMM yyyy').format(selectedDate)}',
                         textAlign: TextAlign.start,
@@ -565,7 +624,6 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Title
                       Row(
                         children: [
                           const Icon(Icons.fitness_center,
@@ -584,7 +642,6 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // List
                       ...logs.map((doc) {
                         final data = doc.data() as Map<String, dynamic>;
 
@@ -719,13 +776,14 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
                     constraints: const BoxConstraints(),
                   ),
                   const SizedBox(height: 8),
-                  IconButton(
-                    icon: const Icon(Icons.delete, 
-                      color: Colors.red, size: 20),
-                    onPressed: () => _deleteLog(logId),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
+                  if (userRole == 'pasien')
+                    IconButton(
+                      icon: const Icon(Icons.delete, 
+                        color: Colors.red, size: 20),
+                      onPressed: () => _deleteLog(logId),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                 ],
               ),
             ],
@@ -763,6 +821,33 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
               ),
             ],
           ),
+
+          if (userRole == 'keluarga') ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _sendReminderForExercise(
+                  jenisOlahraga: jenisOlahraga,
+                  durasi: durasi,
+                  kategori: kategori,
+                  jam: time,
+                ),
+                icon: const Icon(Icons.notifications_active, size: 16, color: Colors.white),
+                label: const Text(
+                  'Ingatkan',
+                  style: TextStyle(fontSize: 13, color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.shade700,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
