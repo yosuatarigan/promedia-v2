@@ -78,7 +78,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const Splashscreen(),
+      home: kIsWeb ? const AdminDashboardScreen() : const Splashscreen(),
     );
   }
 }

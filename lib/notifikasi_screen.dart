@@ -45,6 +45,8 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
         return Icons.self_improvement;
       case 'latihan_fisik':
         return Icons.fitness_center;
+      case 'edukasi':
+        return Icons.school;
       default:
         return Icons.notifications;
     }
@@ -62,6 +64,8 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
         return Colors.purple;
       case 'latihan_fisik':
         return Colors.orange;
+      case 'edukasi':
+        return Colors.teal;
       default:
         return Colors.grey;
     }
@@ -259,9 +263,15 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
     final data = doc.data() as Map<String, dynamic>;
     final type = data['type'] ?? '';
     final message = data['message'] ?? '';
+    final fromAdmin = data['fromAdmin'] ?? false;
     final fromUserName = data['fromUserName'] ?? 'Keluarga';
     final isRead = data['isRead'] ?? false;
     final createdAt = data['createdAt'] as Timestamp?;
+
+    // Untuk pesan edukasi dari admin
+    final isEdukasi = type == 'edukasi' && fromAdmin;
+    final materi = data['materi'] ?? '';
+    final subMateri = data['subMateri'] ?? '';
 
     return Dismissible(
       key: Key(doc.id),
@@ -290,6 +300,11 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
           if (!isRead) {
             await _reminderService.markAsRead(doc.id);
           }
+          
+          // Jika pesan edukasi, tampilkan detail
+          if (isEdukasi) {
+            _showEdukasiDetail(materi, subMateri, message);
+          }
         },
         child: Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -300,12 +315,12 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
             border: Border.all(
               color: isRead
                   ? Colors.grey.shade200
-                  : const Color(0xFFB83B7E).withOpacity(0.3),
+                  : _getColorByType(type).withOpacity(0.3),
             ),
             boxShadow: [
               if (!isRead)
                 BoxShadow(
-                  color: const Color(0xFFB83B7E).withOpacity(0.1),
+                  color: _getColorByType(type).withOpacity(0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -335,7 +350,9 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            'Pengingat dari $fromUserName',
+                            isEdukasi 
+                                ? 'Pesan Edukasi dari Admin'
+                                : 'Pengingat dari $fromUserName',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: isRead ? FontWeight.w500 : FontWeight.bold,
@@ -347,13 +364,40 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
                           Container(
                             width: 8,
                             height: 8,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFB83B7E),
+                            decoration: BoxDecoration(
+                              color: _getColorByType(type),
                               shape: BoxShape.circle,
                             ),
                           ),
                       ],
                     ),
+                    if (isEdukasi) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          materi,
+                          style: const TextStyle(
+                            color: Colors.teal,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        subMateri,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     Text(
                       message,
@@ -362,14 +406,30 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
                         color: Colors.grey.shade700,
                         height: 1.4,
                       ),
+                      maxLines: isEdukasi ? 3 : 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      _getTimeAgo(createdAt),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade500,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _getTimeAgo(createdAt),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                        if (isEdukasi)
+                          Text(
+                            'Tap untuk selengkapnya',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.teal.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
@@ -377,6 +437,59 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showEdukasiDetail(String materi, String subMateri, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.teal.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                materi,
+                style: const TextStyle(
+                  color: Colors.teal,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              subMateri,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Text(
+            message,
+            style: const TextStyle(
+              fontSize: 15,
+              height: 1.6,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+        ],
       ),
     );
   }

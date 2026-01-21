@@ -106,6 +106,7 @@ class ReminderService {
   }
 
   // Get latest unread dan unsnoozed reminder untuk pop-up
+  // HANYA untuk reminder aktivitas dari keluarga, BUKAN dari admin
   Future<DocumentSnapshot?> getLatestUnreadReminder() async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) return null;
@@ -113,17 +114,26 @@ class ReminderService {
     try {
       final now = Timestamp.now();
 
+      // Filter: hanya ambil reminder yang BUKAN dari admin (fromAdmin != true)
       final query = await _firestore
           .collection('reminders')
           .where('toUserId', isEqualTo: currentUser.uid)
           .where('isRead', isEqualTo: false)
           .orderBy('createdAt', descending: true)
-          .limit(1)
           .get();
 
       if (query.docs.isEmpty) return null;
 
-      final reminder = query.docs.first;
+      // Filter manual untuk exclude reminder dari admin
+      final filteredDocs = query.docs.where((doc) {
+        final data = doc.data();
+        final fromAdmin = data['fromAdmin'] as bool? ?? false;
+        return !fromAdmin; // Hanya ambil yang bukan dari admin
+      }).toList();
+
+      if (filteredDocs.isEmpty) return null;
+
+      final reminder = filteredDocs.first;
       final data = reminder.data();
 
       // Check if snoozed
@@ -146,6 +156,7 @@ class ReminderService {
 
       return reminder;
     } catch (e) {
+      print('Error getting latest reminder: $e');
       return null;
     }
   }
