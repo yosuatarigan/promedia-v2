@@ -41,6 +41,17 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
     super.dispose();
   }
 
+  // TAMBAHAN: Reset form setelah save
+  void _resetForm() {
+    setState(() {
+      _tekananDarahController.clear();
+      selectedPerasaan = null;
+      selectedDate = DateTime.now();
+      selectedJam = TimeOfDay.now();
+      _skorStress = 0;
+    });
+  }
+
   Future<void> _selectDateTime() async {
     // Pilih tanggal
     final date = await showDatePicker(
@@ -79,10 +90,22 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
       return;
     }
 
-    // Hitung skor stress
-    _skorStress = _hitungSkorStress();
+    // Validasi format tekanan darah
+    final tekananDarah = _tekananDarahController.text.trim();
+    if (!tekananDarah.contains('/')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Format tekanan darah salah. Gunakan format: 120/80'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
+
+    // Hitung skor stress BARU untuk input saat ini
+    final skorStressBaru = _hitungSkorStress();
 
     try {
       final currentUser = _auth.currentUser;
@@ -103,9 +126,15 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
       }
 
       final userData = userDoc.data()!;
-      final noKode = userData['noKode'] as String;
-      final namaLengkap = userData['namaLengkap'] as String;
-      final role = userData['role'] as String;
+      final noKode = userData['noKode'] as String?;
+      final namaLengkap = userData['namaLengkap'] as String? ?? 'User';
+      final role = userData['role'] as String? ?? 'pasien';
+
+      if (noKode == null || noKode.isEmpty) {
+        _showError('No. Kode tidak ditemukan. Hubungi admin.');
+        setState(() => _isLoading = false);
+        return;
+      }
 
       // Gabungkan tanggal dan jam
       final dateTime = DateTime(
@@ -116,13 +145,18 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
         selectedJam.minute,
       );
 
+      // Update state dengan skor baru
+      setState(() {
+        _skorStress = skorStressBaru;
+      });
+
       // Simpan ke Firestore (top-level collection)
       await _firestore.collection('stress_management_logs').add({
         'userId': currentUser.uid,
         'noKode': noKode,
         'userName': namaLengkap,
         'userRole': role,
-        'tekananDarah': _tekananDarahController.text.trim(),
+        'tekananDarah': tekananDarah,
         'perasaan': selectedPerasaan,
         'skorStress': _skorStress,
         'statusStress': _getStatusStress(),
@@ -169,11 +203,19 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
         int? diastolik = int.tryParse(parts[1].trim());
 
         if (sistolik != null && diastolik != null) {
+          // Krisis hipertensi (≥180/120)
+          if (sistolik >= 180 || diastolik >= 120) {
+            skor += 10;
+          }
           // Hipertensi tingkat 2 (≥140/90)
-          if (sistolik >= 140 || diastolik >= 90) {
+          else if (sistolik >= 140 || diastolik >= 90) {
             skor += 8;
           }
-          // Prehipertensi (120-139 / 80-89)
+          // Hipertensi tingkat 1 (≥130/85)
+          else if (sistolik >= 130 || diastolik >= 85) {
+            skor += 6;
+          }
+          // Prehipertensi (≥120/80)
           else if (sistolik >= 120 || diastolik >= 80) {
             skor += 4;
           }
@@ -181,6 +223,7 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
           else if (sistolik < 90 || diastolik < 60) {
             skor += 5;
           }
+          // Normal (90-119 / 60-79) → skor += 0
         }
       }
     }
@@ -438,6 +481,7 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
                         icon: const Icon(Icons.close, color: Colors.white),
                         onPressed: () {
                           Navigator.of(context).pop();
+                          _resetForm(); // Reset form
                           Navigator.of(context).pop();
                         },
                       ),
@@ -732,6 +776,7 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
                         child: OutlinedButton(
                           onPressed: () {
                             Navigator.of(context).pop();
+                            // Jangan reset form, biarkan user lihat lagi
                           },
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -754,6 +799,7 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.of(context).pop();
+                            _resetForm(); // Reset form saat selesai
                             Navigator.of(context).pop();
                           },
                           style: ElevatedButton.styleFrom(
