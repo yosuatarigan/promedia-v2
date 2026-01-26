@@ -61,67 +61,122 @@ class MessageFramingService {
         .snapshots();
   }
 
-  // Kirim message framing ke pasien tertentu
+  // ========== METHOD BARU UNTUK KIRIM PESAN ==========
+
+  // 1. Kirim ke PASIEN saja (tanpa keluarga)
   Future<void> sendMessageToPasien({
-    required String messageId,
-    required String pasienUid,
+    required String message,
+    required String materi,
+    required String subMateri,
+    required List<String> pasienIds,
   }) async {
     try {
-      // Ambil data message
-      final messageDoc = await _firestore
-          .collection('message_framing')
-          .doc(messageId)
-          .get();
+      final batch = _firestore.batch();
+      
+      for (var pasienId in pasienIds) {
+        final reminderRef = _firestore.collection('reminders').doc();
+        batch.set(reminderRef, {
+          'toUserId': pasienId,
+          'type': 'edukasi',
+          'materi': materi,
+          'subMateri': subMateri,
+          'message': message,
+          'fromAdmin': true,
+          'isRead': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
 
-      if (!messageDoc.exists) throw Exception('Message tidak ditemukan');
-
-      final messageData = messageDoc.data()!;
-
-      // Simpan ke collection notifications
-      await _firestore.collection('reminders').add({
-        'toUserId': pasienUid,
-        'type': 'edukasi',
-        'materi': messageData['materi'],
-        'subMateri': messageData['subMateri'],
-        'message': messageData['message'],
-        'fromAdmin': true,
-        'isRead': false,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      await batch.commit();
     } catch (e) {
-      throw Exception('Gagal kirim message: $e');
+      throw Exception('Gagal kirim message ke pasien: $e');
     }
   }
 
-  // Kirim message ke semua pasien
-  Future<void> sendMessageToAllPasien(String messageId) async {
+  // 2. Kirim ke PASIEN + KELUARGA dengan noKode yang sama
+  Future<void> sendMessageToPasienAndFamily({
+    required String message,
+    required String materi,
+    required String subMateri,
+    required List<String> pasienIds,
+  }) async {
     try {
-      // Ambil semua pasien
+      final batch = _firestore.batch();
+      
+      for (var pasienId in pasienIds) {
+        // Kirim ke pasien
+        final pasienReminderRef = _firestore.collection('reminders').doc();
+        batch.set(pasienReminderRef, {
+          'toUserId': pasienId,
+          'type': 'edukasi',
+          'materi': materi,
+          'subMateri': subMateri,
+          'message': message,
+          'fromAdmin': true,
+          'isRead': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        // Cari keluarga dengan noKode yang sama
+        final pasienDoc = await _firestore.collection('users').doc(pasienId).get();
+        if (pasienDoc.exists) {
+          final pasienNoKode = pasienDoc.data()!['noKode'] as String?;
+          
+          if (pasienNoKode != null) {
+            // Query keluarga dengan noKode yang sama
+            final keluargaQuery = await _firestore
+                .collection('users')
+                .where('noKode', isEqualTo: pasienNoKode)
+                .where('role', isEqualTo: 'keluarga')
+                .get();
+
+            // Kirim ke semua keluarga dengan noKode yang sama
+            for (var keluargaDoc in keluargaQuery.docs) {
+              final keluargaReminderRef = _firestore.collection('reminders').doc();
+              batch.set(keluargaReminderRef, {
+                'toUserId': keluargaDoc.id,
+                'type': 'edukasi',
+                'materi': materi,
+                'subMateri': subMateri,
+                'message': message,
+                'fromAdmin': true,
+                'isRead': false,
+                'createdAt': FieldValue.serverTimestamp(),
+              });
+            }
+          }
+        }
+      }
+
+      await batch.commit();
+    } catch (e) {
+      throw Exception('Gagal kirim message ke pasien dan keluarga: $e');
+    }
+  }
+
+  // 3. Kirim ke SEMUA PASIEN saja
+  Future<void> sendMessageToAllPasien({
+    required String message,
+    required String materi,
+    required String subMateri,
+  }) async {
+    try {
+      // Get semua pasien
       final pasienQuery = await _firestore
           .collection('users')
           .where('role', isEqualTo: 'pasien')
           .get();
 
-      // Ambil data message
-      final messageDoc = await _firestore
-          .collection('message_framing')
-          .doc(messageId)
-          .get();
-
-      if (!messageDoc.exists) throw Exception('Message tidak ditemukan');
-
-      final messageData = messageDoc.data()!;
-
-      // Kirim ke setiap pasien
       final batch = _firestore.batch();
+      
       for (var pasien in pasienQuery.docs) {
         final reminderRef = _firestore.collection('reminders').doc();
         batch.set(reminderRef, {
           'toUserId': pasien.id,
           'type': 'edukasi',
-          'materi': messageData['materi'],
-          'subMateri': messageData['subMateri'],
-          'message': messageData['message'],
+          'materi': materi,
+          'subMateri': subMateri,
+          'message': message,
           'fromAdmin': true,
           'isRead': false,
           'createdAt': FieldValue.serverTimestamp(),
@@ -131,6 +186,128 @@ class MessageFramingService {
       await batch.commit();
     } catch (e) {
       throw Exception('Gagal kirim message ke semua pasien: $e');
+    }
+  }
+
+  // 4. Kirim ke SEMUA PASIEN + SEMUA KELUARGA
+  Future<void> sendMessageToAllPasienAndFamily({
+    required String message,
+    required String materi,
+    required String subMateri,
+  }) async {
+    try {
+      // Get semua pasien
+      final pasienQuery = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'pasien')
+          .get();
+
+      // Get semua keluarga
+      final keluargaQuery = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'keluarga')
+          .get();
+
+      final batch = _firestore.batch();
+      
+      // Kirim ke semua pasien
+      for (var pasien in pasienQuery.docs) {
+        final reminderRef = _firestore.collection('reminders').doc();
+        batch.set(reminderRef, {
+          'toUserId': pasien.id,
+          'type': 'edukasi',
+          'materi': materi,
+          'subMateri': subMateri,
+          'message': message,
+          'fromAdmin': true,
+          'isRead': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Kirim ke semua keluarga
+      for (var keluarga in keluargaQuery.docs) {
+        final reminderRef = _firestore.collection('reminders').doc();
+        batch.set(reminderRef, {
+          'toUserId': keluarga.id,
+          'type': 'edukasi',
+          'materi': materi,
+          'subMateri': subMateri,
+          'message': message,
+          'fromAdmin': true,
+          'isRead': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+    } catch (e) {
+      throw Exception('Gagal kirim message ke semua pasien dan keluarga: $e');
+    }
+  }
+
+  // 5. Kirim ke KELUARGA saja
+  Future<void> sendMessageToKeluarga({
+    required String message,
+    required String materi,
+    required String subMateri,
+    required List<String> keluargaIds,
+  }) async {
+    try {
+      final batch = _firestore.batch();
+      
+      for (var keluargaId in keluargaIds) {
+        final reminderRef = _firestore.collection('reminders').doc();
+        batch.set(reminderRef, {
+          'toUserId': keluargaId,
+          'type': 'edukasi',
+          'materi': materi,
+          'subMateri': subMateri,
+          'message': message,
+          'fromAdmin': true,
+          'isRead': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+    } catch (e) {
+      throw Exception('Gagal kirim message ke keluarga: $e');
+    }
+  }
+
+  // 6. Kirim ke SEMUA KELUARGA
+  Future<void> sendMessageToAllKeluarga({
+    required String message,
+    required String materi,
+    required String subMateri,
+  }) async {
+    try {
+      // Get semua keluarga
+      final keluargaQuery = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'keluarga')
+          .get();
+
+      final batch = _firestore.batch();
+      
+      for (var keluarga in keluargaQuery.docs) {
+        final reminderRef = _firestore.collection('reminders').doc();
+        batch.set(reminderRef, {
+          'toUserId': keluarga.id,
+          'type': 'edukasi',
+          'materi': materi,
+          'subMateri': subMateri,
+          'message': message,
+          'fromAdmin': true,
+          'isRead': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+    } catch (e) {
+      throw Exception('Gagal kirim message ke semua keluarga: $e');
     }
   }
 }
