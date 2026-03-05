@@ -35,6 +35,7 @@ class _LatihanFisikScreenState extends State<LatihanFisikScreen> {
     'Futsal',
     'Basket',
     'Tenis',
+    'Rumah Tangga',
   ];
 
   @override
@@ -186,6 +187,7 @@ class _LatihanFisikScreenState extends State<LatihanFisikScreen> {
       'Futsal': 9.0,
       'Basket': 8.0,
       'Tenis': 7.0,
+      'Rumah Tangga': 3.0,
     };
 
     return ((kaloriPerMenit[jenis] ?? 5.0) * durasi).round();
@@ -246,6 +248,9 @@ class _LatihanFisikScreenState extends State<LatihanFisikScreen> {
         break;
       case 'Angkat Beban':
         manfaat.add('✓ Membangun massa otot dan kekuatan');
+        break;
+      case 'Rumah Tangga':
+        manfaat.add('✓ Aktivitas ringan-sedang yang baik untuk penderita DM');
         break;
       default:
         manfaat.add('✓ Meningkatkan koordinasi dan ketangkasan');
