@@ -391,6 +391,15 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
           _buildInfoItem('NIK', _maskNIK(userData?['nik'])),
           _buildInfoItem('Alamat', userData?['alamat'] ?? '-'),
           _buildInfoItem('Jenis Kelamin', userData?['jenisKelamin'] ?? '-'),
+          _buildInfoItem(
+            'Lama Menderita DM',
+            userData?['lamaMenderitaDM'] != null
+                ? '${userData!['lamaMenderitaDM']} tahun'
+                : '-',
+          ),
+          _buildInfoItem('Pendidikan', userData?['pendidikan'] ?? '-'),
+          _buildInfoItem(
+              'Keluarga Pendamping', userData?['keluargaPendamping'] ?? '-'),
         ],
       ),
     );

@@ -24,6 +24,9 @@ class _UbahProfilScreenState extends State<UbahProfilScreen> {
   final TextEditingController _noHpController = TextEditingController();
 
   String? selectedJenisKelamin;
+  String? selectedPendidikan;
+  String? selectedKeluargaPendamping;
+  final TextEditingController _lamaDMController = TextEditingController();
   File? _imageFile;
   String? _currentPhotoUrl;
   bool _isLoading = true;
@@ -37,6 +40,23 @@ class _UbahProfilScreenState extends State<UbahProfilScreen> {
     'Wanita'
   ];
 
+  final List<String> pendidikanOptions = [
+    'Tidak Sekolah',
+    'SD',
+    'SMP',
+    'SMA',
+    'Diploma',
+    'Sarjana',
+    'Pascasarjana',
+  ];
+
+  final List<String> keluargaPendampingOptions = [
+    'Anak',
+    'Suami',
+    'Istri',
+    'Saudara',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +68,7 @@ class _UbahProfilScreenState extends State<UbahProfilScreen> {
     _namaController.dispose();
     _alamatController.dispose();
     _noHpController.dispose();
+    _lamaDMController.dispose();
     super.dispose();
   }
 
@@ -71,11 +92,22 @@ class _UbahProfilScreenState extends State<UbahProfilScreen> {
           jenisKelaminOptions.add(jenisKelaminFromDb);
         }
         
+        final pendidikanFromDb = data['pendidikan'] as String?;
+        final keluargaFromDb = data['keluargaPendamping'] as String?;
+
         setState(() {
           _namaController.text = data['namaLengkap'] ?? '';
           _alamatController.text = data['alamat'] ?? '';
           _noHpController.text = data['noHp'] ?? '';
+          _lamaDMController.text = data['lamaMenderitaDM']?.toString() ?? '';
           selectedJenisKelamin = jenisKelaminFromDb;
+          selectedPendidikan = pendidikanOptions.contains(pendidikanFromDb)
+              ? pendidikanFromDb
+              : null;
+          selectedKeluargaPendamping =
+              keluargaPendampingOptions.contains(keluargaFromDb)
+                  ? keluargaFromDb
+                  : null;
           _currentPhotoUrl = data['photoUrl'];
           _isLoading = false;
         });
@@ -161,11 +193,17 @@ class _UbahProfilScreenState extends State<UbahProfilScreen> {
       final photoUrl = await _uploadProfilePhoto();
 
       // Update Firestore
+      final lamaDM = int.tryParse(_lamaDMController.text.trim());
+
       await _firestore.collection('users').doc(currentUser.uid).update({
         'namaLengkap': _namaController.text.trim(),
         'alamat': _alamatController.text.trim(),
         'noHp': _noHpController.text.trim(),
         'jenisKelamin': selectedJenisKelamin,
+        if (lamaDM != null) 'lamaMenderitaDM': lamaDM,
+        if (selectedPendidikan != null) 'pendidikan': selectedPendidikan,
+        if (selectedKeluargaPendamping != null)
+          'keluargaPendamping': selectedKeluargaPendamping,
         if (photoUrl != null) 'photoUrl': photoUrl,
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -458,6 +496,59 @@ class _UbahProfilScreenState extends State<UbahProfilScreen> {
                   }
                   return null;
                 },
+              ),
+              const SizedBox(height: 20),
+
+              // Lama Menderita DM
+              _buildLabel('Lama Menderita DM (Opsional)'),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _lamaDMController,
+                keyboardType: TextInputType.number,
+                decoration: _buildInputDecoration(
+                  'Contoh: 5',
+                  Icons.calendar_month_outlined,
+                ).copyWith(suffixText: 'tahun'),
+              ),
+              const SizedBox(height: 20),
+
+              // Pendidikan
+              _buildLabel('Pendidikan (Opsional)'),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: selectedPendidikan,
+                decoration: _buildInputDecoration(
+                  'Pilih pendidikan terakhir',
+                  Icons.school_outlined,
+                ),
+                items: pendidikanOptions.map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (value) =>
+                    setState(() => selectedPendidikan = value),
+              ),
+              const SizedBox(height: 20),
+
+              // Keluarga Pendamping
+              _buildLabel('Keluarga Pendamping (Opsional)'),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: selectedKeluargaPendamping,
+                decoration: _buildInputDecoration(
+                  'Pilih keluarga pendamping',
+                  Icons.family_restroom_outlined,
+                ),
+                items: keluargaPendampingOptions.map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (value) =>
+                    setState(() => selectedKeluargaPendamping = value),
               ),
               const SizedBox(height: 40),
 
