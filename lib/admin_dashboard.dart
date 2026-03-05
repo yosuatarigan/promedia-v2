@@ -21,6 +21,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   String _selectedRole = 'all';
   String _searchQuery = '';
   int _selectedIndex = 0;
+  final Set<String> _revealedPasswords = {};
   
   // Fungsi untuk mengambil data aktivitas makan real dari Firestore
   Future<List<Map<String, dynamic>>> _fetchFoodLogs(String userId, String noKode) async {
@@ -974,16 +975,47 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text('NIK', style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text('Role', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Password', style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text('Aksi', style: TextStyle(fontWeight: FontWeight.bold))),
           ],
           rows: users.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
+            final docId = doc.id;
+            final pass = data['password'] as String?;
+            final isRevealed = _revealedPasswords.contains(docId);
             return DataRow(
               cells: [
                 DataCell(Text(data['namaLengkap'] ?? '-')),
                 DataCell(Text(data['email'] ?? '-')),
                 DataCell(Text(data['nik'] ?? '-')),
                 DataCell(_buildRoleBadge(data['role'] ?? '-')),
+                DataCell(
+                  pass == null
+                      ? const Text('-', style: TextStyle(color: Colors.grey))
+                      : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              isRevealed ? pass : '••••••••',
+                              style: const TextStyle(fontFamily: 'monospace'),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                isRevealed ? Icons.visibility_off : Icons.visibility,
+                                size: 16,
+                                color: Colors.grey.shade600,
+                              ),
+                              onPressed: () => setState(() {
+                                if (isRevealed) {
+                                  _revealedPasswords.remove(docId);
+                                } else {
+                                  _revealedPasswords.add(docId);
+                                }
+                              }),
+                            ),
+                          ],
+                        ),
+                ),
                 DataCell(Row(
                   children: [
                     IconButton(
@@ -1126,31 +1158,67 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Detail User'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDetailRow('Nama', data['namaLengkap'] ?? '-'),
-              _buildDetailRow('Email', data['email'] ?? '-'),
-              _buildDetailRow('NIK', data['nik'] ?? '-'),
-              _buildDetailRow('No HP', data['noHp'] ?? '-'),
-              _buildDetailRow('No Kode', data['noKode'] ?? '-'),
-              _buildDetailRow('Alamat', data['alamat'] ?? '-'),
-              _buildDetailRow('Jenis Kelamin', data['jenisKelamin'] ?? '-'),
-              _buildDetailRow('Role', data['role'] ?? '-'),
+      builder: (context) {
+        bool obscurePass = true;
+        final pass = data['password'] as String?;
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Detail User'),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildDetailRow('Nama', data['namaLengkap'] ?? '-'),
+                  _buildDetailRow('Email', data['email'] ?? '-'),
+                  _buildDetailRow('NIK', data['nik'] ?? '-'),
+                  _buildDetailRow('No HP', data['noHp'] ?? '-'),
+                  _buildDetailRow('No Kode', data['noKode'] ?? '-'),
+                  _buildDetailRow('Alamat', data['alamat'] ?? '-'),
+                  _buildDetailRow('Jenis Kelamin', data['jenisKelamin'] ?? '-'),
+                  _buildDetailRow('Role', data['role'] ?? '-'),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Password',
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              pass == null
+                                  ? '-'
+                                  : (obscurePass ? '••••••••' : pass),
+                              style: const TextStyle(
+                                  fontFamily: 'monospace', fontSize: 15),
+                            ),
+                            if (pass != null)
+                              IconButton(
+                                icon: Icon(obscurePass
+                                    ? Icons.visibility
+                                    : Icons.visibility_off),
+                                onPressed: () => setDialogState(
+                                    () => obscurePass = !obscurePass),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Tutup'),
+              ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Tutup'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

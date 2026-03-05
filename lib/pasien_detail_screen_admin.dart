@@ -27,6 +27,7 @@ class PasienDetailScreen extends StatefulWidget {
 class PasienDetailScreenState extends State<PasienDetailScreen> {
   final _firestore = FirebaseFirestore.instance;
   int _selectedTab = 0;
+  bool _obscurePassword = true;
 
   String _maskNIK(String? nik) {
     if (nik == null || nik.isEmpty) return '-';
@@ -109,6 +110,32 @@ class PasienDetailScreenState extends State<PasienDetailScreen> {
                   widget.userData['email'] ?? '-',
                   style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
+                if (widget.userData['password'] != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _obscurePassword
+                            ? '••••••••'
+                            : widget.userData['password'] as String,
+                        style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                            fontFamily: 'monospace'),
+                      ),
+                      GestureDetector(
+                        onTap: () =>
+                            setState(() => _obscurePassword = !_obscurePassword),
+                        child: Icon(
+                          _obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          size: 16,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
