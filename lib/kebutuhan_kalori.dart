@@ -81,41 +81,33 @@ class _KebutuhanKaloriScreenState extends State<KebutuhanKaloriScreen> {
     double faktorBasal = _jenisKelamin == 'Laki-laki' ? 30 : 25;
     double kebutuhanBasal = bbi * faktorBasal;
 
-    // Langkah 4: Penyesuaian usia
+    // Langkah 4a: Penyesuaian usia (PERKENI)
     double faktorUsia = 1.0;
     if (usia >= 40 && usia < 60) {
-      int dekadeAtas40 = ((usia - 40) / 10).floor();
-      faktorUsia = 1.0 - (0.05 * dekadeAtas40);
+      faktorUsia = 0.95; // kurangi 5%
     } else if (usia >= 60 && usia < 70) {
-      faktorUsia = 0.9;
+      faktorUsia = 0.90; // kurangi 10%
     } else if (usia >= 70) {
-      faktorUsia = 0.8;
+      faktorUsia = 0.80; // kurangi 20%
     }
 
     double kaloriSetelahUsia = kebutuhanBasal * faktorUsia;
 
-    // Langkah 5: Penyesuaian aktivitas
-    double faktorAktivitas = 1.1; // default istirahat
+    // Langkah 4b: Penyesuaian aktivitas fisik (PERKENI)
+    double faktorAktivitas = 1.1; // Istirahat: +10%
     if (_aktivitas.contains('Ringan')) {
-      faktorAktivitas = 1.2;
+      faktorAktivitas = 1.2; // +20%
     } else if (_aktivitas.contains('Sedang')) {
-      faktorAktivitas = 1.3;
+      faktorAktivitas = 1.3; // +30%
     } else if (_aktivitas.contains('Berat') && !_aktivitas.contains('Sangat')) {
-      faktorAktivitas = 1.4;
+      faktorAktivitas = 1.4; // +40%
     } else if (_aktivitas.contains('Sangat berat')) {
-      faktorAktivitas = 1.5;
+      faktorAktivitas = 1.5; // +50%
     }
 
     double kaloriAkhir = kaloriSetelahUsia * faktorAktivitas;
 
-    // Langkah 6: Penyesuaian status BB untuk DM
-    if (statusBB == 'Gemuk') {
-      kaloriAkhir = kaloriAkhir * 0.9; // kurangi 10%
-    } else if (statusBB == 'Kurus') {
-      kaloriAkhir = kaloriAkhir * 1.1; // tambah 10%
-    }
-
-    // Pastikan minimal
+    // Langkah 5: Cek minimal (PERKENI)
     double minimal = _jenisKelamin == 'Laki-laki' ? 1200 : 1000;
     if (kaloriAkhir < minimal) {
       kaloriAkhir = minimal;
