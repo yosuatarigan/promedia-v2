@@ -22,15 +22,38 @@ class _TerapiObatScreenState extends State<TerapiObatScreen> {
   DateTime? selectedDate;
   TimeOfDay? selectedJam;
   final TextEditingController _dosisController = TextEditingController();
+  final TextEditingController _lainnyaController = TextEditingController();
 
-  // Daftar jenis obat diabetes
+  // Daftar jenis obat diabetes (OHO & Insulin umum)
   final List<String> jenisObatList = [
-    'Insulin',
+    // Biguanid
     'Metformin',
+    // Sulfonilurea
     'Glibenclamide',
     'Gliclazide',
-    'Acarbose',
+    'Glimepiride',
+    'Glipizide',
+    // Tiazolidindion
     'Pioglitazone',
+    // Penghambat Alfa-Glukosidase
+    'Acarbose',
+    // DPP-4 Inhibitor
+    'Sitagliptin',
+    'Vildagliptin',
+    'Saxagliptin',
+    'Linagliptin',
+    // SGLT-2 Inhibitor
+    'Empagliflozin',
+    'Dapagliflozin',
+    'Canagliflozin',
+    // GLP-1 Agonis
+    'Liraglutide',
+    'Dulaglutide',
+    'Exenatide',
+    // Insulin
+    'Insulin',
+    // Lainnya
+    'Lainnya',
   ];
 
   String get waktuMakanText {
@@ -82,32 +105,45 @@ class _TerapiObatScreenState extends State<TerapiObatScreen> {
                     runSpacing: 8,
                     children: jenisObatList.map((obat) {
                       return _buildChip(obat, tempJenis == obat, () {
-                        setModalState(() => tempJenis = obat);
+                        setModalState(() {
+                          tempJenis = obat;
+                          // Auto-set satuan: Insulin pakai Unit, lainnya pakai Tablet
+                          tempSatuan = obat == 'Insulin' ? 'Unit' : 'Tablet';
+                        });
                       });
                     }).toList(),
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Satuan',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  // TextField untuk "Lainnya"
+                  if (tempJenis == 'Lainnya') ...[
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _lainnyaController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Tulis nama obat...',
+                        hintStyle: const TextStyle(color: Colors.white54),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.15),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildChip('Tablet', tempSatuan == 'Tablet', () {
-                        setModalState(() => tempSatuan = 'Tablet');
-                      }),
-                      const SizedBox(width: 12),
-                      _buildChip('Unit', tempSatuan == 'Unit', () {
-                        setModalState(() => tempSatuan = 'Unit');
-                      }),
-                    ],
-                  ),
+                  ],
+                  // Tampilkan satuan yang dipilih secara otomatis
+                  if (tempJenis != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      'Satuan: ${tempSatuan ?? "Tablet"}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   const Text(
                     'Waktu Minum Obat',
@@ -211,11 +247,16 @@ class _TerapiObatScreenState extends State<TerapiObatScreen> {
   Future<void> _saveMedicationLog() async {
     // Validasi
     if (selectedJenisObat == null ||
-        selectedSatuan == null ||
         selectedWaktu == null ||
         selectedDate == null ||
         selectedJam == null) {
       _showError('Mohon lengkapi jenis obat dan waktu');
+      return;
+    }
+
+    // Validasi nama obat jika "Lainnya"
+    if (selectedJenisObat == 'Lainnya' && _lainnyaController.text.trim().isEmpty) {
+      _showError('Mohon tulis nama obat');
       return;
     }
 
@@ -224,6 +265,12 @@ class _TerapiObatScreenState extends State<TerapiObatScreen> {
       _showError('Mohon masukkan dosis yang valid');
       return;
     }
+
+    // Tentukan nama obat final dan satuan
+    final namaObat = selectedJenisObat == 'Lainnya'
+        ? _lainnyaController.text.trim()
+        : selectedJenisObat!;
+    final satuan = selectedSatuan ?? (selectedJenisObat == 'Insulin' ? 'Unit' : 'Tablet');
 
     setState(() => _isLoading = true);
 
@@ -265,9 +312,9 @@ class _TerapiObatScreenState extends State<TerapiObatScreen> {
         'noKode': noKode,
         'userName': namaLengkap,
         'userRole': role,
-        'jenisObat': selectedJenisObat,
+        'jenisObat': namaObat,
         'dosis': dosis,
-        'satuan': selectedSatuan,
+        'satuan': satuan,
         'waktu': selectedWaktu,
         'tanggal': Timestamp.fromDate(dateTime),
         'jam':
@@ -281,7 +328,7 @@ class _TerapiObatScreenState extends State<TerapiObatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Berhasil! $selectedJenisObat ${dosis.toStringAsFixed(0)} $selectedSatuan tersimpan',
+              'Berhasil! $namaObat ${dosis.toStringAsFixed(0)} $satuan tersimpan',
             ),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 2),
@@ -553,6 +600,7 @@ class _TerapiObatScreenState extends State<TerapiObatScreen> {
   @override
   void dispose() {
     _dosisController.dispose();
+    _lainnyaController.dispose();
     super.dispose();
   }
 }
