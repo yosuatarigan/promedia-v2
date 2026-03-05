@@ -80,19 +80,19 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
   }
 
   Future<void> _simpanData() async {
-    if (_tekananDarahController.text.isEmpty || selectedPerasaan == null) {
+    if (selectedPerasaan == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Mohon lengkapi semua data'),
+          content: Text('Mohon pilih kondisi perasaan'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    // Validasi format tekanan darah
+    // Validasi format tekanan darah hanya jika diisi
     final tekananDarah = _tekananDarahController.text.trim();
-    if (!tekananDarah.contains('/')) {
+    if (tekananDarah.isNotEmpty && !tekananDarah.contains('/')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Format tekanan darah salah. Gunakan format: 120/80'),
@@ -156,7 +156,7 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
         'noKode': noKode,
         'userName': namaLengkap,
         'userRole': role,
-        'tekananDarah': tekananDarah,
+        'tekananDarah': tekananDarah.isEmpty ? '-' : tekananDarah,
         'perasaan': selectedPerasaan,
         'skorStress': _skorStress,
         'statusStress': _getStatusStress(),
@@ -274,6 +274,9 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
 
   String _getAnalisaTekananDarah() {
     String tekananDarah = _tekananDarahController.text.trim();
+    if (tekananDarah.isEmpty) {
+      return "Tekanan darah tidak diisi";
+    }
     if (!tekananDarah.contains('/')) {
       return "Format tekanan darah tidak valid. Gunakan format: Sistolik/Diastolik (contoh: 120/80)";
     }
@@ -331,8 +334,9 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
   String _getDeskripsiObservasi() {
     String tekananDarah = _tekananDarahController.text.trim();
     String perasaan = selectedPerasaan?.toLowerCase().replaceAll('Perasaan ', '') ?? "";
-    
-    return "Tekanan darah tercatat $tekananDarah mmHg dengan kondisi emosional $perasaan. ${_getKesimpulanSingkat()}";
+    String tdInfo = tekananDarah.isEmpty ? 'Tekanan darah tidak diisi' : 'Tekanan darah tercatat $tekananDarah mmHg';
+
+    return "$tdInfo dengan kondisi emosional $perasaan. ${_getKesimpulanSingkat()}";
   }
 
   String _getKesimpulanSingkat() {
@@ -915,7 +919,7 @@ class _ManajemenStressScreenState extends State<ManajemenStressScreen> {
 
                 // Tekanan Darah
                 const Text(
-                  'Tekanan Darah :',
+                  'Tekanan Darah (Opsional) :',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
