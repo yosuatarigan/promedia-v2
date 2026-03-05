@@ -3,6 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:csv/csv.dart';
+import 'dart:convert';
 import 'package:promedia_v2/message_framing_screen.dart';
 import 'package:promedia_v2/pasien_detail_screen_admin.dart';
 
@@ -589,6 +592,263 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  // ─── CSV Import ───────────────────────────────────────────────
+  Future<void> _importFromCSV() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+      withData: true,
+    );
+    if (result == null || result.files.single.bytes == null) return;
+
+    final content = utf8.decode(result.files.single.bytes!);
+    final rows = CsvDecoder().convert(content);
+
+    if (rows.length < 2) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('File CSV kosong atau tidak valid')),
+        );
+      }
+      return;
+    }
+
+    final header = rows.first.map((e) => e.toString().trim()).toList();
+    final required = ['namaLengkap', 'email', 'password', 'role', 'noKode'];
+    final missing = required.where((c) => !header.contains(c)).toList();
+    if (missing.isNotEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Kolom tidak lengkap: ${missing.join(', ')}')),
+        );
+      }
+      return;
+    }
+
+    final dataRows = rows.skip(1).where((r) => r.any((c) => c.toString().trim().isNotEmpty)).toList();
+    final users = dataRows.map((row) {
+      final map = <String, String>{};
+      for (int i = 0; i < header.length && i < row.length; i++) {
+        map[header[i]] = row[i].toString().trim();
+      }
+      return map;
+    }).toList();
+
+    if (mounted) _showImportPreview(users);
+  }
+
+  void _showImportPreview(List<Map<String, String>> users) {
+    final passwordController = TextEditingController();
+    bool obscure = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text('Import ${users.length} Pengguna'),
+          content: SizedBox(
+            width: 600,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        headingRowColor: WidgetStateProperty.all(Colors.grey.shade100),
+                        columns: const [
+                          DataColumn(label: Text('Nama')),
+                          DataColumn(label: Text('Email')),
+                          DataColumn(label: Text('Role')),
+                          DataColumn(label: Text('No Kode')),
+                        ],
+                        rows: users.take(10).map((u) => DataRow(cells: [
+                          DataCell(Text(u['namaLengkap'] ?? '-')),
+                          DataCell(Text(u['email'] ?? '-')),
+                          DataCell(Text(u['role'] ?? '-')),
+                          DataCell(Text(u['noKode'] ?? '-')),
+                        ])).toList(),
+                      ),
+                    ),
+                  ),
+                  if (users.length > 10)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text('... dan ${users.length - 10} data lainnya',
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                    ),
+                  const SizedBox(height: 20),
+                  const Text('Masukkan password admin Anda untuk melanjutkan:',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: passwordController,
+                    obscureText: obscure,
+                    decoration: InputDecoration(
+                      hintText: 'Password admin',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setDialogState(() => obscure = !obscure),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.upload, color: Colors.white),
+              label: const Text('Import', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB83B7E)),
+              onPressed: () async {
+                final pass = passwordController.text.trim();
+                if (pass.isEmpty) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('Password admin tidak boleh kosong')),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx);
+                await _processImport(users, pass);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _processImport(List<Map<String, String>> users, String adminPassword) async {
+    final auth = FirebaseAuth.instance;
+    final adminUser = auth.currentUser;
+    if (adminUser == null) return;
+    final adminEmail = adminUser.email!;
+
+    int success = 0;
+    int failed = 0;
+    final List<String> errors = [];
+
+    // Progress dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Expanded(child: Text('Sedang mengimpor data pengguna...')),
+          ],
+        ),
+      ),
+    );
+
+    for (final user in users) {
+      final email = user['email'] ?? '';
+      final password = user['password'] ?? '';
+      final nama = user['namaLengkap'] ?? '';
+      final role = user['role'] ?? '';
+      final noKode = user['noKode'] ?? '';
+
+      if (email.isEmpty || password.isEmpty || nama.isEmpty || role.isEmpty || noKode.isEmpty) {
+        failed++;
+        errors.add('$nama: data tidak lengkap');
+        continue;
+      }
+
+      try {
+        // Buat akun baru
+        final cred = await auth.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+
+        // Simpan data ke Firestore
+        await _firestore.collection('users').doc(cred.user!.uid).set({
+          'namaLengkap': nama,
+          'email': email,
+          'role': role,
+          'noKode': noKode,
+          'nik': user['nik'] ?? '',
+          'nomorHP': user['nomorHP'] ?? '',
+          'jenisKelamin': user['jenisKelamin'] ?? '',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        success++;
+
+        // Re-login sebagai admin
+        await auth.signInWithEmailAndPassword(email: adminEmail, password: adminPassword);
+      } catch (e) {
+        failed++;
+        errors.add('$nama ($email): $e');
+        // Pastikan tetap login sebagai admin jika error
+        try {
+          await auth.signInWithEmailAndPassword(email: adminEmail, password: adminPassword);
+        } catch (_) {}
+      }
+    }
+
+    // Tutup progress dialog
+    if (mounted) Navigator.of(context, rootNavigator: true).pop();
+
+    // Tampilkan hasil
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Hasil Import'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Icon(Icons.check_circle, color: Colors.green),
+                  const SizedBox(width: 8),
+                  Text('Berhasil: $success pengguna'),
+                ]),
+                if (failed > 0) ...[
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    const Icon(Icons.error, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Text('Gagal: $failed pengguna'),
+                  ]),
+                  const SizedBox(height: 8),
+                  ...errors.map((e) => Padding(
+                    padding: const EdgeInsets.only(left: 32, bottom: 4),
+                    child: Text('• $e', style: const TextStyle(fontSize: 12, color: Colors.red)),
+                  )),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+  // ─────────────────────────────────────────────────────────────
+
   Widget _buildUserFilters() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -631,6 +891,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   DropdownMenuItem(value: 'keluarga', child: Text('Keluarga')),
                 ],
                 onChanged: (value) => setState(() => _selectedRole = value!),
+              ),
+              const SizedBox(width: 16),
+              ElevatedButton.icon(
+                onPressed: _importFromCSV,
+                icon: const Icon(Icons.upload_file, color: Colors.white),
+                label: const Text('Import CSV', style: TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFB83B7E),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
               ),
             ],
           ),
