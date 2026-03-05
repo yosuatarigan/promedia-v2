@@ -29,6 +29,39 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
   FoodItem? selectedFood;
   final TextEditingController _gramController = TextEditingController();
 
+  bool get _hasUnsavedData =>
+      selectedFood != null ||
+      _gramController.text.isNotEmpty ||
+      selectedKategori != null;
+
+  Future<bool> _handleBack() async {
+    if (!_hasUnsavedData) return true;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Batalkan Isian?'),
+        content: const Text(
+            'Data makanan yang sudah diisi belum disimpan. Yakin ingin keluar?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Lanjut Isi'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB83B7E),
+            ),
+            child: const Text('Keluar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    return confirm ?? false;
+  }
+
   String get kategoriMakanText {
     if (selectedWaktu != null &&
         selectedDate != null &&
@@ -383,14 +416,24 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
   Widget build(BuildContext context) {
     final grams = double.tryParse(_gramController.text) ?? 0;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final canLeave = await _handleBack();
+        if (canLeave && context.mounted) Navigator.pop(context);
+      },
+      child: Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () async {
+            final canLeave = await _handleBack();
+            if (canLeave && context.mounted) Navigator.pop(context);
+          },
         ),
         title: const Text(
           'Pengelolaan Makanan',
@@ -671,6 +714,7 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
             ),
         ],
       ),
+    ),
     );
   }
 
