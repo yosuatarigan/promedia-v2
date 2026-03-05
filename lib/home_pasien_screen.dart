@@ -463,10 +463,11 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                       ),
                       const SizedBox(height: 16),
                       SizedBox(
-                        height: 140,
+                        height: 160,
                         child: ListView(
                           scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          padding: const EdgeInsets.only(
+                              left: 20, right: 20, top: 8),
                           children: [
                             _buildActivityCard(
                               'assets/21.png',
