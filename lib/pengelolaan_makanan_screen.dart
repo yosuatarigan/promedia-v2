@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -27,11 +26,33 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
 
   // Jenis Makanan dari TKPI
   FoodItem? selectedFood;
-  final TextEditingController _gramController = TextEditingController();
+  String? selectedPorsi;
+
+  static const List<String> _porsiOptions = [
+    '1 piring',
+    '½ piring',
+    '¼ piring',
+    '1/3 piring',
+  ];
+
+  double _porsiToGrams(String porsi) {
+    switch (porsi) {
+      case '1 piring':
+        return 200;
+      case '½ piring':
+        return 100;
+      case '¼ piring':
+        return 50;
+      case '1/3 piring':
+        return 67;
+      default:
+        return 0;
+    }
+  }
 
   bool get _hasUnsavedData =>
       selectedFood != null ||
-      _gramController.text.isNotEmpty ||
+      selectedPorsi != null ||
       selectedKategori != null;
 
   Future<bool> _handleBack() async {
@@ -293,11 +314,11 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
       return;
     }
 
-    final grams = double.tryParse(_gramController.text);
-    if (grams == null || grams <= 0) {
-      _showError('Mohon masukkan jumlah gram yang valid');
+    if (selectedPorsi == null) {
+      _showError('Mohon pilih jumlah porsi');
       return;
     }
+    final grams = _porsiToGrams(selectedPorsi!);
 
     setState(() => _isLoading = true);
 
@@ -353,6 +374,7 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
         'jam':
             '${selectedJam!.hour.toString().padLeft(2, '0')}:${selectedJam!.minute.toString().padLeft(2, '0')}',
         'foodName': selectedFood!.name,
+        'porsi': selectedPorsi,
         'grams': grams,
         'calories': calories,
         'carbohydrate': carbs,
@@ -367,7 +389,7 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Berhasil! ${selectedFood!.name} (${grams.toStringAsFixed(0)}g) tersimpan',
+              'Berhasil! ${selectedFood!.name} ($selectedPorsi) tersimpan',
             ),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 2),
@@ -414,7 +436,7 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final grams = double.tryParse(_gramController.text) ?? 0;
+    final grams = selectedPorsi != null ? _porsiToGrams(selectedPorsi!) : 0.0;
 
     return PopScope(
       canPop: false,
@@ -465,7 +487,7 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Pilih kategori, tanggal, waktu, makanan dari database TKPI (120+ item), dan masukkan jumlah dalam gram',
+                          'Pilih kategori, tanggal, waktu, makanan dari database TKPI (120+ item), dan pilih porsi (piring)',
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.blue.shade900,
@@ -624,9 +646,9 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
 
                 const SizedBox(height: 24),
 
-                // Input Jumlah Gram
+                // Input Porsi
                 const Text(
-                  'Jumlah (gram) :',
+                  'Jumlah Porsi :',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -634,38 +656,57 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                TextField(
-                  controller: _gramController,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: InputDecoration(
-                    hintText: 'Contoh: 150',
-                    prefixIcon:
-                        const Icon(Icons.scale, color: Color(0xFFB83B7E)),
-                    suffixText: 'gram',
-                    filled: true,
-                    fillColor: const Color(0xFFFCE4EC),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide(
-                          color: const Color(0xFFB83B7E).withOpacity(0.2)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: const BorderSide(
-                          color: Color(0xFFB83B7E), width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
-                  ),
-                  onChanged: (value) => setState(() {}),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: _porsiOptions.map((porsi) {
+                    final isSelected = selectedPorsi == porsi;
+                    return GestureDetector(
+                      onTap: () => setState(() => selectedPorsi = porsi),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFFB83B7E)
+                              : const Color(0xFFFCE4EC),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: const Color(0xFFB83B7E)
+                                .withOpacity(isSelected ? 1 : 0.3),
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              porsi,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected
+                                    ? Colors.white
+                                    : const Color(0xFFB83B7E),
+                              ),
+                            ),
+                            Text(
+                              '≈ ${_porsiToGrams(porsi).toStringAsFixed(0)}g',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isSelected
+                                    ? Colors.white70
+                                    : Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
 
-                if (selectedFood != null && grams > 0) ...[
+                if (selectedFood != null && selectedPorsi != null) ...[
                   const SizedBox(height: 24),
                   FoodNutritionDetail(
                     food: selectedFood!,
@@ -678,7 +719,7 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
                 // Tombol Simpan
                 Center(
                   child: ElevatedButton.icon(
-                    onPressed: selectedFood != null && grams > 0 && !_isLoading
+                    onPressed: selectedFood != null && selectedPorsi != null && !_isLoading
                         ? _saveFoodLog
                         : null,
                     icon: const Icon(Icons.save, color: Colors.white),
@@ -737,9 +778,4 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _gramController.dispose();
-    super.dispose();
-  }
 }
