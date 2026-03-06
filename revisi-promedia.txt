@@ -1,0 +1,145 @@
+====================================================
+INSTRUKSI REVISI APLIKASI PROMEDIA (FLUTTER)
+====================================================
+
+Berikut adalah daftar revisi yang harus dilakukan pada aplikasi Flutter Promedia.
+Jangan ubah fungsi yang sudah ada, hanya tambah atau perbaiki sesuai instruksi di bawah.
+
+----------------------------------------------------
+A. TAMPILAN WEB (Admin Panel)
+----------------------------------------------------
+
+1. TAMBAHKAN menu / tombol "Message Framing"
+   - Belum ada fitur ini di panel web, perlu ditambahkan ke navigasi/menu utama.
+
+2. FITUR IMPORT DATA PENGGUNA (Pasien & Keluarga)
+   - Tambahkan fitur import data massal untuk akun pasien dan keluarga
+     (misalnya via file CSV/Excel).
+
+3. TAMPILKAN PASSWORD PENGGUNA (Pasien & Keluarga)
+   - Di halaman manajemen pengguna (pasien/keluarga), tambahkan tombol atau kolom
+     untuk melihat password pengguna.
+
+----------------------------------------------------
+B. TAMPILAN PASIEN (Aplikasi Flutter)
+----------------------------------------------------
+
+--- HALAMAN AKTIVITAS HARIAN ---
+
+4. PERBAIKI ICON TERPOTONG
+   - Icon pada bagian aktivitas harian terpotong dan mengganggu tampilan.
+   - Pastikan icon ditampilkan penuh (tidak terpotong), sesuaikan ukuran container
+     atau gunakan BoxFit yang tepat.
+
+5. TAMBAHKAN ISIAN JAM TIDUR
+   - Pada form aktivitas harian, tambahkan field input baru: "Jam Tidur"
+     (bisa berupa time picker atau text field dengan format jam).
+
+6. TAMBAHKAN AKTIVITAS "RUMAH TANGGA"
+   - Di daftar pilihan jenis aktivitas fisik, tambahkan opsi baru: "Rumah Tangga"
+     (setara dengan aktivitas ringan/sedang sesuai standar PERKENI).
+
+--- HALAMAN CHAT ---
+
+7. TAMBAHKAN TOMBOL/LINK GRUP WHATSAPP
+   - Di halaman Chat, tambahkan tombol atau banner yang langsung membuka link grup WA:
+     https://chat.whatsapp.com/DgwwiXnDtlA0r7qAhRGs79?mode=hqrt2
+   - Gunakan url_launcher untuk membuka link tersebut.
+
+--- HALAMAN PROFIL / IDENTITAS ---
+
+8. TAMBAHKAN FIELD IDENTITAS BARU di profil kesehatan pasien:
+   a. "Lama Menderita DM" → input angka (dalam tahun)
+   b. "Pendidikan" → dropdown (SD, SMP, SMA, Diploma, Sarjana, dll)
+   c. "Keluarga Pendamping Pasien" → dropdown pilihan:
+      - Anak
+      - Suami
+      - Istri
+      - Saudara
+
+--- HALAMAN KEBUTUHAN KALORI ---
+
+9. REVISI PERHITUNGAN KALORI (PERKENI) — INI PERBAIKAN KRITIS
+   Perhitungan saat ini hasilnya salah/mismatch. Perbaiki dengan rumus berikut:
+
+   LANGKAH 1 — Hitung BBI (Berat Badan Ideal):
+   - Pria TB ≥ 160 cm atau Wanita TB ≥ 150 cm → BBI = 0.9 × (TB - 100)
+   - Pria TB < 160 cm atau Wanita TB < 150 cm → BBI = TB - 100
+
+   LANGKAH 2 — Status Berat Badan:
+   - Kurus  : BB < BBI - 10%
+   - Normal : BBI ± 10%
+   - Gemuk  : BB > BBI + 10%
+
+   LANGKAH 3 — Kebutuhan Basal:
+   - Pria   : BBI × 30 kkal
+   - Wanita : BBI × 25 kkal
+
+   LANGKAH 4 — Faktor Penyesuaian (diterapkan secara berurutan):
+
+   a. Usia:
+      - 40–59 tahun → kurangi 5%
+      - 60–69 tahun → kurangi 10%
+      - ≥ 70 tahun  → kurangi 20%
+
+   b. Aktivitas Fisik (tambahkan ke hasil setelah koreksi usia):
+      - Istirahat     : +10%
+      - Ringan        : +20% (pegawai kantor, guru, ibu rumah tangga)
+      - Sedang        : +30% (industri ringan, mahasiswa)
+      - Berat         : +40% (petani, buruh, atlet)
+      - Sangat Berat  : +50% (tukang becak, tukang gali)
+
+   c. Stress Metabolik: +10% s/d +30% (jika ada)
+
+   LANGKAH 5 — Cek Minimum:
+   - Pria   : minimal 1200–1600 kkal/hari
+   - Wanita : minimal 1000–1200 kkal/hari
+
+   Contoh validasi (gunakan untuk test):
+   Input: Pria, TB=170 cm, BB=85 kg, Usia=50 th, Aktivitas=Ringan
+   → BBI = 0.9 × (170-100) = 63 kg
+   → Status: Gemuk (85 > 63 + 6.3)
+   → Basal: 63 × 30 = 1890 kkal
+   → Koreksi usia 50 th (-5%): 1890 × 0.95 = 1795.5
+   → Aktivitas ringan (+20%): 1795.5 × 1.20 = 2154.6 kkal
+   → Hasil akhir ≈ 2155 kkal/hari ✓
+
+--- HALAMAN PORSI MAKANAN ---
+
+10. UBAH SATUAN PORSI MAKANAN
+    - Ganti satuan porsi dari satuan saat ini menjadi:
+      "1 piring", "½ piring", "¼ piring", "1/3 piring"
+    - Gunakan dropdown atau chip selector untuk pilihan ini.
+
+11. PERBAIKI UX FORM MAKANAN — JANGAN KELUAR MENU SAAT MASIH ADA ISIAN
+    - Saat pengguna sedang mengisi data makanan, form tidak boleh tertutup/pindah
+      halaman secara otomatis selama masih ada data yang belum disimpan.
+    - Tambahkan konfirmasi jika user ingin keluar dari form saat isian belum selesai.
+
+--- HALAMAN OBAT ---
+
+12. UPDATE DAFTAR JENIS OBAT
+    - Tambahkan data obat dari sumber: https://mjl.clarivate.com/home
+      (obat-obatan DM yang umum digunakan).
+    - Tambahkan opsi "Lainnya" jika obat yang dicari tidak ada di daftar.
+
+13. UBAH SATUAN DOSIS OBAT
+    - Ganti satuan dosis menjadi "Tablet" (bukan mg atau satuan lain).
+
+--- HALAMAN MANAJEMEN STRESS / TEKANAN DARAH ---
+
+14. TEKANAN DARAH TIDAK WAJIB DIISI
+    - Field tekanan darah pada form manajemen stress harus dibuat OPSIONAL (tidak wajib).
+    - Jika kosong, hasil manajemen stress tetap bisa disimpan dan ditampilkan
+      tanpa menyertakan data tekanan darah.
+
+====================================================
+CATATAN UMUM
+====================================================
+- Jangan ubah atau hapus fungsi yang sudah berjalan dengan baik.
+- Setiap perubahan UI harus tetap konsisten dengan desain yang sudah ada.
+- Prioritas: Item no. 9 (revisi kalori) adalah yang paling kritis karena
+  menyangkut hasil medis yang harus akurat.
+- Gunakan firebase untuk menyimpan field baru (no. 8) jika data lainnya
+  sudah tersimpan di Firestore.
+====================================================
