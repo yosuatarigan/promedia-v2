@@ -1,0 +1,24 @@
+Daftar Catatan Revisi Aplikasi
+1. Nutrisi
+* Satuannya ganti ke ukuran Rumah Tangga. (Selesai/✔)
+* Pada saat input makan: Makan Siang, Pagi, Snack. Sehingga tidak berkali-kali mengisi waktu. (Selesai/✔)
+* Zoom Materi.
+2. BARU
+* Tambahkan isian Jam Tidur (Mulai - Bangun).
+* Menu: Aktivitas Anda.
+3. Aktivitas
+* Tambahkan menu aktivitas Rumah Tangga.
+* Tambahkan di Latihan Fisik: Aktivitas Rumah Tangga.
+* Aktivitas jadi 6.
+4. Obat
+* (Tambah Noted) untuk obat yang tidak ada di tabel.
+* Ubah bukan gram tapi tablet.
+5. Tambah chat dengan petugas kesehatan (WA Group). (Selesai/✔)
+6. Revisi perhitungan kalori.
+7. Identitas (di bagian Profil Kesehatan/Data Diri):
+1. Lama menderita DM (Diabetes Melitus).
+2. Pendidikan.
+3. Nama keluarga pendamping pasien $\rightarrow$ Didampingi:
+    * Anak
+    * Suami
+    * Istri

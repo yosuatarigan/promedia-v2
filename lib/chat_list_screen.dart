@@ -227,8 +227,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
               onTap: () async {
                 final uri = Uri.parse(
                     'https://chat.whatsapp.com/DgwwiXnDtlA0r7qAhRGs79?mode=hqrt2');
-                if (await canLaunchUrl(uri)) {
+                try {
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Tidak dapat membuka WhatsApp'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 }
               },
               child: Container(
