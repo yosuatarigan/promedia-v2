@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:promedia_v2/catatan_hba1c.dart';
+import 'package:promedia_v2/detail_jam_tidur_screen.dart';
 import 'package:promedia_v2/detail_latihan_fisik.dart';
 import 'package:promedia_v2/detail_manajemen_screen.dart';
 import 'package:promedia_v2/edukasi_diabetes.dart';
@@ -498,6 +499,12 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                               'Latihan Fisik',
                               hasNotification: true,
                             ),
+                            const SizedBox(width: 16),
+                            _buildActivityCard(
+                              'assets/jamtidur.png',
+                              'Jam Tidur',
+                              hasNotification: true,
+                            ),
                           ],
                         ),
                       ),
@@ -776,6 +783,20 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                                 builder:
                                     (context) =>
                                         const DetailLatihanFisikScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildRiwayatCard(
+                          'assets/jamtidur.png',
+                          'Jam Tidur',
+                          true,
+                          () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const DetailJamTidurScreen(),
                               ),
                             );
                           },

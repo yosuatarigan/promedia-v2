@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:promedia_v2/detail_jam_tidur_screen.dart';
 import 'package:promedia_v2/detail_latihan_fisik.dart';
 import 'package:promedia_v2/detail_manajemen_screen.dart';
 import 'detail_makan_screen.dart';
@@ -120,6 +121,20 @@ class RiwayatAktivitasScreen extends StatelessWidget {
                       MaterialPageRoute(
                         builder:
                             (context) => const DetailLatihanFisikScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildActivityCard(
+                  context,
+                  'assets/jamtidur.png',
+                  'Jam Tidur',
+                  hasNotification: true,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DetailJamTidurScreen(),
                       ),
                     );
                   },
