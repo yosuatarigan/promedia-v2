@@ -145,12 +145,17 @@ class Pilar2MakanSehatPage extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         // Image Card
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.asset(
-            'assets/edukasi/pilar2/1jadwalmakan.png',
-            width: double.infinity,
-            fit: BoxFit.cover,
+        InteractiveViewer(
+          panEnabled: true,
+          minScale: 0.8,
+          maxScale: 5.0,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset(
+              'assets/edukasi/pilar2/1jadwalmakan.png',
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -235,21 +240,31 @@ class Pilar2MakanSehatPage extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         // Image Cards
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.asset(
-            'assets/edukasi/pilar2/penatalaksanaanpolamakan.png',
-            width: double.infinity,
-            fit: BoxFit.cover,
+        InteractiveViewer(
+          panEnabled: true,
+          minScale: 0.8,
+          maxScale: 5.0,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset(
+              'assets/edukasi/pilar2/penatalaksanaanpolamakan.png',
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         const SizedBox(height: 12),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.asset(
-            'assets/edukasi/pilar2/penatalaksanapolamakan2.png',
-            width: double.infinity,
-            fit: BoxFit.cover,
+        InteractiveViewer(
+          panEnabled: true,
+          minScale: 0.8,
+          maxScale: 5.0,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset(
+              'assets/edukasi/pilar2/penatalaksanapolamakan2.png',
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -417,12 +432,17 @@ class Pilar2MakanSehatPage extends StatelessWidget {
         // Pilihan Makan Image
         Container(
           margin: const EdgeInsets.only(bottom: 16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/edukasi/pilar2/pilihanmakan.png',
-              width: double.infinity,
-              fit: BoxFit.cover,
+          child: InteractiveViewer(
+            panEnabled: true,
+            minScale: 0.8,
+            maxScale: 5.0,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/edukasi/pilar2/pilihanmakan.png',
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         ),
@@ -661,30 +681,45 @@ class Pilar2MakanSehatPage extends StatelessWidget {
               // Images Grid
               Column(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(
-                      'assets/edukasi/pilar2/41caramemasak1.png',
-                      width: double.infinity,
-                      fit: BoxFit.cover,
+                  InteractiveViewer(
+                    panEnabled: true,
+                    minScale: 0.8,
+                    maxScale: 5.0,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        'assets/edukasi/pilar2/41caramemasak1.png',
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(
-                      'assets/edukasi/pilar2/41caramemasak2.png',
-                      width: double.infinity,
-                      fit: BoxFit.cover,
+                  InteractiveViewer(
+                    panEnabled: true,
+                    minScale: 0.8,
+                    maxScale: 5.0,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        'assets/edukasi/pilar2/41caramemasak2.png',
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(
-                      'assets/edukasi/pilar2/41caramemasak3.png',
-                      width: double.infinity,
-                      fit: BoxFit.cover,
+                  InteractiveViewer(
+                    panEnabled: true,
+                    minScale: 0.8,
+                    maxScale: 5.0,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        'assets/edukasi/pilar2/41caramemasak3.png',
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ],
@@ -737,12 +772,17 @@ class Pilar2MakanSehatPage extends StatelessWidget {
                 style: TextStyle(fontSize: 11, height: 1.4),
               ),
               const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  'assets/edukasi/pilar2/42urutanmakan1.png',
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+              InteractiveViewer(
+                panEnabled: true,
+                minScale: 0.8,
+                maxScale: 5.0,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/edukasi/pilar2/42urutanmakan1.png',
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ],

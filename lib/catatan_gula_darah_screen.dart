@@ -21,6 +21,20 @@ class _CatatanGulaDarahScreenState extends State<CatatanGulaDarahScreen> {
   Future<void> _simpanData() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final puasa = _gulaPuasaController.text.trim();
+    final sewaktu = _gulaSewaktuController.text.trim();
+    final duaJam = _gula2JamController.text.trim();
+
+    if (puasa.isEmpty && sewaktu.isEmpty && duaJam.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Isi minimal satu jenis gula darah'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -31,14 +45,14 @@ class _CatatanGulaDarahScreenState extends State<CatatanGulaDarahScreen> {
           .collection('users')
           .doc(user.uid)
           .get();
-      
+
       final noKode = userDoc.data()?['noKode'] ?? '';
 
       final data = {
         'noKode': noKode,
-        'gulaDarahPuasa': double.parse(_gulaPuasaController.text),
-        'gulaDarahSewaktu': double.parse(_gulaSewaktuController.text),
-        'gulaDarah2JamPP': double.parse(_gula2JamController.text),
+        'gulaDarahPuasa': puasa.isNotEmpty ? double.parse(puasa) : null,
+        'gulaDarahSewaktu': sewaktu.isNotEmpty ? double.parse(sewaktu) : null,
+        'gulaDarah2JamPP': duaJam.isNotEmpty ? double.parse(duaJam) : null,
         'satuan': _selectedUnit,
         'tanggal': Timestamp.now(),
         'createdAt': FieldValue.serverTimestamp(),
@@ -62,7 +76,43 @@ class _CatatanGulaDarahScreenState extends State<CatatanGulaDarahScreen> {
     }
   }
 
+  Widget _buildDialogItem(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFB83B7E),
+            borderRadius: BorderRadius.circular(25),
+          ),
+          child: Text(
+            '$value mg/dL',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
   void _showSuccessDialog() {
+    final puasa = _gulaPuasaController.text.trim();
+    final sewaktu = _gulaSewaktuController.text.trim();
+    final duaJam = _gula2JamController.text.trim();
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -75,7 +125,7 @@ class _CatatanGulaDarahScreenState extends State<CatatanGulaDarahScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'Gula Darah Puasa',
+                'Data Tersimpan',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -83,72 +133,10 @@ class _CatatanGulaDarahScreenState extends State<CatatanGulaDarahScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFB83B7E),
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: Text(
-                  '${_gulaPuasaController.text} mg/dL',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Gula Darah Sewaktu',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
+              if (puasa.isNotEmpty) _buildDialogItem('Gula Darah Puasa', puasa),
+              if (sewaktu.isNotEmpty) _buildDialogItem('Gula Darah Sewaktu', sewaktu),
+              if (duaJam.isNotEmpty) _buildDialogItem('Gula Darah 2 Jam PP', duaJam),
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFB83B7E),
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: Text(
-                  '${_gulaSewaktuController.text} mg/dL',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Gula Darah 2 Jam PP',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFB83B7E),
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: Text(
-                  '${_gula2JamController.text} mg/dL',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -205,7 +193,7 @@ class _CatatanGulaDarahScreenState extends State<CatatanGulaDarahScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Silahkan isi form dibawah ini untuk mencatat gula darah.',
+                'Silahkan isi form dibawah ini untuk mencatat gula darah.\nCukup isi salah satu jenis gula darah.',
                 style: TextStyle(fontSize: 14, color: Colors.black87),
                 textAlign: TextAlign.center,
               ),
@@ -251,10 +239,7 @@ class _CatatanGulaDarahScreenState extends State<CatatanGulaDarahScreen> {
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Gula darah puasa harus diisi';
-                        }
-                        if (double.tryParse(value) == null) {
+                        if (value != null && value.isNotEmpty && double.tryParse(value) == null) {
                           return 'Masukkan angka yang valid';
                         }
                         return null;
@@ -305,10 +290,7 @@ class _CatatanGulaDarahScreenState extends State<CatatanGulaDarahScreen> {
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Gula darah sewaktu harus diisi';
-                        }
-                        if (double.tryParse(value) == null) {
+                        if (value != null && value.isNotEmpty && double.tryParse(value) == null) {
                           return 'Masukkan angka yang valid';
                         }
                         return null;
@@ -359,10 +341,7 @@ class _CatatanGulaDarahScreenState extends State<CatatanGulaDarahScreen> {
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Gula darah 2 jam PP harus diisi';
-                        }
-                        if (double.tryParse(value) == null) {
+                        if (value != null && value.isNotEmpty && double.tryParse(value) == null) {
                           return 'Masukkan angka yang valid';
                         }
                         return null;

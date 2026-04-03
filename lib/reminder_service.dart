@@ -26,7 +26,7 @@ class ReminderService {
       final userData = userDoc.data()!;
       final fromUserName = userData['namaLengkap'] as String;
 
-      // Cari pasien dengan noKode yang sama
+      // Cari pasien dengan noKode yang sama (opsional — reminder tetap dikirim walau belum terdaftar)
       final pasienQuery = await _firestore
           .collection('users')
           .where('noKode', isEqualTo: noKode)
@@ -34,11 +34,9 @@ class ReminderService {
           .limit(1)
           .get();
 
-      if (pasienQuery.docs.isEmpty) {
-        throw Exception('Pasien tidak ditemukan');
-      }
-
-      final pasienUid = pasienQuery.docs.first.id;
+      final pasienUid = pasienQuery.docs.isNotEmpty
+          ? pasienQuery.docs.first.id
+          : null;
 
       // Simpan reminder ke Firestore
       await _firestore.collection('reminders').add({
@@ -56,7 +54,7 @@ class ReminderService {
     }
   }
 
-  // Get reminders untuk pasien yang login
+  // Get reminders untuk pasien yang login (berdasarkan toUserId ATAU noKode)
   Stream<QuerySnapshot> getRemindersForCurrentUser() {
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
@@ -66,6 +64,17 @@ class ReminderService {
     return _firestore
         .collection('reminders')
         .where('toUserId', isEqualTo: currentUser.uid)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  // Get reminders berdasarkan noKode — untuk menangkap reminder yang dikirim
+  // sebelum pasien terdaftar (toUserId == null)
+  Stream<QuerySnapshot> getRemindersForNoKode(String noKode) {
+    return _firestore
+        .collection('reminders')
+        .where('noKode', isEqualTo: noKode)
+        .where('toUserId', isNull: true)
         .orderBy('createdAt', descending: true)
         .snapshots();
   }
@@ -107,25 +116,47 @@ class ReminderService {
 
   // Get latest unread dan unsnoozed reminder untuk pop-up
   // HANYA untuk reminder aktivitas dari keluarga, BUKAN dari admin
-  Future<DocumentSnapshot?> getLatestUnreadReminder() async {
+  Future<DocumentSnapshot?> getLatestUnreadReminder({String? noKode}) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) return null;
 
     try {
       final now = Timestamp.now();
 
-      // Filter: hanya ambil reminder yang BUKAN dari admin (fromAdmin != true)
-      final query = await _firestore
+      // Query 1: reminder yang langsung ke uid pasien
+      final queryByUid = await _firestore
           .collection('reminders')
           .where('toUserId', isEqualTo: currentUser.uid)
           .where('isRead', isEqualTo: false)
           .orderBy('createdAt', descending: true)
           .get();
 
-      if (query.docs.isEmpty) return null;
+      // Query 2: reminder berbasis noKode (toUserId null — dikirim sebelum pasien terdaftar)
+      final queryByNoKode = noKode != null
+          ? await _firestore
+              .collection('reminders')
+              .where('noKode', isEqualTo: noKode)
+              .where('toUserId', isNull: true)
+              .where('isRead', isEqualTo: false)
+              .orderBy('createdAt', descending: true)
+              .get()
+          : null;
+
+      // Gabungkan dan urutkan
+      final allDocs = [
+        ...queryByUid.docs,
+        ...?queryByNoKode?.docs,
+      ]..sort((a, b) {
+          final aTime = (a.data() as Map)['createdAt'] as Timestamp?;
+          final bTime = (b.data() as Map)['createdAt'] as Timestamp?;
+          if (aTime == null || bTime == null) return 0;
+          return bTime.compareTo(aTime);
+        });
+
+      if (allDocs.isEmpty) return null;
 
       // Filter manual untuk exclude reminder dari admin
-      final filteredDocs = query.docs.where((doc) {
+      final filteredDocs = allDocs.where((doc) {
         final data = doc.data();
         final fromAdmin = data['fromAdmin'] as bool? ?? false;
         return !fromAdmin; // Hanya ambil yang bukan dari admin

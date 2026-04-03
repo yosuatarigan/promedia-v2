@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:promedia_v2/catatan_hba1c.dart';
 import 'package:promedia_v2/detail_jam_tidur_screen.dart';
+import 'package:promedia_v2/input_aktivitas_tidur_screen.dart';
 import 'package:promedia_v2/detail_latihan_fisik.dart';
 import 'package:promedia_v2/detail_manajemen_screen.dart';
 import 'package:promedia_v2/edukasi_diabetes.dart';
@@ -502,7 +503,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                             const SizedBox(width: 16),
                             _buildActivityCard(
                               'assets/jamtidur.png',
-                              'Jam Tidur',
+                              'Aktivitas Tidur',
                               hasNotification: true,
                             ),
                           ],
@@ -789,7 +790,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                         ),
                         _buildRiwayatCard(
                           'assets/jamtidur.png',
-                          'Jam Tidur',
+                          'Aktivitas Tidur',
                           true,
                           () {
                             Navigator.push(
@@ -858,6 +859,13 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const LatihanFisikScreen()),
+          );
+        } else if (title == 'Aktivitas Tidur') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const InputAktivitasTidurScreen(),
+            ),
           );
         }
       },

@@ -58,10 +58,10 @@ class _PerawatanKakiScreenState extends State<PerawatanKakiScreen> {
   }
 
   Future<void> _simpanData() async {
-    if (kondisiKaki.isEmpty || 
-        memeriksaSepatu == null || 
-        mengeringkanKaki == null || 
-        menggunakanAlasKaki == null || 
+    if (kondisiKaki.isEmpty ||
+        memeriksaSepatu == null ||
+        mengeringkanKaki == null ||
+        menggunakanAlasKaki == null ||
         menggunakanPelembab == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -543,7 +543,9 @@ class _PerawatanKakiScreenState extends State<PerawatanKakiScreen> {
     List<String> deskripsi = [];
 
     // Deskripsi kondisi kaki
-    if (kondisiKaki.isNotEmpty) {
+    if (kondisiKaki.contains('Tidak ada masalah')) {
+      deskripsi.add('Kondisi kaki tidak ada masalah');
+    } else if (kondisiKaki.isNotEmpty) {
       String kondisiText = "Kondisi Kaki ${kondisiKaki.join(", ").toLowerCase()}";
       deskripsi.add(kondisiText);
     }
@@ -761,6 +763,7 @@ class _PerawatanKakiScreenState extends State<PerawatanKakiScreen> {
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 12),
+                _buildCheckboxOption('Tidak ada masalah'),
                 _buildCheckboxOption('Lepuh, luka gores, atau sayatan'),
                 _buildCheckboxOption('Perubahan warna kulit (biru, merah terang, atau bercak putih)'),
                 _buildCheckboxOption('Kulit terlalu kering'),
@@ -853,14 +856,20 @@ class _PerawatanKakiScreenState extends State<PerawatanKakiScreen> {
 
   Widget _buildCheckboxOption(String value) {
     final isSelected = kondisiKaki.contains(value);
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
-          if (isSelected) {
-            kondisiKaki.remove(value);
-          } else {
+          if (value == 'Tidak ada masalah') {
+            kondisiKaki.clear();
             kondisiKaki.add(value);
+          } else {
+            kondisiKaki.remove('Tidak ada masalah');
+            if (isSelected) {
+              kondisiKaki.remove(value);
+            } else {
+              kondisiKaki.add(value);
+            }
           }
         });
       },

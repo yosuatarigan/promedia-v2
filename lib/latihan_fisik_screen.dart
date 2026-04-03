@@ -21,7 +21,6 @@ class _LatihanFisikScreenState extends State<LatihanFisikScreen> {
 
   DateTime selectedDate = DateTime.now();
   TimeOfDay selectedJam = TimeOfDay.now();
-  TimeOfDay? selectedJamTidur;
 
   final List<String> daftarOlahraga = [
     'Jalan Kaki',
@@ -43,17 +42,6 @@ class _LatihanFisikScreenState extends State<LatihanFisikScreen> {
   void dispose() {
     _durasiController.dispose();
     super.dispose();
-  }
-
-  Future<void> _selectJamTidur() async {
-    final time = await showTimePicker(
-      context: context,
-      initialTime: selectedJamTidur ?? const TimeOfDay(hour: 22, minute: 0),
-      helpText: 'Pilih Jam Tidur',
-    );
-    if (time != null) {
-      setState(() => selectedJamTidur = time);
-    }
   }
 
   Future<void> _selectDateTime() async {
@@ -156,9 +144,6 @@ class _LatihanFisikScreenState extends State<LatihanFisikScreen> {
         'rekomendasi': rekomendasi,
         'tanggal': Timestamp.fromDate(dateTime),
         'jam': '${selectedJam.hour.toString().padLeft(2, '0')}:${selectedJam.minute.toString().padLeft(2, '0')}',
-        'jamTidur': selectedJamTidur != null
-            ? '${selectedJamTidur!.hour.toString().padLeft(2, '0')}:${selectedJamTidur!.minute.toString().padLeft(2, '0')}'
-            : null,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -818,53 +803,6 @@ class _LatihanFisikScreenState extends State<LatihanFisikScreen> {
                         ),
                       ),
                     ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Jam Tidur
-                const Text(
-                  'Jam Tidur (Opsional) :',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: _selectJamTidur,
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFCE4EC),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xFFB83B7E).withOpacity(0.2),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.bedtime_outlined,
-                            color: Color(0xFFB83B7E), size: 20),
-                        const SizedBox(width: 12),
-                        Text(
-                          selectedJamTidur != null
-                              ? '${selectedJamTidur!.hour.toString().padLeft(2, '0')}:${selectedJamTidur!.minute.toString().padLeft(2, '0')} WIB'
-                              : 'Pilih jam tidur',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: selectedJamTidur != null
-                                ? Colors.black87
-                                : Colors.grey,
-                          ),
-                        ),
-                        const Spacer(),
-                        if (selectedJamTidur != null)
-                          GestureDetector(
-                            onTap: () =>
-                                setState(() => selectedJamTidur = null),
-                            child: const Icon(Icons.close,
-                                size: 18, color: Colors.grey),
-                          ),
-                      ],
-                    ),
                   ),
                 ),
                 const SizedBox(height: 32),

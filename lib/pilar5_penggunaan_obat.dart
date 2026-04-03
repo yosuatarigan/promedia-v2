@@ -71,12 +71,17 @@ class Pilar5PenggunaanObatPage extends StatelessWidget {
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Image.asset(
-              'assets/edukasi/pilar5/1.png',
-              width: double.infinity,
-              fit: BoxFit.cover,
+          child: InteractiveViewer(
+            panEnabled: true,
+            minScale: 0.8,
+            maxScale: 5.0,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(
+                'assets/edukasi/pilar5/1.png',
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         ),

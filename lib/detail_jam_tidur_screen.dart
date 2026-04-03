@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:promedia_v2/input_aktivitas_tidur_screen.dart';
 
 class DetailJamTidurScreen extends StatefulWidget {
   const DetailJamTidurScreen({super.key});
@@ -55,13 +56,13 @@ class _DetailJamTidurScreenState extends State<DetailJamTidurScreen> {
     }
   }
 
-  Stream<QuerySnapshot> _getJamTidurStream() {
+  Stream<QuerySnapshot> _getStream() {
     final startOfDay =
         DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
 
     return _firestore
-        .collection('latihan_fisik_logs')
+        .collection('aktivitas_tidur_logs')
         .where('noKode', isEqualTo: noKode)
         .where('tanggal',
             isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
@@ -79,10 +80,8 @@ class _DetailJamTidurScreenState extends State<DetailJamTidurScreen> {
           backgroundColor: Colors.white,
           elevation: 0,
           centerTitle: true,
-          title: const Text(
-            'Jam Tidur',
-            style: TextStyle(color: Colors.black87),
-          ),
+          title: const Text('Aktivitas Tidur',
+              style: TextStyle(color: Colors.black87)),
         ),
         body: const Center(
           child: CircularProgressIndicator(
@@ -99,10 +98,8 @@ class _DetailJamTidurScreenState extends State<DetailJamTidurScreen> {
           backgroundColor: Colors.white,
           elevation: 0,
           centerTitle: true,
-          title: const Text(
-            'Jam Tidur',
-            style: TextStyle(color: Colors.black87),
-          ),
+          title: const Text('Aktivitas Tidur',
+              style: TextStyle(color: Colors.black87)),
         ),
         body: const Center(child: Text('Data user tidak ditemukan')),
       );
@@ -114,12 +111,10 @@ class _DetailJamTidurScreenState extends State<DetailJamTidurScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        title: Text(
-          'Jam Tidur',
-          style: Theme.of(context)
-              .textTheme
-              .headlineMedium
-              ?.copyWith(color: Colors.black87),
+        title: const Text(
+          'Aktivitas Tidur',
+          style: TextStyle(
+              color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
@@ -131,6 +126,20 @@ class _DetailJamTidurScreenState extends State<DetailJamTidurScreen> {
             onPressed: _selectDate,
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const InputAktivitasTidurScreen(),
+            ),
+          );
+        },
+        backgroundColor: const Color(0xFFB83B7E),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Catat Tidur',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
       body: Column(
         children: [
@@ -166,10 +175,9 @@ class _DetailJamTidurScreenState extends State<DetailJamTidurScreen> {
               ),
             ),
           ),
-
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _getJamTidurStream(),
+              stream: _getStream(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -184,15 +192,7 @@ class _DetailJamTidurScreenState extends State<DetailJamTidurScreen> {
                   return Center(child: Text('Error: ${snapshot.error}'));
                 }
 
-                // Filter hanya yang punya data jamTidur
-                final allDocs = snapshot.data?.docs ?? [];
-                final docs = allDocs
-                    .where((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      return data['jamTidur'] != null &&
-                          (data['jamTidur'] as String).isNotEmpty;
-                    })
-                    .toList();
+                final docs = snapshot.data?.docs ?? [];
 
                 if (docs.isEmpty) {
                   return Center(
@@ -203,12 +203,26 @@ class _DetailJamTidurScreenState extends State<DetailJamTidurScreen> {
                             size: 80, color: Colors.grey.shade300),
                         const SizedBox(height: 16),
                         Text(
-                          'Belum ada data jam tidur\npada tanggal ini',
+                          'Belum ada data aktivitas tidur\npada tanggal ini',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey.shade600,
                           ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton.icon(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const InputAktivitasTidurScreen(),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add,
+                              color: Color(0xFFB83B7E)),
+                          label: const Text('Catat Sekarang',
+                              style: TextStyle(color: Color(0xFFB83B7E))),
                         ),
                       ],
                     ),
@@ -216,42 +230,40 @@ class _DetailJamTidurScreenState extends State<DetailJamTidurScreen> {
                 }
 
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Berikut ini adalah data jam tidur pada tanggal '
-                        '${DateFormat('dd MMMM yyyy').format(selectedDate)}',
+                        'Data aktivitas tidur pada ${DateFormat('dd MMMM yyyy').format(selectedDate)}',
                         style: const TextStyle(
                           fontSize: 14,
                           color: Colors.black87,
                           height: 1.5,
                         ),
                       ),
-                      const SizedBox(height: 24),
-
+                      const SizedBox(height: 16),
                       Row(
                         children: [
                           const Icon(Icons.bedtime_outlined,
                               color: Color(0xFFB83B7E)),
                           const SizedBox(width: 8),
                           Text(
-                            'Jam Tidur (${docs.length} catatan)',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(color: Colors.black87),
+                            'Aktivitas Tidur (${docs.length} entri)',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-
                       ...docs.map((doc) {
                         final data = doc.data() as Map<String, dynamic>;
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
-                          child: _buildJamTidurItem(data),
+                          child: _buildItem(data),
                         );
                       }),
                     ],
@@ -265,11 +277,23 @@ class _DetailJamTidurScreenState extends State<DetailJamTidurScreen> {
     );
   }
 
-  Widget _buildJamTidurItem(Map<String, dynamic> data) {
+  Widget _buildItem(Map<String, dynamic> data) {
     final jamTidur = data['jamTidur'] as String? ?? '-';
-    final jenisOlahraga = data['jenisOlahraga'] as String? ?? '-';
-    final jam = data['jam'] as String? ?? '-';
+    final jamBangun = data['jamBangun'] as String? ?? '-';
+    final durasiMenit = data['durasiMenit'] as int?;
+    final kualitas = data['kualitas'] as String? ?? '-';
+    final catatan = data['catatan'] as String? ?? '';
     final userName = data['userName'] as String? ?? '-';
+
+    final durasiText = durasiMenit != null
+        ? '${durasiMenit ~/ 60} jam ${durasiMenit % 60} menit'
+        : '-';
+
+    final kualitasColor = kualitas == 'Baik'
+        ? Colors.green
+        : kualitas == 'Cukup'
+            ? Colors.orange
+            : Colors.red;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -281,6 +305,7 @@ class _DetailJamTidurScreenState extends State<DetailJamTidurScreen> {
         ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -290,11 +315,8 @@ class _DetailJamTidurScreenState extends State<DetailJamTidurScreen> {
                   color: const Color(0xFFB83B7E).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.bedtime_outlined,
-                  color: Color(0xFFB83B7E),
-                  size: 24,
-                ),
+                child: const Icon(Icons.bedtime_outlined,
+                    color: Color(0xFFB83B7E), size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -304,58 +326,74 @@ class _DetailJamTidurScreenState extends State<DetailJamTidurScreen> {
                     Row(
                       children: [
                         const Icon(Icons.nightlight_round,
-                            size: 16, color: Colors.indigo),
+                            size: 14, color: Colors.indigo),
                         const SizedBox(width: 4),
-                        const Text(
-                          'Jam Tidur',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.black54,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$jamTidur WIB',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
+                        Text('$jamTidur WIB',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                        const Text(' → ',
+                            style: TextStyle(color: Colors.black45)),
+                        const Icon(Icons.wb_sunny_outlined,
+                            size: 14, color: Colors.orange),
+                        const SizedBox(width: 4),
+                        Text('$jamBangun WIB',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(Icons.fitness_center,
-                            size: 14, color: Colors.black45),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Setelah: $jenisOlahraga • $jam WIB',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 4),
+                    Text(
+                      'Durasi: $durasiText',
+                      style: const TextStyle(
+                          fontSize: 13, color: Colors.black54),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-          const Divider(height: 20),
-          Row(
-            children: [
-              Text(
-                'Oleh: $userName',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                  fontStyle: FontStyle.italic,
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: kualitasColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: kualitasColor.withOpacity(0.5)),
+                ),
+                child: Text(
+                  kualitas,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: kualitasColor,
+                  ),
                 ),
               ),
             ],
+          ),
+          if (catatan.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.notes, size: 14, color: Colors.black45),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    catatan,
+                    style: const TextStyle(
+                        fontSize: 13, color: Colors.black54, height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const Divider(height: 20),
+          Text(
+            'Oleh: $userName',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              fontStyle: FontStyle.italic,
+            ),
           ),
         ],
       ),

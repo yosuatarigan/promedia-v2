@@ -155,12 +155,17 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/edukasi/pilar6/1.png',
-              width: double.infinity,
-              fit: BoxFit.cover,
+          child: InteractiveViewer(
+            panEnabled: true,
+            minScale: 0.8,
+            maxScale: 5.0,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/edukasi/pilar6/1.png',
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         ),
@@ -192,8 +197,8 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _buildKisahBox(
-          'Kisah Pak Yaya',
-          'Pak Yaya minum glibenklamid tapi sarapan terlambat. Di ladang ia gemetar, berkeringat, gula darah 78 mg/dL. Tindakan: minum air gula 3 sdm, istirahat 15 menit, lalu makan nasi.',
+          'Kisah Pa Yaya Mengalami Hipoglikemia',
+          'Pa Yaya, 55 tahun, penderita Diabetes Melitus tipe 2 yang rutin minum obat glibenklamid setiap pagi. Pagi ini ia sarapan terlambat karena terburu-buru ke ladang. Saat diladang, ia mulai merasa tubuh gemetar, berkeringat dingin, jantung berdebar, dan pandangan mulai kabur.\n\nSaat diperiksa, gula darahnya 78 mg/dL. Meskipun belum di bawah 70 mg/dL, tubuhnya sudah menunjukkan gejala hipoglikemia karena penurunan kadar gula yang cepat.\n\nKenapa Pa Yaya bisa mengalami hipoglikemia?\n• Obat golongan sulfonilurea (meningkatkan sekresi insulin)\n• Keterlambatan makan\n• Aktivitas fisik yang cukup berat\n\nTindakan Cepat:\n1. Segera minum air gula (3 sendok makan gula dalam 1 gelas air)\n2. Istirahat 15 menit, lalu cek ulang gula darah\n3. Setelah gejala membaik, makan nasi dan lauk untuk mencegah gula turun kembali\n\nTips menangani hipoglikemia:\n• Jangan lewatkan waktu makan setelah minum obat atau suntik insulin\n• Selalu bawa permen atau gula pasir saat bepergian\n\nKenali tanda-tanda awal hipoglikemia dan segera tangani.',
           const Color(0xFFEC4899),
         ),
         const SizedBox(height: 16),
@@ -227,12 +232,17 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/edukasi/pilar6/5.png',
-              width: double.infinity,
-              fit: BoxFit.cover,
+          child: InteractiveViewer(
+            panEnabled: true,
+            minScale: 0.8,
+            maxScale: 5.0,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/edukasi/pilar6/5.png',
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         ),
@@ -306,8 +316,8 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _buildKisahBox(
-          'Kisah Pak Yaya',
-          'Sibuk kerja, makan tidak teratur, lupa obat. Gula darah 350 mg/dL. Pelajaran: kesibukan bukan alasan mengabaikan perawatan diri.',
+          'Kasus Edukatif: Pak Yaya Mengalami Lonjakan Gula Darah',
+          'Pak Yaya, 52 tahun, seorang pegawai kantor yang sudah 5 tahun mengidap diabetes. Biasanya ia rutin minum obat dan menjaga makan. Namun beberapa minggu terakhir, ia sedang banyak pekerjaan dan sering lembur. Karena sibuk, Pak Yaya sering makan tidak teratur, memilih makanan cepat saji, dan kadang lupa minum obat malam. Suatu pagi ia merasa haus terus, kepala pusing, dan tubuh lemas. Setelah dicek, kadar gula darahnya mencapai 350 mg/dL.\n\nPerawat menjelaskan bahwa stres, makan tidak teratur, dan lupa obat bisa membuat kadar gula darah melonjak tinggi.\n\nLangkah yang perlu diingat:\n• Tetap minum obat sesuai jadwal walau sedang sibuk\n• Pilih makanan sehat dan rendah gula, meskipun sedang di kantor\n• Coba atur waktu istirahat dan hindari stres berlebihan\n• Cek gula darah lebih sering saat kondisi tubuh tidak stabil\n\nPelajaran dari Pak Yaya:\nKesibukan bukan alasan untuk mengabaikan perawatan diri. Menjaga pola makan dan disiplin obat tetap menjadi kunci mengontrol diabetes.',
           const Color(0xFFF59E0B),
         ),
       ],
@@ -358,12 +368,17 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/edukasi/pilar6/2.png',
-              width: double.infinity,
-              fit: BoxFit.cover,
+          child: InteractiveViewer(
+            panEnabled: true,
+            minScale: 0.8,
+            maxScale: 5.0,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/edukasi/pilar6/2.png',
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         ),
@@ -399,15 +414,12 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
         _buildTipsLotion(),
         
         _buildKisahBox(
-          'Kisah Pak Yaya',
-          'Kaki dingin, dijulurkan ke tungku api. Pagi hari kulit melepuh dan gosong tanpa terasa. Sejak itu selalu pakai kaus kaki hangat, bukan api.',
+          'Kisah Inspiratif Pak Yaya',
+          'Malam itu udara sangat dingin. Pak Yaya, penderita diabetes, merasa kakinya dingin sekali. Tanpa pikir panjang, ia menjulurkan kaki ke dekat tungku api agar hangat. Pagi harinya, istrinya kaget — kulit kaki Pak Yaya melepuh dan gosong, padahal ia tidak merasa panas sama sekali. Ternyata, karena saraf kakinya sudah kebas akibat diabetes, Pak Yaya tidak sadar kakinya terbakar.\n\nSejak itu, ia selalu ingat pesan perawatnya:\n\n"Kalau kaki terasa dingin, pakailah kaus kaki hangat, bukan api."',
           const Color(0xFFEF4444),
         ),
         const SizedBox(height: 16),
-        
-        // ✨ TAMBAHAN BARU 2: Form Observasi Perawatan Kaki
-        _buildObservasiKaki(),
-        
+
         _buildPerawatanLukaSection(),
       ],
     );
@@ -462,188 +474,6 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ✨ METHOD BARU 2: Form Observasi Perawatan Kaki
-  Widget _buildObservasiKaki() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8B5CF6).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.assignment_turned_in_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Observasi Perawatan Kaki Diabetes',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildObservasiItem(
-            '1. Bagaimana kondisi kaki Anda hari ini?',
-            'Periksa: lepuh, luka gores, perubahan warna kulit, kulit kering, kapur/tumit tebal, atau bengkak',
-          ),
-          const SizedBox(height: 10),
-          _buildObservasiCheckItem(
-            '2. Saya selalu memeriksa bagian dalam sepatu sebelum digunakan',
-          ),
-          const SizedBox(height: 10),
-          _buildObservasiCheckItem(
-            '3. Setelah dicuci, kaki dikeringkan dengan baik',
-          ),
-          const SizedBox(height: 10),
-          _buildObservasiCheckItem(
-            '4. Menggunakan alas kaki setiap keluar rumah',
-          ),
-          const SizedBox(height: 10),
-          _buildObservasiCheckItem(
-            '5. Menggunakan pelembab atau lotion',
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.3),
-              ),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.info_outline_rounded,
-                  color: Colors.white,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Lakukan observasi ini setiap hari untuk pencegahan komplikasi kaki diabetes',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.white.withOpacity(0.95),
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ✨ HELPER METHOD 1: Observasi Item dengan subtitle
-  Widget _buildObservasiItem(String title, String subtitle) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.3),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.white.withOpacity(0.9),
-              height: 1.3,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ✨ HELPER METHOD 2: Observasi Checklist Item
-  Widget _buildObservasiCheckItem(String text) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.3),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: const Icon(
-              Icons.check_box_outline_blank_rounded,
-              color: Colors.white,
-              size: 14,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 11,
-                color: Colors.white,
-                height: 1.3,
-              ),
             ),
           ),
         ],
@@ -882,12 +712,17 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/edukasi/pilar6/3.png',
-              width: double.infinity,
-              fit: BoxFit.cover,
+          child: InteractiveViewer(
+            panEnabled: true,
+            minScale: 0.8,
+            maxScale: 5.0,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/edukasi/pilar6/3.png',
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         ),
@@ -904,12 +739,17 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/edukasi/pilar6/4.png',
-              width: double.infinity,
-              fit: BoxFit.cover,
+          child: InteractiveViewer(
+            panEnabled: true,
+            minScale: 0.8,
+            maxScale: 5.0,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/edukasi/pilar6/4.png',
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         ),

@@ -21,8 +21,23 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
   // Kategori Makan
   String? selectedKategori;
   String? selectedWaktu;
-  DateTime? selectedDate;
-  TimeOfDay? selectedJam;
+  DateTime selectedDate = DateTime.now();
+  TimeOfDay selectedJam = TimeOfDay.now();
+
+  String _getWaktuMakan(int hour) {
+    if (hour >= 5 && hour < 11) return 'Pagi';
+    if (hour >= 11 && hour < 16) return 'Siang';
+    return 'Malam';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    selectedDate = now;
+    selectedJam = TimeOfDay.fromDateTime(now);
+    selectedWaktu = _getWaktuMakan(now.hour);
+  }
 
   // Jenis Makanan dari TKPI
   FoodItem? selectedFood;
@@ -52,8 +67,7 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
 
   bool get _hasUnsavedData =>
       selectedFood != null ||
-      selectedPorsi != null ||
-      selectedKategori != null;
+      selectedPorsi != null;
 
   Future<bool> _handleBack() async {
     if (!_hasUnsavedData) return true;
@@ -84,13 +98,10 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
   }
 
   String get kategoriMakanText {
-    if (selectedWaktu != null &&
-        selectedDate != null &&
-        selectedJam != null &&
-        selectedKategori != null) {
-      final tanggal = DateFormat('dd MMM yyyy').format(selectedDate!);
+    if (selectedWaktu != null && selectedKategori != null) {
+      final tanggal = DateFormat('dd MMM yyyy').format(selectedDate);
       final jam =
-          '${selectedJam!.hour.toString().padLeft(2, '0')}.${selectedJam!.minute.toString().padLeft(2, '0')}';
+          '${selectedJam.hour.toString().padLeft(2, '0')}.${selectedJam.minute.toString().padLeft(2, '0')}';
       return '$selectedWaktu, $tanggal Jam $jam  $selectedKategori';
     }
     return '';
@@ -99,8 +110,8 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
   void _showKategoriMakanSheet() {
     String? tempKategori = selectedKategori;
     String? tempWaktu = selectedWaktu;
-    DateTime? tempDate = selectedDate;
-    TimeOfDay? tempJam = selectedJam;
+    DateTime tempDate = selectedDate;
+    TimeOfDay tempJam = selectedJam;
 
     showModalBottomSheet(
       context: context,
@@ -153,14 +164,12 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _buildChip(
-                      tempDate != null
-                          ? DateFormat('dd MMM yyyy').format(tempDate!)
-                          : 'Pilih Tanggal',
+                      DateFormat('dd MMM yyyy').format(tempDate),
                       false,
                       () async {
                         final date = await showDatePicker(
                           context: context,
-                          initialDate: tempDate ?? DateTime.now(),
+                          initialDate: tempDate,
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2030),
                         );
@@ -171,14 +180,12 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
                     ),
                     const SizedBox(width: 12),
                     _buildChip(
-                      tempJam != null
-                          ? 'Jam ${tempJam!.hour.toString().padLeft(2, '0')}.${tempJam!.minute.toString().padLeft(2, '0')} WIB'
-                          : 'Jam --.-- WIB',
+                      'Jam ${tempJam.hour.toString().padLeft(2, '0')}.${tempJam.minute.toString().padLeft(2, '0')} WIB',
                       false,
                       () async {
                         final time = await showTimePicker(
                           context: context,
-                          initialTime: tempJam ?? TimeOfDay.now(),
+                          initialTime: tempJam,
                         );
                         if (time != null) {
                           setModalState(() => tempJam = time);
@@ -301,11 +308,8 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
 
   Future<void> _saveFoodLog() async {
     // Validasi
-    if (selectedKategori == null ||
-        selectedWaktu == null ||
-        selectedDate == null ||
-        selectedJam == null) {
-      _showError('Mohon lengkapi kategori makan');
+    if (selectedKategori == null || selectedWaktu == null) {
+      _showError('Mohon lengkapi kategori dan waktu makan');
       return;
     }
 
@@ -349,11 +353,11 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
 
       // Gabungkan tanggal dan jam
       final dateTime = DateTime(
-        selectedDate!.year,
-        selectedDate!.month,
-        selectedDate!.day,
-        selectedJam!.hour,
-        selectedJam!.minute,
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        selectedJam.hour,
+        selectedJam.minute,
       );
 
       // Hitung nilai gizi
@@ -372,7 +376,7 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
         'waktu': selectedWaktu,
         'tanggal': Timestamp.fromDate(dateTime),
         'jam':
-            '${selectedJam!.hour.toString().padLeft(2, '0')}:${selectedJam!.minute.toString().padLeft(2, '0')}',
+            '${selectedJam.hour.toString().padLeft(2, '0')}:${selectedJam.minute.toString().padLeft(2, '0')}',
         'foodName': selectedFood!.name,
         'porsi': selectedPorsi,
         'grams': grams,
@@ -386,16 +390,19 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
       setState(() => _isLoading = false);
 
       if (mounted) {
+        final savedName = selectedFood!.name;
+        final savedPorsi = selectedPorsi!;
+        setState(() {
+          selectedFood = null;
+          selectedPorsi = null;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Berhasil! ${selectedFood!.name} ($selectedPorsi) tersimpan',
-            ),
+            content: Text('Berhasil! $savedName ($savedPorsi) tersimpan. Tambah makanan lain atau tekan Selesai.'),
             backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
+            duration: const Duration(seconds: 3),
           ),
         );
-        Navigator.pop(context);
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -465,6 +472,19 @@ class _PengelolaanMakananScreenState extends State<PengelolaanMakananScreen> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Selesai',
+              style: TextStyle(
+                color: Color(0xFFB83B7E),
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+          ),
+        ],
       ),
       body: Stack(
         children: [
