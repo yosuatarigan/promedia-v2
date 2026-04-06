@@ -355,7 +355,7 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        // Image 2 - Sudah berisi tips memilih sepatu lengkap
+        // Tips Memilih Sepatu
         Container(
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
@@ -375,7 +375,7 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.asset(
-                'assets/edukasi/pilar6/2.png',
+                'assets/materibaru/tipsmemilihsepatu.png',
                 width: double.infinity,
                 fit: BoxFit.cover,
               ),
@@ -482,71 +482,50 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
   }
 
   Widget _buildPerawatanLukaSection() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(Icons.healing_rounded, color: Colors.white, size: 18),
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'Tips Perawatan Luka',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Tips Perawatan Luka di Rumah',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF8B5CF6),
           ),
-          const SizedBox(height: 12),
-          _buildPerawatanItem('Cuci tangan sebelum & sesudah perawatan'),
-          _buildPerawatanItem('Periksa luka setiap hari'),
-          _buildPerawatanItem('Bersihkan dengan NaCl 0.9% (jangan alkohol/betadine)'),
-          _buildPerawatanItem('Tutup dengan kasa steril, ganti setiap hari'),
-          _buildPerawatanItem('Jaga luka tetap lembab tapi tidak becek'),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Kapan ke Fasilitas Kesehatan?',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 6),
-                Text(
-                  '• Luka tidak sembuh >7 hari\n• Bernanah/berbau busuk\n• Bengkak/demam\n• Ada bagian hitam (gangren)',
-                  style: TextStyle(fontSize: 11, color: Colors.white, height: 1.5),
-                ),
-              ],
-            ),
+        ),
+        const SizedBox(height: 12),
+        _buildSingleImage('assets/materibaru/tipsperawatanluka1.png'),
+        _buildSingleImage('assets/materibaru/tipsperawatanluka2.png'),
+        _buildSingleImage('assets/materibaru/tipsperawatanluka3.png'),
+      ],
+    );
+  }
+
+  Widget _buildSingleImage(String path) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
+      ),
+      child: InteractiveViewer(
+        panEnabled: true,
+        minScale: 0.8,
+        maxScale: 5.0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.asset(
+            path,
+            width: double.infinity,
+            fit: BoxFit.cover,
+          ),
+        ),
       ),
     );
   }

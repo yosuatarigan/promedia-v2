@@ -80,6 +80,13 @@ flutter:
     - assets/edukasi/pilar4/
     - assets/edukasi/pilar5/
     - assets/edukasi/pilar6/
+    - assets/materibaru/
+    - assets/materibaru/jumlahmakan/
+    - assets/materibaru/jenismakanan/
+    - assets/materibaru/jenismakanan/sayuran/
+    - assets/materibaru/jenismakanan/protein/
+    - assets/materibaru/jenismakanan/minuman/
+    - assets/materibaru/tipspilar2/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

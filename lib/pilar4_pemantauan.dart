@@ -535,34 +535,7 @@ class Pilar4PemantauanPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Image 1
-        Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: InteractiveViewer(
-            panEnabled: true,
-            minScale: 0.8,
-            maxScale: 5.0,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                'assets/edukasi/pilar4/1.png',
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-        ),
-        // Image 2
+        // Cara Memeriksa Gula Darah
         Container(
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
@@ -582,7 +555,7 @@ class Pilar4PemantauanPage extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.asset(
-                'assets/edukasi/pilar4/2.png',
+                'assets/materibaru/caramemeriksaguladarah.png',
                 width: double.infinity,
                 fit: BoxFit.cover,
               ),

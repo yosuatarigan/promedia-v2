@@ -234,195 +234,16 @@ class Pilar2MakanSehatPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildInfoBox(
-          'Jumlah makanan disesuaikan dengan berat badan ideal, kebutuhan energi harian, dan tujuan pengelolaan.',
-          const Color(0xFF3B82F6),
-        ),
-        const SizedBox(height: 16),
-        // Image Cards
-        InteractiveViewer(
-          panEnabled: true,
-          minScale: 0.8,
-          maxScale: 5.0,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/edukasi/pilar2/penatalaksanaanpolamakan.png',
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        InteractiveViewer(
-          panEnabled: true,
-          minScale: 0.8,
-          maxScale: 5.0,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/edukasi/pilar2/penatalaksanapolamakan2.png',
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
+        _buildImg('assets/materibaru/jumlahmakan/1.png'),
+        _buildImg('assets/materibaru/jumlahmakan/2.png'),
+        _buildImg('assets/materibaru/jumlahmakan/4.jpeg'),
         _buildKisahCard(),
-        const SizedBox(height: 16),
-        _buildPembagianKaloriCard(),
       ],
     );
   }
 
   Widget _buildKisahCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.person_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'Contoh: Pak Yaya',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '• Usia: 50 tahun\n• TB: 170 cm, BB: 85 kg\n• Aktivitas: Ringan (pegawai kantor)',
-                  style: TextStyle(fontSize: 12, height: 1.6, color: Colors.white),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  'Hasil Perhitungan:',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '• BBI: 63 kg\n• Status: Gemuk\n• Kebutuhan: ±2.174 kkal/hari',
-                  style: TextStyle(fontSize: 12, height: 1.6, color: Colors.white),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPembagianKaloriCard() {
-    final List<Map<String, dynamic>> pembagian = [
-      {'waktu': 'Sarapan', 'persen': '30%', 'kalori': '≈ 650 kkal', 'icon': Icons.wb_sunny_rounded},
-      {'waktu': 'Snack Pagi', 'persen': '10%', 'kalori': '≈ 220 kkal', 'icon': Icons.coffee_rounded},
-      {'waktu': 'Makan Siang', 'persen': '35%', 'kalori': '≈ 760 kkal', 'icon': Icons.lunch_dining_rounded},
-      {'waktu': 'Snack Sore', 'persen': '10%', 'kalori': '≈ 220 kkal', 'icon': Icons.set_meal_rounded},
-      {'waktu': 'Makan Malam', 'persen': '15%', 'kalori': '≈ 325 kkal', 'icon': Icons.dinner_dining_rounded},
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Pembagian Kalori Harian (2.174 kkal)',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...pembagian.map((item) => Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF3B82F6).withOpacity(0.05),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: const Color(0xFF3B82F6).withOpacity(0.2),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF3B82F6).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(
-                  item['icon'],
-                  color: const Color(0xFF3B82F6),
-                  size: 16,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  item['waktu'],
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(
-                item['persen'],
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF3B82F6),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                item['kalori'],
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-        )).toList(),
-      ],
-    );
+    return _buildImg('assets/materibaru/jumlahmakan/pakyaya.png');
   }
 
   Widget _buildJenisMakanan() {
@@ -491,141 +312,43 @@ class Pilar2MakanSehatPage extends StatelessWidget {
   }
 
   Widget _buildMakananPokok() {
-    return _buildKategoriTable([
-      {'kategori': 'Disarankan', 'contoh': 'Singkong rebus, nasi merah', 'color': const Color(0xFF10B981)},
-      {'kategori': 'Dibatasi', 'contoh': 'Roti gandum, kentang rebus, jagung rebus', 'color': const Color(0xFFF59E0B)},
-      {'kategori': 'Dihindari', 'contoh': 'Roti tawar, kentang goreng, nasi putih, mie instan', 'color': const Color(0xFFEF4444)},
-    ]);
-  }
-
-  Widget _buildBuah() {
-    return _buildKategoriTable([
-      {'kategori': 'Disarankan', 'contoh': 'Apel, Pir, Jeruk, Jambu biji, Stroberi, Alpukat', 'color': const Color(0xFF10B981)},
-      {'kategori': 'Dibatasi', 'contoh': 'Mangga, Pisang kuning, Kiwi, Pepaya, Nangka', 'color': const Color(0xFFF59E0B)},
-      {'kategori': 'Dihindari', 'contoh': 'Semangka, Nanas, Melon, Kurma kering, Leci', 'color': const Color(0xFFEF4444)},
-    ]);
-  }
-
-  Widget _buildSayuran() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSayurGroup('Kelompok A - Boleh Bebas', 
-          'Brokoli, Kembang kol, Bayam, Kangkung, Mentimun, Terong, Pare, Jamur',
-          const Color(0xFF10B981)),
-        const SizedBox(height: 8),
-        _buildSayurGroup('Kelompok B - Batasi Jumlah', 
-          'Wortel, Bengkuang, Labu kuning, Tomat, Bawang bombay',
-          const Color(0xFFF59E0B)),
-        const SizedBox(height: 8),
-        _buildSayurGroup('Kelompok C - Perlu Pembatasan', 
-          'Kacang panjang, Buncis, Kapri',
-          const Color(0xFFEF4444)),
+        _buildImg('assets/materibaru/jenismakanan/makananpokok.png'),
+        _buildImg('assets/materibaru/jenismakanan/makananpokok2.png'),
       ],
     );
   }
 
-  Widget _buildSayurGroup(String title, String items, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            items,
-            style: const TextStyle(
-              fontSize: 11,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
+  Widget _buildBuah() {
+    return _buildImg('assets/materibaru/jenismakanan/buahaman.png');
+  }
+
+  Widget _buildSayuran() {
+    return Column(
+      children: [
+        _buildImg('assets/materibaru/jenismakanan/sayuran/1.png'),
+        _buildImg('assets/materibaru/jenismakanan/sayuran/2.png'),
+        _buildImg('assets/materibaru/jenismakanan/sayuran/3.png'),
+      ],
     );
   }
 
   Widget _buildProtein() {
-    return _buildKategoriTable([
-      {'kategori': 'Pilih', 'contoh': 'Ikan (nila, tuna, sarden), Ayam tanpa kulit, Tahu, Tempe, Kacang-kacangan', 'color': const Color(0xFF10B981)},
-      {'kategori': 'Dibatasi', 'contoh': 'Daging sapi/kambing berlemak, Telur utuh (maks 3/minggu)', 'color': const Color(0xFFF59E0B)},
-      {'kategori': 'Hindari', 'contoh': 'Daging olahan (sosis, nugget), Ayam goreng, Keju penuh lemak', 'color': const Color(0xFFEF4444)},
-    ]);
+    return Column(
+      children: [
+        _buildImg('assets/materibaru/jenismakanan/protein/1.png'),
+        _buildImg('assets/materibaru/jenismakanan/protein/2.png'),
+      ],
+    );
   }
 
   Widget _buildMinuman() {
-    return _buildKategoriTable([
-      {'kategori': 'Pilih', 'contoh': 'Air putih, Teh tawar, Kopi tanpa gula, Susu rendah lemak', 'color': const Color(0xFF10B981)},
-      {'kategori': 'Batasi', 'contoh': 'Jus buah segar tanpa gula, Air kelapa (1 gelas kecil), Pemanis buatan', 'color': const Color(0xFFF59E0B)},
-      {'kategori': 'Hindari', 'contoh': 'Soda, Jus kemasan, Minuman boba, Teh/kopi manis', 'color': const Color(0xFFEF4444)},
-    ]);
-  }
-
-  Widget _buildKategoriTable(List<Map<String, dynamic>> data) {
     return Column(
-      children: data.map((item) => Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: item['color'].withOpacity(0.05),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: item['color'].withOpacity(0.3)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: item['color'].withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Icon(
-                    item['kategori'] == 'Disarankan' || item['kategori'] == 'Pilih'
-                        ? Icons.check_circle_rounded
-                        : item['kategori'] == 'Dibatasi' || item['kategori'] == 'Batasi'
-                            ? Icons.warning_rounded
-                            : Icons.cancel_rounded,
-                    color: item['color'],
-                    size: 14,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  item['kategori'],
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: item['color'],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              item['contoh'],
-              style: const TextStyle(
-                fontSize: 11,
-                height: 1.4,
-              ),
-            ),
-          ],
-        ),
-      )).toList(),
+      children: [
+        _buildImg('assets/materibaru/jenismakanan/minuman/1.png'),
+        _buildImg('assets/materibaru/jenismakanan/minuman/2.png'),
+      ],
     );
   }
 
@@ -794,23 +517,29 @@ class Pilar2MakanSehatPage extends StatelessWidget {
           Icons.restaurant_rounded,
           const Color(0xFF06B6D4),
         ),
-        _buildTipCard(
-          '4. Piring Seimbang',
-          '½ sayuran + ¼ karbohidrat + ¼ protein. Tambah buah dan air putih secukupnya.',
+        _buildTipImageSection(
+          '4. Agar Porsi Makan Seimbang',
           Icons.pie_chart_rounded,
           const Color(0xFF10B981),
+          ['assets/materibaru/tipspilar2/agarporsimakanseimbang.png'],
         ),
-        _buildTipCard(
-          '5. Saat Bepergian',
-          'Bawa camilan sehat, pilih makanan bijak, jaga hidrasi, dan tetap cek gula darah.',
+        _buildTipImageSection(
+          '5. Pengelolaan Makan Saat Bepergian',
           Icons.luggage_rounded,
           const Color(0xFFF59E0B),
+          [
+            'assets/materibaru/tipspilar2/tipsberpergian1.png',
+            'assets/materibaru/tipspilar2/tipsberpergian2.png',
+          ],
         ),
-        _buildTipCard(
-          '6. Bulan Ramadhan',
-          'Sahur dekat imsak, berbuka hindari gula tinggi. Pantau gula darah: <70 mg/dL batalkan puasa.',
+        _buildTipImageSection(
+          '6. Pengelolaan Diet Bulan Ramadhan',
           Icons.mosque_rounded,
           const Color(0xFF6366F1),
+          [
+            'assets/materibaru/tipspilar2/tipspuasa1.png',
+            'assets/materibaru/tipspilar2/tipspuasa2.png',
+          ],
         ),
       ],
     );
@@ -860,6 +589,77 @@ class Pilar2MakanSehatPage extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImg(String path) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: InteractiveViewer(
+        panEnabled: true,
+        minScale: 0.8,
+        maxScale: 5.0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.asset(
+            path,
+            width: double.infinity,
+            fit: BoxFit.cover,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTipImageSection(String title, IconData icon, Color color, List<String> imagePaths) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...imagePaths.map((path) => _buildImg(path)),
         ],
       ),
     );
