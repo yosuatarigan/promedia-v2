@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:promedia_v2/zoomable_image.dart';
 
 class Pilar4PemantauanPage extends StatelessWidget {
   const Pilar4PemantauanPage({Key? key}) : super(key: key);
@@ -535,32 +536,17 @@ class Pilar4PemantauanPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Cara Memeriksa Gula Darah
-        Container(
+        ZoomableImage(
+          imagePath: 'assets/materibaru/caramemeriksaguladarah.png',
           margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: InteractiveViewer(
-            panEnabled: true,
-            minScale: 0.8,
-            maxScale: 5.0,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                'assets/materibaru/caramemeriksaguladarah.png',
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-          ),
+          ],
         ),
         // Steps
         const Text(

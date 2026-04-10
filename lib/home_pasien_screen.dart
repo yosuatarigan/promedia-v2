@@ -70,17 +70,19 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
   // Check dan tampilkan reminder pop-up
   Future<void> _checkAndShowReminder() async {
     if (_isCheckingReminder) return;
-    
-    setState(() => _isCheckingReminder = true);
+
+    // Gunakan assignment biasa (bukan setState) agar tidak memicu rebuild
+    // yang akan memanggil _checkAndShowReminder() kembali dari _buildBerandaPage()
+    _isCheckingReminder = true;
 
     try {
       final latestReminder = await _reminderService.getLatestUnreadReminder();
-      
+
       if (latestReminder != null && mounted) {
         final data = latestReminder.data() as Map<String, dynamic>;
         final type = data['type'] as String;
         final message = data['message'] as String;
-        
+
         _currentReminderId = latestReminder.id;
 
         String title = _getTitleFromType(type);
@@ -96,7 +98,8 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     } catch (e) {
       print('Error checking reminder: $e');
     } finally {
-      setState(() => _isCheckingReminder = false);
+      // Gunakan assignment biasa — tidak perlu setState di sini
+      _isCheckingReminder = false;
     }
   }
 
@@ -134,14 +137,18 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     }
   }
 
+  void _dismissPopup() {
+    _popupOverlay?.remove();
+    _popupOverlay = null;
+  }
+
   void _showReminderPopup({
     required String type,
     required String title,
     required String subtitle,
     required String reminderId,
   }) {
-    _popupOverlay?.remove();
-    _popupOverlay = null;
+    _dismissPopup();
 
     _popupOverlay = OverlayEntry(
       builder: (context) => Positioned(
@@ -155,10 +162,12 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
             title: title,
             subtitle: subtitle,
             onMulaSekarang: () async {
-              _popupOverlay?.remove();
-              _popupOverlay = null;
+              // Set flag DULU sebelum async agar tidak ada check ulang
+              _isCheckingReminder = true;
+              _dismissPopup();
 
               await _reminderService.markAsRead(reminderId);
+              _isCheckingReminder = false;
 
               final screen = _getActivityScreen(type);
               if (screen != null && mounted) {
@@ -169,10 +178,12 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               }
             },
             onTunda: () async {
-              _popupOverlay?.remove();
-              _popupOverlay = null;
+              // Set flag DULU sebelum async agar tidak ada check ulang
+              _isCheckingReminder = true;
+              _dismissPopup();
 
               await _reminderService.snoozeReminder(reminderId);
+              _isCheckingReminder = false;
 
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -185,8 +196,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               }
             },
             onDismiss: () {
-              _popupOverlay?.remove();
-              _popupOverlay = null;
+              _dismissPopup();
             },
           ),
         ),
@@ -196,8 +206,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     Overlay.of(context).insert(_popupOverlay!);
 
     Future.delayed(const Duration(seconds: 30), () {
-      _popupOverlay?.remove();
-      _popupOverlay = null;
+      _dismissPopup();
     });
   }
 
@@ -241,10 +250,6 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
   }
 
   Widget _buildBerandaPage() {
-    // Check reminder when beranda is opened
-    if (_selectedIndex == 0 && !_isCheckingReminder) {
-      Future.delayed(Duration.zero, () => _checkAndShowReminder());
-    }
 
     final currentUser = _auth.currentUser;
 
@@ -1457,6 +1462,13 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
           setState(() {
             _selectedIndex = index;
           });
+          // Cek reminder hanya saat kembali ke tab Beranda (index 0)
+          // Gunakan addPostFrameCallback agar dipanggil setelah build selesai
+          if (index == 0) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _checkAndShowReminder();
+            });
+          }
         },
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,

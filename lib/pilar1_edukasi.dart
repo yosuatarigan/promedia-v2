@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:promedia_v2/zoomable_image.dart';
 
 class Pilar1EdukasiPage extends StatelessWidget {
   const Pilar1EdukasiPage({Key? key}) : super(key: key);
@@ -117,20 +118,11 @@ class Pilar1EdukasiPage extends StatelessWidget {
               ],
             ),
           ),
-          InteractiveViewer(
-            panEnabled: true,
-            minScale: 0.8,
-            maxScale: 5.0,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(16),
-                bottomRight: Radius.circular(16),
-              ),
-              child: Image.asset(
-                imagePath,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+          ZoomableImage(
+            imagePath: imagePath,
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(16),
+              bottomRight: Radius.circular(16),
             ),
           ),
         ],

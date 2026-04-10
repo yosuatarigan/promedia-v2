@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:promedia_v2/zoomable_image.dart';
 
 class Pilar2MakanSehatPage extends StatelessWidget {
   const Pilar2MakanSehatPage({Key? key}) : super(key: key);
@@ -144,20 +145,7 @@ class Pilar2MakanSehatPage extends StatelessWidget {
           const Color(0xFF10B981),
         ),
         const SizedBox(height: 16),
-        // Image Card
-        InteractiveViewer(
-          panEnabled: true,
-          minScale: 0.8,
-          maxScale: 5.0,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/edukasi/pilar2/1jadwalmakan.png',
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
+        ZoomableImage(imagePath: 'assets/edukasi/pilar2/1jadwalmakan.png'),
         const SizedBox(height: 16),
         const Text(
           'Jadwal Makan yang Disarankan',
@@ -250,22 +238,9 @@ class Pilar2MakanSehatPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Pilihan Makan Image
-        Container(
+        ZoomableImage(
+          imagePath: 'assets/edukasi/pilar2/pilihanmakan.png',
           margin: const EdgeInsets.only(bottom: 16),
-          child: InteractiveViewer(
-            panEnabled: true,
-            minScale: 0.8,
-            maxScale: 5.0,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                'assets/edukasi/pilar2/pilihanmakan.png',
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
         ),
         _buildSubMateri('Makanan Pokok', Icons.rice_bowl_rounded, const Color(0xFFF59E0B), _buildMakananPokok()),
         _buildSubMateri('Buah-buahan', Icons.apple_rounded, const Color(0xFFEC4899), _buildBuah()),
@@ -404,46 +379,19 @@ class Pilar2MakanSehatPage extends StatelessWidget {
               // Images Grid
               Column(
                 children: [
-                  InteractiveViewer(
-                    panEnabled: true,
-                    minScale: 0.8,
-                    maxScale: 5.0,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        'assets/edukasi/pilar2/41caramemasak1.png',
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                  ZoomableImage(
+                    imagePath: 'assets/edukasi/pilar2/41caramemasak1.png',
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   const SizedBox(height: 8),
-                  InteractiveViewer(
-                    panEnabled: true,
-                    minScale: 0.8,
-                    maxScale: 5.0,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        'assets/edukasi/pilar2/41caramemasak2.png',
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                  ZoomableImage(
+                    imagePath: 'assets/edukasi/pilar2/41caramemasak2.png',
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   const SizedBox(height: 8),
-                  InteractiveViewer(
-                    panEnabled: true,
-                    minScale: 0.8,
-                    maxScale: 5.0,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        'assets/edukasi/pilar2/41caramemasak3.png',
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                  ZoomableImage(
+                    imagePath: 'assets/edukasi/pilar2/41caramemasak3.png',
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ],
               ),
@@ -495,18 +443,9 @@ class Pilar2MakanSehatPage extends StatelessWidget {
                 style: TextStyle(fontSize: 11, height: 1.4),
               ),
               const SizedBox(height: 12),
-              InteractiveViewer(
-                panEnabled: true,
-                minScale: 0.8,
-                maxScale: 5.0,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(
-                    'assets/edukasi/pilar2/42urutanmakan1.png',
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
+              ZoomableImage(
+                imagePath: 'assets/edukasi/pilar2/42urutanmakan1.png',
+                borderRadius: BorderRadius.circular(8),
               ),
             ],
           ),
@@ -595,31 +534,17 @@ class Pilar2MakanSehatPage extends StatelessWidget {
   }
 
   Widget _buildImg(String path) {
-    return Container(
+    return ZoomableImage(
+      imagePath: path,
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: InteractiveViewer(
-        panEnabled: true,
-        minScale: 0.8,
-        maxScale: 5.0,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.asset(
-            path,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.08),
+          blurRadius: 8,
+          offset: const Offset(0, 3),
         ),
-      ),
+      ],
     );
   }
 

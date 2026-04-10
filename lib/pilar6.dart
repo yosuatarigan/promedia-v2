@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:promedia_v2/zoomable_image.dart';
 
 class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
   const Pilar6PencegahanKomplikasiPage({Key? key}) : super(key: key);
@@ -142,32 +143,17 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Image 1 - Sudah berisi tanda gejala hipoglikemia
-        Container(
+        ZoomableImage(
+          imagePath: 'assets/edukasi/pilar6/1.png',
           margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: InteractiveViewer(
-            panEnabled: true,
-            minScale: 0.8,
-            maxScale: 5.0,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                'assets/edukasi/pilar6/1.png',
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
+          ],
         ),
         const Text(
           'Apa yang harus dilakukan?',
@@ -219,32 +205,17 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Image 5 - Sudah berisi tanda gejala hiperglikemia
-        Container(
+        ZoomableImage(
+          imagePath: 'assets/edukasi/pilar6/5.png',
           margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: InteractiveViewer(
-            panEnabled: true,
-            minScale: 0.8,
-            maxScale: 5.0,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                'assets/edukasi/pilar6/5.png',
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
+          ],
         ),
         const Text(
           'Cara Mengatasi:',
@@ -355,32 +326,17 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        // Tips Memilih Sepatu
-        Container(
+        ZoomableImage(
+          imagePath: 'assets/materibaru/tipsmemilihsepatu.png',
           margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: InteractiveViewer(
-            panEnabled: true,
-            minScale: 0.8,
-            maxScale: 5.0,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                'assets/materibaru/tipsmemilihsepatu.png',
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
+          ],
         ),
         _buildTipsDetailCard(
           'Tips Memotong Kuku',
@@ -502,31 +458,17 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
   }
 
   Widget _buildSingleImage(String path) {
-    return Container(
+    return ZoomableImage(
+      imagePath: path,
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: InteractiveViewer(
-        panEnabled: true,
-        minScale: 0.8,
-        maxScale: 5.0,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.asset(
-            path,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.08),
+          blurRadius: 8,
+          offset: const Offset(0, 3),
         ),
-      ),
+      ],
     );
   }
 
@@ -679,58 +621,30 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Image 3 - Manajemen Stress Edukasi
-        Container(
+        ZoomableImage(
+          imagePath: 'assets/edukasi/pilar6/3.png',
           margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: InteractiveViewer(
-            panEnabled: true,
-            minScale: 0.8,
-            maxScale: 5.0,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                'assets/edukasi/pilar6/3.png',
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
+          ],
         ),
         // Image 4 - 5 Praktik Pereda Stress (Sudah lengkap di gambar)
-        Container(
+        ZoomableImage(
+          imagePath: 'assets/edukasi/pilar6/4.png',
           margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: InteractiveViewer(
-            panEnabled: true,
-            minScale: 0.8,
-            maxScale: 5.0,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                'assets/edukasi/pilar6/4.png',
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
+          ],
         ),
         // Tambahan info yang tidak ada di gambar
         Container(

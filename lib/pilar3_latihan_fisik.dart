@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:promedia_v2/zoomable_image.dart';
 
 class Pilar3LatihanFisikPage extends StatelessWidget {
   const Pilar3LatihanFisikPage({Key? key}) : super(key: key);
@@ -219,32 +220,17 @@ class Pilar3LatihanFisikPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Image Card
-        Container(
+        ZoomableImage(
+          imagePath: 'assets/edukasi/pilar3/1.png',
           margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: InteractiveViewer(
-            panEnabled: true,
-            minScale: 0.8,
-            maxScale: 5.0,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                'assets/edukasi/pilar3/1.png',
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
+          ],
         ),
         // Jenis
         Container(

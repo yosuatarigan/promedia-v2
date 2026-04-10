@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:promedia_v2/zoomable_image.dart';
 
 class Pilar5PenggunaanObatPage extends StatelessWidget {
   const Pilar5PenggunaanObatPage({Key? key}) : super(key: key);
@@ -58,32 +59,17 @@ class Pilar5PenggunaanObatPage extends StatelessWidget {
   Widget _buildHeaderSection() {
     return Column(
       children: [
-        // Image
-        Container(
+        ZoomableImage(
+          imagePath: 'assets/edukasi/pilar5/1.png',
           margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: InteractiveViewer(
-            panEnabled: true,
-            minScale: 0.8,
-            maxScale: 5.0,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.asset(
-                'assets/edukasi/pilar5/1.png',
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-          ),
+          ],
         ),
         // Info Cards
         _buildInfoCard(
