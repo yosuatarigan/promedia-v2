@@ -199,6 +199,48 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  // Fungsi untuk mengambil data aktivitas tidur real dari Firestore
+  Future<List<Map<String, dynamic>>> _fetchAktivitasTidurLogs(String userId, String noKode) async {
+    try {
+      final snapshot = await _firestore
+          .collection('aktivitas_tidur_logs')
+          .where('noKode', isEqualTo: noKode)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        print('No aktivitas tidur logs found for noKode: $noKode');
+        return [];
+      }
+
+      final docs = snapshot.docs;
+      docs.sort((a, b) {
+        final aTime = (a.data()['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
+        final bTime = (b.data()['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
+        return bTime.compareTo(aTime);
+      });
+
+      final limitedDocs = docs.take(20).toList();
+
+      return limitedDocs.map((doc) {
+        final data = doc.data();
+        final tanggal = (data['tanggal'] as Timestamp).toDate();
+
+        return {
+          'tanggal': DateFormat('yyyy-MM-dd').format(tanggal),
+          'jamTidur': data['jamTidur'] ?? '-',
+          'jamBangun': data['jamBangun'] ?? '-',
+          'durasiMenit': (data['durasiMenit'] as num?)?.toInt() ?? 0,
+          'kualitas': data['kualitas'] ?? '-',
+          'catatan': data['catatan'] ?? '',
+          'userName': data['userName'] ?? '-',
+        };
+      }).toList();
+    } catch (e) {
+      print('Error fetching aktivitas tidur logs: $e');
+      return [];
+    }
+  }
+
   // Fungsi untuk mengambil data latihan fisik real dari Firestore
   Future<List<Map<String, dynamic>>> _fetchLatihanFisikLogs(String userId, String noKode) async {
     try {
@@ -1128,11 +1170,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final footCareLogs = await _fetchFootCareLogs(userId, noKode);
     final stressLogs = await _fetchStressLogs(userId, noKode);
     final latihanFisikLogs = await _fetchLatihanFisikLogs(userId, noKode);
-    
+    final aktivitasTidurLogs = await _fetchAktivitasTidurLogs(userId, noKode);
+
     if (!mounted) return;
-    
+
     Navigator.pop(context);
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -1143,6 +1186,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           footCareLogs: footCareLogs,
           stressLogs: stressLogs,
           latihanFisikLogs: latihanFisikLogs,
+          aktivitasTidurLogs: aktivitasTidurLogs,
         ),
       ),
     );

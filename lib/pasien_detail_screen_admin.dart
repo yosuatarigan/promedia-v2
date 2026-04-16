@@ -10,6 +10,7 @@ class PasienDetailScreen extends StatefulWidget {
   final List<Map<String, dynamic>> footCareLogs;
   final List<Map<String, dynamic>> stressLogs;
   final List<Map<String, dynamic>> latihanFisikLogs;
+  final List<Map<String, dynamic>> aktivitasTidurLogs;
 
   const PasienDetailScreen({
     required this.userData,
@@ -18,6 +19,7 @@ class PasienDetailScreen extends StatefulWidget {
     required this.footCareLogs,
     required this.stressLogs,
     required this.latihanFisikLogs,
+    required this.aktivitasTidurLogs,
   });
 
   @override
@@ -597,6 +599,7 @@ class PasienDetailScreenState extends State<PasienDetailScreen> {
       {'icon': Icons.self_improvement, 'label': 'Stress'},
       {'icon': Icons.directions_run, 'label': 'Fisik'},
       {'icon': Icons.accessibility, 'label': 'Kaki'},
+      {'icon': Icons.bedtime, 'label': 'Tidur'},
     ];
 
     return Container(
@@ -664,6 +667,8 @@ class PasienDetailScreenState extends State<PasienDetailScreen> {
         return _buildLatihanFisikTab();
       case 5:
         return _buildPerawatanKakiTab();
+      case 6:
+        return _buildAktivitasTidurTab();
       default:
         return const SizedBox();
     }
@@ -1894,6 +1899,311 @@ class PasienDetailScreenState extends State<PasienDetailScreen> {
         }).toList(),
       ),
     );
+  }
+
+  // Tab khusus untuk data aktivitas tidur (real data dari Firestore)
+  Widget _buildAktivitasTidurTab() {
+    if (widget.aktivitasTidurLogs.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.bedtime, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'Belum ada data aktivitas tidur',
+                style: TextStyle(color: Colors.grey[600], fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pasien belum mencatat aktivitas tidur',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: widget.aktivitasTidurLogs.map((item) {
+          final kualitas = item['kualitas'] as String;
+          final durasiMenit = item['durasiMenit'] as int;
+          final jam = durasiMenit ~/ 60;
+          final menit = durasiMenit % 60;
+          final durasiText = jam > 0 ? '${jam}j ${menit}m' : '${menit}m';
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: _getTidurKualitasColor(kualitas).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.bedtime,
+                        color: _getTidurKualitasColor(kualitas),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Aktivitas Tidur',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getTidurKualitasColor(kualitas).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              'Kualitas: $kualitas',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: _getTidurKualitasColor(kualitas),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 20),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.indigo.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.nights_stay, size: 16, color: Colors.indigo.shade600),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Tidur',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.indigo.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              item['jamTidur'],
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.amber.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.wb_sunny, size: 16, color: Colors.amber.shade700),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Bangun',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.amber.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              item['jamBangun'],
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.teal.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.timer, size: 16, color: Colors.teal.shade600),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Durasi',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.teal.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              durasiText,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                if ((item['catatan'] as String).isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.notes, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            item['catatan'],
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          item['tanggal'],
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Oleh: ${item['userName']}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[500],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Color _getTidurKualitasColor(String kualitas) {
+    switch (kualitas) {
+      case 'Baik':
+        return Colors.green;
+      case 'Cukup':
+        return Colors.orange;
+      case 'Kurang':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   Color _getStressStatusColor(int skorStress) {
