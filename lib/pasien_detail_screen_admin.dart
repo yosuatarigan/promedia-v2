@@ -69,6 +69,8 @@ class PasienDetailScreenState extends State<PasienDetailScreen> {
     );
   }
 
+
+
   Widget _buildPatientInfoCard() {
     return Container(
       margin: const EdgeInsets.all(16),

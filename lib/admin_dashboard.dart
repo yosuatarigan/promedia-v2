@@ -1,13 +1,17 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:excel/excel.dart' hide Border;
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
-import 'dart:convert';
 import 'package:promedia_v2/message_framing_screen.dart';
 import 'package:promedia_v2/pasien_detail_screen_admin.dart';
+import 'utils/file_downloader.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -22,6 +26,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   String _searchQuery = '';
   int _selectedIndex = 0;
   final Set<String> _revealedPasswords = {};
+  bool _isExportingExcel = false;
   
   // Fungsi untuk mengambil data aktivitas makan real dari Firestore
   Future<List<Map<String, dynamic>>> _fetchFoodLogs(String userId, String noKode) async {
@@ -680,6 +685,261 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (mounted) _showImportPreview(users);
   }
 
+  // ─── Excel Export Semua Data ─────────────────────────────────
+  Future<void> _exportAllToExcel() async {
+    setState(() => _isExportingExcel = true);
+
+    try {
+      // Fetch semua user + 6 koleksi aktivitas secara paralel
+      final results = await Future.wait([
+        _firestore.collection('users').orderBy('noKode').get(),
+        _firestore.collection('food_logs').get(),
+        _firestore.collection('medication_logs').get(),
+        _firestore.collection('aktivitas_tidur_logs').get(),
+        _firestore.collection('latihan_fisik_logs').get(),
+        _firestore.collection('stress_management_logs').get(),
+        _firestore.collection('foot_care_logs').get(),
+      ]);
+
+      final users      = results[0].docs;
+      final foodDocs   = results[1].docs;
+      final obatDocs   = results[2].docs;
+      final tidurDocs  = results[3].docs;
+      final fisikDocs  = results[4].docs;
+      final stressDocs = results[5].docs;
+      final kakiDocs   = results[6].docs;
+
+      String fmtDate(dynamic ts) {
+        if (ts == null) return '-';
+        return DateFormat('yyyy-MM-dd').format((ts as Timestamp).toDate());
+      }
+
+      int cmpDoc(QueryDocumentSnapshot a, QueryDocumentSnapshot b) {
+        final da = a.data() as Map<String, dynamic>;
+        final db = b.data() as Map<String, dynamic>;
+        final nc = (da['noKode'] ?? '').compareTo(db['noKode'] ?? '');
+        if (nc != 0) return nc;
+        final at = (da['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
+        final bt = (db['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
+        return at.compareTo(bt);
+      }
+
+      foodDocs.sort(cmpDoc);
+      obatDocs.sort(cmpDoc);
+      tidurDocs.sort(cmpDoc);
+      fisikDocs.sort(cmpDoc);
+      stressDocs.sort(cmpDoc);
+      kakiDocs.sort(cmpDoc);
+
+      // Helper: tulis header dengan warna & bold, set lebar kolom
+      void addSheet(Sheet sheet, List<String> headers, List<double> widths) {
+        final headerStyle = CellStyle(
+          bold: true,
+          fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+          backgroundColorHex: ExcelColor.fromHexString('#B83B7E'),
+          horizontalAlign: HorizontalAlign.Center,
+          verticalAlign: VerticalAlign.Center,
+          textWrapping: TextWrapping.WrapText,
+        );
+        sheet.setRowHeight(0, 28);
+        sheet.appendRow(headers.map((h) => TextCellValue(h)).toList());
+        for (int i = 0; i < headers.length; i++) {
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+              .cellStyle = headerStyle;
+          if (i < widths.length) sheet.setColumnWidth(i, widths[i]);
+        }
+      }
+
+      final excel = Excel.createExcel();
+      // Jangan hapus Sheet1 dulu — hapus SETELAH semua sheet kustom dibuat
+
+      // ── Sheet 1: Identitas User ──
+      final sUser = excel['Identitas User'];
+      addSheet(sUser,
+        ['No Kode', 'Nama Lengkap', 'Email', 'No HP', 'NIK', 'Alamat', 'Jenis Kelamin', 'Role'],
+        [10, 22, 28, 16, 18, 30, 14, 10],
+      );
+      for (final doc in users) {
+        final u = doc.data() as Map<String, dynamic>;
+        sUser.appendRow([
+          TextCellValue(u['noKode'] ?? '-'),
+          TextCellValue(u['namaLengkap'] ?? '-'),
+          TextCellValue(u['email'] ?? '-'),
+          TextCellValue(u['noHp'] ?? '-'),
+          TextCellValue(u['nik'] ?? '-'),
+          TextCellValue(u['alamat'] ?? '-'),
+          TextCellValue(u['jenisKelamin'] ?? '-'),
+          TextCellValue(u['role'] ?? '-'),
+        ]);
+      }
+
+      // ── Sheet 2: Data Makan ──
+      final sMakan = excel['Data Makan'];
+      addSheet(sMakan,
+        ['No Kode', 'Nama Pasien', 'Tanggal', 'Waktu', 'Menu / Makanan', 'Kategori', 'Waktu Makan', 'Berat (g)', 'Kalori (kkal)', 'Karbohidrat (g)', 'Protein (g)', 'Lemak (g)'],
+        [10, 20, 12, 8, 25, 14, 14, 10, 12, 14, 10, 10],
+      );
+      for (final doc in foodDocs) {
+        final d = doc.data() as Map<String, dynamic>;
+        sMakan.appendRow([
+          TextCellValue(d['noKode'] ?? '-'),
+          TextCellValue(d['userName'] ?? '-'),
+          TextCellValue(fmtDate(d['tanggal'])),
+          TextCellValue(d['jam'] ?? '-'),
+          TextCellValue(d['foodName'] ?? '-'),
+          TextCellValue(d['kategori'] ?? '-'),
+          TextCellValue(d['waktu'] ?? '-'),
+          DoubleCellValue((d['grams'] as num?)?.toDouble() ?? 0),
+          DoubleCellValue((d['calories'] as num?)?.toDouble() ?? 0),
+          DoubleCellValue((d['carbohydrate'] as num?)?.toDouble() ?? 0),
+          DoubleCellValue((d['protein'] as num?)?.toDouble() ?? 0),
+          DoubleCellValue((d['fat'] as num?)?.toDouble() ?? 0),
+        ]);
+      }
+
+      // ── Sheet 2: Minum Obat ──
+      final sObat = excel['Minum Obat'];
+      addSheet(sObat,
+        ['No Kode', 'Nama Pasien', 'Tanggal', 'Waktu', 'Waktu Minum', 'Jenis Obat', 'Dosis', 'Satuan'],
+        [10, 20, 12, 8, 12, 22, 8, 10],
+      );
+      for (final doc in obatDocs) {
+        final d = doc.data() as Map<String, dynamic>;
+        sObat.appendRow([
+          TextCellValue(d['noKode'] ?? '-'),
+          TextCellValue(d['userName'] ?? '-'),
+          TextCellValue(fmtDate(d['tanggal'])),
+          TextCellValue(d['jam'] ?? '-'),
+          TextCellValue(d['waktu'] ?? '-'),
+          TextCellValue(d['jenisObat'] ?? '-'),
+          DoubleCellValue((d['dosis'] as num?)?.toDouble() ?? 0),
+          TextCellValue(d['satuan'] ?? '-'),
+        ]);
+      }
+
+      // ── Sheet 3: Aktivitas Tidur ──
+      final sTidur = excel['Aktivitas Tidur'];
+      addSheet(sTidur,
+        ['No Kode', 'Nama Pasien', 'Tanggal', 'Jam Tidur', 'Jam Bangun', 'Durasi (Menit)', 'Kualitas', 'Catatan'],
+        [10, 20, 12, 10, 10, 14, 10, 30],
+      );
+      for (final doc in tidurDocs) {
+        final d = doc.data() as Map<String, dynamic>;
+        sTidur.appendRow([
+          TextCellValue(d['noKode'] ?? '-'),
+          TextCellValue(d['userName'] ?? '-'),
+          TextCellValue(fmtDate(d['tanggal'])),
+          TextCellValue(d['jamTidur'] ?? '-'),
+          TextCellValue(d['jamBangun'] ?? '-'),
+          IntCellValue((d['durasiMenit'] as num?)?.toInt() ?? 0),
+          TextCellValue(d['kualitas'] ?? '-'),
+          TextCellValue(d['catatan'] ?? ''),
+        ]);
+      }
+
+      // ── Sheet 4: Latihan Fisik ──
+      final sFisik = excel['Latihan Fisik'];
+      addSheet(sFisik,
+        ['No Kode', 'Nama Pasien', 'Tanggal', 'Waktu', 'Jenis Olahraga', 'Durasi', 'Satuan', 'Kalori Terbakar (kal)', 'Kategori Intensitas', 'Manfaat'],
+        [10, 20, 12, 8, 18, 8, 8, 16, 20, 35],
+      );
+      for (final doc in fisikDocs) {
+        final d = doc.data() as Map<String, dynamic>;
+        sFisik.appendRow([
+          TextCellValue(d['noKode'] ?? '-'),
+          TextCellValue(d['userName'] ?? '-'),
+          TextCellValue(fmtDate(d['tanggal'])),
+          TextCellValue(d['jam'] ?? '-'),
+          TextCellValue(d['jenisOlahraga'] ?? '-'),
+          IntCellValue((d['durasi'] as num?)?.toInt() ?? 0),
+          TextCellValue(d['satuanDurasi'] ?? 'Menit'),
+          IntCellValue((d['kaloriTerbakar'] as num?)?.toInt() ?? 0),
+          TextCellValue(d['kategoriIntensitas'] ?? '-'),
+          TextCellValue((List<String>.from(d['manfaat'] ?? [])).join('; ')),
+        ]);
+      }
+
+      // ── Sheet 5: Manajemen Stress ──
+      final sStress = excel['Manajemen Stress'];
+      addSheet(sStress,
+        ['No Kode', 'Nama Pasien', 'Tanggal', 'Waktu', 'Tekanan Darah', 'Perasaan', 'Skor Stress', 'Status Stress', 'Deskripsi Observasi', 'Analisa TD', 'Analisis Perasaan'],
+        [10, 20, 12, 8, 14, 16, 11, 16, 30, 25, 25],
+      );
+      for (final doc in stressDocs) {
+        final d = doc.data() as Map<String, dynamic>;
+        sStress.appendRow([
+          TextCellValue(d['noKode'] ?? '-'),
+          TextCellValue(d['userName'] ?? '-'),
+          TextCellValue(fmtDate(d['tanggal'])),
+          TextCellValue(d['jam'] ?? '-'),
+          TextCellValue(d['tekananDarah'] ?? '-'),
+          TextCellValue(d['perasaan'] ?? '-'),
+          IntCellValue((d['skorStress'] as num?)?.toInt() ?? 0),
+          TextCellValue(d['statusStress'] ?? '-'),
+          TextCellValue(d['deskripsiObservasi'] ?? '-'),
+          TextCellValue(d['analisaTekananDarah'] ?? '-'),
+          TextCellValue(d['analisisPerasaan'] ?? '-'),
+        ]);
+      }
+
+      // ── Sheet 6: Perawatan Kaki ──
+      final sKaki = excel['Perawatan Kaki'];
+      addSheet(sKaki,
+        ['No Kode', 'Nama Pasien', 'Tanggal', 'Waktu', 'Kondisi Kaki', 'Skor Risiko', 'Status Kondisi', 'Deskripsi Observasi', 'Rekomendasi'],
+        [10, 20, 12, 8, 30, 11, 16, 30, 35],
+      );
+      for (final doc in kakiDocs) {
+        final d = doc.data() as Map<String, dynamic>;
+        sKaki.appendRow([
+          TextCellValue(d['noKode'] ?? '-'),
+          TextCellValue(d['userName'] ?? '-'),
+          TextCellValue(fmtDate(d['tanggal'])),
+          TextCellValue(d['jam'] ?? '-'),
+          TextCellValue((List<String>.from(d['kondisiKaki'] ?? [])).join('; ')),
+          IntCellValue((d['skorRisiko'] as num?)?.toInt() ?? 0),
+          TextCellValue(d['statusKondisi'] ?? '-'),
+          TextCellValue(d['deskripsiObservasi'] ?? '-'),
+          TextCellValue((List<String>.from(d['rekomendasi'] ?? [])).join('; ')),
+        ]);
+      }
+
+      // Hapus Sheet1 default SETELAH semua sheet kustom dibuat
+      // (package tidak bisa hapus sheet jika itu satu-satunya sheet)
+      excel.delete('Sheet1');
+
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final fileName = 'laporan_semua_user_$timestamp.xlsx';
+
+      // Di web, excel.save() sudah otomatis trigger download browser.
+      // Di non-web, kita handle sendiri lewat downloadFileToDevice.
+      final bytes = excel.save(fileName: fileName);
+      if (bytes == null) throw Exception('Gagal membuat file Excel');
+
+      if (!kIsWeb) {
+        await downloadFileToDevice(Uint8List.fromList(bytes), fileName);
+      }
+
+      if (!mounted) return;
+      setState(() => _isExportingExcel = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('File Excel berhasil diunduh'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isExportingExcel = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal export: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   void _showImportPreview(List<Map<String, String>> users) {
     final passwordController = TextEditingController();
     bool obscure = true;
@@ -935,13 +1195,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ],
                 onChanged: (value) => setState(() => _selectedRole = value!),
               ),
-              const SizedBox(width: 16),
+              // const SizedBox(width: 16),
+              // ElevatedButton.icon(
+              //   onPressed: _importFromCSV,
+              //   icon: const Icon(Icons.upload_file, color: Colors.white),
+              //   label: const Text('Import CSV', style: TextStyle(color: Colors.white)),
+              //   style: ElevatedButton.styleFrom(
+              //     backgroundColor: const Color(0xFFB83B7E),
+              //     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              //   ),
+              // ),
+              const SizedBox(width: 12),
               ElevatedButton.icon(
-                onPressed: _importFromCSV,
-                icon: const Icon(Icons.upload_file, color: Colors.white),
-                label: const Text('Import CSV', style: TextStyle(color: Colors.white)),
+                onPressed: _isExportingExcel ? null : _exportAllToExcel,
+                icon: _isExportingExcel
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Icon(Icons.download_outlined, color: Colors.white),
+                label: Text(
+                  _isExportingExcel ? 'Mengekspor...' : 'Export Excel',
+                  style: const TextStyle(color: Colors.white),
+                ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFB83B7E),
+                  backgroundColor: Colors.green[700],
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
