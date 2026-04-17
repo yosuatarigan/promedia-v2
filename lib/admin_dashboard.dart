@@ -413,14 +413,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             title: 'Message Framing',
             index: 2,
           ),
-          const Spacer(),
-          _buildSidebarItem(
-            icon: Icons.logout,
-            title: 'Logout',
-            index: -1,
-            onTap: () => _confirmLogout(),
-          ),
-          const SizedBox(height: 20),
+          // const Spacer(),
+          // _buildSidebarItem(
+          //   icon: Icons.logout,
+          //   title: 'Logout',
+          //   index: -1,
+          //   onTap: () => _confirmLogout(),
+          // ),
+          // const SizedBox(height: 20),
         ],
       ),
     );
