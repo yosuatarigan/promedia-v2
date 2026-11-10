@@ -13,3 +13,6 @@ revisi/
 revisi*.txt
 .env*
 .claude/
+firestore.rules
+firebase.json
+.firebaserc
