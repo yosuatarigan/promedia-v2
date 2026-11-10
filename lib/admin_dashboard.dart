@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -33,6 +34,34 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int _selectedIndex = 0;
   final Set<String> _revealedPasswords = {};
   bool _isExportingExcel = false;
+
+  // Jumlah notifikasi belum dibaca per user (kolom NOTIFIKASI di Manage Users).
+  UnreadNotifIndex _unread = UnreadNotifIndex.empty;
+  StreamSubscription<UnreadNotifIndex>? _unreadSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _unreadSub = UnreadNotifIndex.watch().listen(
+      (idx) => setState(() => _unread = idx),
+      onError: (_) {},
+    );
+  }
+
+  @override
+  void dispose() {
+    _unreadSub?.cancel();
+    super.dispose();
+  }
+
+  UnreadNotif _unreadOf(QueryDocumentSnapshot doc) {
+    final d = doc.data() as Map<String, dynamic>;
+    return _unread.forUser(
+      doc.id,
+      (d['noKode'] ?? '').toString(),
+      (d['role'] ?? '').toString(),
+    );
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -1431,10 +1460,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         showCheckboxColumn: false,
                         columns: const [
                           DataColumn(label: Text('PENGGUNA')),
-                          DataColumn(label: Text('EMAIL')),
                           DataColumn(label: Text('NIK')),
                           DataColumn(label: Text('ROLE')),
                           DataColumn(label: Text('PASSWORD')),
+                          DataColumn(label: Text('NOTIFIKASI')),
                           DataColumn(label: Text('AKSI')),
                         ],
                         rows: users.map(_buildUserRow).toList(),
@@ -1475,21 +1504,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 200),
+                  constraints: const BoxConstraints(maxWidth: 280),
                   child: Text(nama,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                 ),
-                Text('Kode ${data['noKode'] ?? '-'}',
-                    style: const TextStyle(
-                        fontSize: 12, color: AdminColors.textSubtle)),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  child: Text(
+                      '${data['email'] ?? '-'}  ·  Kode ${data['noKode'] ?? '-'}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 12, color: AdminColors.textMuted)),
+                ),
               ],
             ),
           ],
         )),
-        DataCell(Text((data['email'] ?? '-').toString(),
-            style: const TextStyle(color: AdminColors.textMuted))),
         DataCell(Text((data['nik'] ?? '-').toString(),
             style: const TextStyle(color: AdminColors.textMuted))),
         DataCell(AdminBadge.role(role)),
@@ -1525,6 +1558,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ],
                 ),
         ),
+        DataCell(UnreadNotifBadge(
+          info: _unreadOf(doc),
+          onTap: () => _openNotifications(doc),
+        )),
         DataCell(Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1591,7 +1628,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             style: const TextStyle(
                                 fontSize: 13, color: AdminColors.textMuted)),
                         const SizedBox(height: 6),
-                        AdminBadge.role(role),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: [
+                            AdminBadge.role(role),
+                            UnreadNotifBadge(
+                              info: _unreadOf(doc),
+                              compact: true,
+                              onTap: () => _openNotifications(doc),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),

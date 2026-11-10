@@ -544,3 +544,133 @@ class _FilterChip extends StatelessWidget {
     );
   }
 }
+
+// ───────────────────── jumlah notifikasi belum dibaca ─────────────────────
+
+class UnreadNotif {
+  final int count;
+  final DateTime? latest;
+  const UnreadNotif(this.count, this.latest);
+
+  static const none = UnreadNotif(0, null);
+
+  UnreadNotif operator +(UnreadNotif o) {
+    DateTime? l = latest;
+    if (o.latest != null && (l == null || o.latest!.isAfter(l))) l = o.latest;
+    return UnreadNotif(count + o.count, l);
+  }
+}
+
+/// Indeks notifikasi belum dibaca per penerima, dari satu query
+/// `reminders where isRead == false` (dipakai tabel Manage Users).
+class UnreadNotifIndex {
+  final Map<String, UnreadNotif> byUid;
+
+  /// Reminder untuk pasien yang belum terdaftar (toUserId null) per noKode.
+  final Map<String, UnreadNotif> byKode;
+
+  const UnreadNotifIndex(this.byUid, this.byKode);
+  static const empty = UnreadNotifIndex({}, {});
+
+  UnreadNotif forUser(String uid, String noKode, String role) {
+    var r = byUid[uid] ?? UnreadNotif.none;
+    if (role == 'pasien' && noKode.isNotEmpty) r = r + (byKode[noKode] ?? UnreadNotif.none);
+    return r;
+  }
+
+  static Stream<UnreadNotifIndex> watch() => FirebaseFirestore.instance
+      .collection('reminders')
+      .where('isRead', isEqualTo: false)
+      .snapshots()
+      .map((snap) {
+        final byUid = <String, UnreadNotif>{};
+        final byKode = <String, UnreadNotif>{};
+        for (final d in snap.docs) {
+          final data = d.data();
+          final at = (data['createdAt'] as Timestamp?)?.toDate();
+          final one = UnreadNotif(1, at);
+          final to = data['toUserId'] as String?;
+          if (to != null) {
+            byUid[to] = (byUid[to] ?? UnreadNotif.none) + one;
+          } else if ((data['noKode'] ?? '').toString().isNotEmpty) {
+            final k = data['noKode'].toString();
+            byKode[k] = (byKode[k] ?? UnreadNotif.none) + one;
+          }
+        }
+        return UnreadNotifIndex(byUid, byKode);
+      });
+}
+
+String timeAgoId(DateTime t) {
+  final d = DateTime.now().difference(t);
+  if (d.inMinutes < 1) return 'baru saja';
+  if (d.inMinutes < 60) return '${d.inMinutes} menit lalu';
+  if (d.inHours < 24) return '${d.inHours} jam lalu';
+  if (d.inDays < 7) return '${d.inDays} hari lalu';
+  return DateFormat('d MMM yyyy', 'id_ID').format(t);
+}
+
+/// Label jumlah notifikasi baru + waktu notifikasi terbaru.
+class UnreadNotifBadge extends StatelessWidget {
+  final UnreadNotif info;
+  final VoidCallback? onTap;
+  final bool compact;
+
+  const UnreadNotifBadge(
+      {super.key, required this.info, this.onTap, this.compact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final has = info.count > 0;
+    final pill = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: has ? AdminColors.primary : AdminColors.divider,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(has ? Icons.notifications_active : Icons.notifications_none,
+              size: 13, color: has ? Colors.white : AdminColors.textSubtle),
+          const SizedBox(width: 4),
+          Text(
+            has ? '${info.count} baru' : '0',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: has ? Colors.white : AdminColors.textSubtle,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final child = compact || !has || info.latest == null
+        ? pill
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              pill,
+              const SizedBox(height: 3),
+              Text(timeAgoId(info.latest!),
+                  style: const TextStyle(
+                      fontSize: 11, color: AdminColors.textSubtle)),
+            ],
+          );
+
+    return Tooltip(
+      message: has
+          ? '${info.count} notifikasi belum dibaca'
+              '${info.latest == null ? '' : '\nTerbaru: ${DateFormat('d MMM yyyy, HH:mm', 'id_ID').format(info.latest!)}'}'
+          : 'Tidak ada notifikasi baru',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: child,
+      ),
+    );
+  }
+}
