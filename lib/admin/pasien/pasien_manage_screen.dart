@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:promedia_v2/admin/admin_session.dart';
 import 'package:promedia_v2/admin/admin_ui.dart';
+import 'package:promedia_v2/admin/notifications/user_notifications.dart';
 import 'package:promedia_v2/admin/pasien/activity_config.dart';
 import 'package:promedia_v2/admin/pasien/activity_editor.dart';
 import 'package:promedia_v2/admin/pasien/activity_table.dart';
@@ -32,7 +33,7 @@ class _PasienManageScreenState extends State<PasienManageScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: kActivityConfigs.length + 1, vsync: this);
+    _tabs = TabController(length: kActivityConfigs.length + 2, vsync: this);
     _userStream = widget.userRef.snapshots();
   }
 
@@ -98,6 +99,12 @@ class _PasienManageScreenState extends State<PasienManageScreen>
                           admin: widget.admin,
                         ),
                       ),
+                    _TabPadding(
+                      child: UserNotificationsView(
+                        target: NotifTarget.fromDoc(doc),
+                        admin: widget.admin,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -200,6 +207,10 @@ class _PasienManageScreenState extends State<PasienManageScreen>
                     icon: Icon(c.icon, size: 18),
                     iconMargin: const EdgeInsets.only(bottom: 2),
                     text: c.title),
+              const Tab(
+                  icon: Icon(Icons.notifications_none_rounded, size: 18),
+                  iconMargin: EdgeInsets.only(bottom: 2),
+                  text: 'Notifikasi'),
             ],
           ),
         ],

@@ -11,6 +11,7 @@ import 'package:csv/csv.dart';
 import 'package:promedia_v2/admin/add_user_dialog.dart';
 import 'package:promedia_v2/admin/admin_session.dart';
 import 'package:promedia_v2/admin/admin_ui.dart';
+import 'package:promedia_v2/admin/notifications/user_notifications.dart';
 import 'package:promedia_v2/admin/pasien/edit_user_dialog.dart';
 import 'package:promedia_v2/admin/pasien/pasien_manage_screen.dart';
 import 'package:promedia_v2/admin/manage_admin_screen.dart';
@@ -1534,6 +1535,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               onPressed: () => _showUserDetail(doc),
             ),
             AdminIconAction(
+              icon: Icons.notifications_none_rounded,
+              tooltip: 'Notifikasi',
+              color: AdminColors.primary,
+              onPressed: () => _openNotifications(doc),
+            ),
+            AdminIconAction(
               icon: Icons.edit_outlined,
               tooltip: 'Edit',
               color: AdminColors.warning,
@@ -1592,11 +1599,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     tooltip: 'Aksi',
                     itemBuilder: (context) => const [
                       PopupMenuItem(value: 'view', child: Text('Lihat detail')),
+                      PopupMenuItem(value: 'notif', child: Text('Notifikasi')),
                       PopupMenuItem(value: 'edit', child: Text('Edit')),
                       PopupMenuItem(value: 'delete', child: Text('Hapus')),
                     ],
                     onSelected: (value) {
                       if (value == 'view') _showUserDetail(doc);
+                      if (value == 'notif') _openNotifications(doc);
                       if (value == 'edit') _showEditUser(doc);
                       if (value == 'delete') _confirmDelete(doc);
                     },
@@ -1607,6 +1616,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _openNotifications(DocumentSnapshot doc) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => UserNotificationsScreen(
+          target: NotifTarget.fromDoc(doc),
+          admin: widget.admin,
+        ),
+      ),
     );
   }
 
@@ -1747,6 +1768,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               OutlinedButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Tutup'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _openNotifications(doc);
+                },
+                icon: const Icon(Icons.notifications_none_rounded, size: 18),
+                label: const Text('Notifikasi'),
               ),
               ElevatedButton.icon(
                 onPressed: () {
