@@ -48,3 +48,5 @@ app.*.map.json
 /revisi/
 /kesepakatan/
 revisi*.txt
+.vercel
+.env*

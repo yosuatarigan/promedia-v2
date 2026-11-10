@@ -1,0 +1,15 @@
+# Only the Flutter web build inputs are needed on Vercel
+build/
+.dart_tool/
+.idea/
+android/
+ios/
+macos/
+linux/
+windows/
+test/
+kesepakatan/
+revisi/
+revisi*.txt
+.env*
+.claude/

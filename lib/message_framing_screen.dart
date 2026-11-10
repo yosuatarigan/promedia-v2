@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:promedia_v2/admin/admin_ui.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:promedia_v2/message_framing_service.dart';
 import 'package:promedia_v2/message_framing_template.dart';
@@ -30,59 +31,65 @@ class _MessageFramingScreenState extends State<MessageFramingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: Column(
+    return AdminPage(
+      title: 'Message Framing',
+      subtitle: 'Pesan edukasi untuk pasien dan keluarga, dikelompokkan per materi dan hari.',
+      scrollable: false,
+      actions: [
+        ElevatedButton.icon(
+          onPressed: () => _showAddEditDialog(),
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text('Tambah Pesan'),
+        ),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(),
           _buildFilterBar(),
+          const SizedBox(height: 16),
           Expanded(child: _buildMessageList()),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddEditDialog(),
-        backgroundColor: const Color(0xFFB83B7E),
-        icon: const Icon(Icons.add),
-        label: const Text('Tambah Pesan'),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      color: Colors.white,
-      child: const Row(
-        children: [
-          Text(
-            'Message Framing',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
         ],
       ),
     );
   }
 
   Widget _buildFilterBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.white,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
       child: Row(
-        children: [
-          const Text('Filter Materi: ', style: TextStyle(fontWeight: FontWeight.w500)),
-          const SizedBox(width: 12),
-          DropdownButton<String>(
-            value: _selectedMateri,
-            items: _materiList.map((materi) {
-              return DropdownMenuItem(value: materi, child: Text(materi));
-            }).toList(),
-            onChanged: (value) => setState(() => _selectedMateri = value!),
-          ),
-        ],
+        children: _materiList.map((materi) {
+          final selected = _selectedMateri == materi;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Material(
+              color: selected ? AdminColors.primary : Colors.white,
+              borderRadius: BorderRadius.circular(999),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: () => setState(() => _selectedMateri = materi),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color:
+                          selected ? AdminColors.primary : AdminColors.border,
+                    ),
+                  ),
+                  child: Text(
+                    materi,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: selected ? Colors.white : AdminColors.textMuted,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -95,20 +102,7 @@ class _MessageFramingScreenState extends State<MessageFramingScreen> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.message, size: 64, color: Colors.grey[400]),
-                const SizedBox(height: 16),
-                Text('Belum ada message framing', style: TextStyle(color: Colors.grey[600])),
-              ],
-            ),
-          );
-        }
-
-        var messages = snapshot.data!.docs;
+        var messages = snapshot.data?.docs ?? [];
 
         if (_selectedMateri != 'Semua') {
           messages = messages.where((doc) {
@@ -117,15 +111,60 @@ class _MessageFramingScreenState extends State<MessageFramingScreen> {
           }).toList();
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: messages.length,
-          itemBuilder: (context, index) {
-            final doc = messages[index];
-            final data = doc.data() as Map<String, dynamic>;
-            return _buildMessageCard(doc.id, data);
-          },
-        );
+        if (messages.isEmpty) {
+          return AdminCard(
+            child: AdminEmptyState(
+              icon: Icons.chat_bubble_outline,
+              title: _selectedMateri == 'Semua'
+                  ? 'Belum ada message framing'
+                  : 'Belum ada pesan untuk materi "$_selectedMateri"',
+              message: 'Klik "Tambah Pesan" untuk membuat pesan baru.',
+            ),
+          );
+        }
+
+        return LayoutBuilder(builder: (context, c) {
+          final cols = c.maxWidth >= 1100 ? 2 : 1;
+          if (cols == 1) {
+            return ListView.separated(
+              itemCount: messages.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final doc = messages[index];
+                return _buildMessageCard(
+                    doc.id, doc.data() as Map<String, dynamic>);
+              },
+            );
+          }
+          // Dua kolom pada layar lebar.
+          final rows = <Widget>[];
+          for (var i = 0; i < messages.length; i += 2) {
+            final left = messages[i];
+            final right = i + 1 < messages.length ? messages[i + 1] : null;
+            rows.add(IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                      child: _buildMessageCard(
+                          left.id, left.data() as Map<String, dynamic>)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: right == null
+                        ? const SizedBox()
+                        : _buildMessageCard(
+                            right.id, right.data() as Map<String, dynamic>),
+                  ),
+                ],
+              ),
+            ));
+          }
+          return ListView.separated(
+            itemCount: rows.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, i) => rows[i],
+          );
+        });
       },
     );
   }
@@ -136,62 +175,40 @@ class _MessageFramingScreenState extends State<MessageFramingScreen> {
     final message = data['message'] ?? '-';
     final hari = data['hari'] ?? 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return AdminCard(
+      padding: const EdgeInsets.fromLTRB(20, 16, 8, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFB83B7E).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'Hari $hari',
-                  style: const TextStyle(
-                    color: Color(0xFFB83B7E),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+              AdminBadge('Hari $hari', color: AdminColors.primary),
               const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  materi,
-                  style: const TextStyle(
-                    color: Colors.blue,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: AdminBadge('$materi', color: AdminColors.info),
                 ),
               ),
-              const Spacer(),
-              PopupMenuButton(
-                itemBuilder: (context) => [
-                  const PopupMenuItem(value: 'send', child: Text('Kirim Pesan')),
-                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                  const PopupMenuItem(value: 'delete', child: Text('Hapus')),
+              Tooltip(
+                message: 'Kirim pesan',
+                child: IconButton(
+                  onPressed: () => _showSendTargetDialog(data),
+                  icon: const Icon(Icons.send_outlined,
+                      size: 19, color: AdminColors.primary),
+                ),
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'Aksi lain',
+                icon: const Icon(Icons.more_horiz, color: AdminColors.textMuted),
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'send', child: Text('Kirim pesan')),
+                  PopupMenuItem(value: 'edit', child: Text('Edit')),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text('Hapus',
+                        style: TextStyle(color: AdminColors.danger)),
+                  ),
                 ],
                 onSelected: (value) {
                   if (value == 'send') _showSendTargetDialog(data);
@@ -201,22 +218,28 @@ class _MessageFramingScreenState extends State<MessageFramingScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            subMateri,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Text(
+              subMateri,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AdminColors.text,
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey[700],
-              height: 1.4,
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Text(
+              message,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AdminColors.textMuted,
+                height: 1.55,
+              ),
             ),
           ),
         ],

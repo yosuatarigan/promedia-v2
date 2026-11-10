@@ -3,7 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:promedia_v2/admin_dashboard.dart';
+import 'package:promedia_v2/admin/admin_session.dart';
+import 'package:promedia_v2/admin/admin_ui.dart';
 import 'package:promedia_v2/firebase_config.dart';
 import 'package:promedia_v2/splashscreen.dart';
 
@@ -19,10 +20,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Promedia',
-      theme: ThemeData(
+    final theme = ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFFD81B60),
           primary: const Color(0xFFD81B60),
@@ -77,8 +75,13 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-      ),
-      home: kIsWeb ? AdminDashboardScreen() : Splashscreen(),
+      );
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: kIsWeb ? 'Promedia Admin' : 'Promedia',
+      theme: kIsWeb ? buildAdminTheme(theme) : theme,
+      home: kIsWeb ? const AdminAuthGate() : Splashscreen(),
     );
   }
 }
