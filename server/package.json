@@ -1,7 +1,7 @@
 {
   "name": "promedia-server",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Layanan Promedia di VPS (pengganti Cloud Functions): kelola akun login pengguna untuk Admin Panel.",
   "engines": {
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node src/index.js",
-    "test": "node --test test/users.test.js"
+    "test": "node --test test/users.test.js test/scheduler.test.js"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",

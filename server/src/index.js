@@ -5,9 +5,12 @@ import cors from '@fastify/cors';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getMessaging } from 'firebase-admin/messaging';
 import { deleteUserCompletely, previewDelete, setDisabled } from './users.js';
+import { Scheduler } from './scheduler.js';
+import { PushSender } from './push.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const PORT = Number(process.env.PORT ?? 8750);
 const HOST = process.env.HOST ?? '127.0.0.1';
 const ORIGINS = (process.env.CORS_ORIGINS ?? 'https://promedia-v2.vercel.app')
@@ -54,7 +57,18 @@ const uidParam = {
   },
 };
 
-app.get('/health', async () => ({ ok: true, service: 'promedia', version: VERSION }));
+// Pengingat terjadwal (default aktif) & push FCM (default mati sampai
+// aplikasi mobile menyimpan token dan service account punya izin FCM).
+const scheduler = process.env.SCHEDULER_ENABLED === '0' ? null : new Scheduler(db, app.log);
+const push = process.env.PUSH_ENABLED === '1' ? new PushSender(db, getMessaging(), app.log) : null;
+
+app.get('/health', async () => ({
+  ok: true,
+  service: 'promedia',
+  version: VERSION,
+  scheduler: scheduler ? scheduler.stats : 'off',
+  push: push ? push.stats : 'off',
+}));
 
 app.register(async (v1) => {
   v1.addHook('preHandler', requireAdmin);
@@ -109,3 +123,14 @@ app.setErrorHandler((err, req, reply) => {
 });
 
 await app.listen({ port: PORT, host: HOST });
+scheduler?.start();
+push?.start();
+
+for (const sig of ['SIGTERM', 'SIGINT']) {
+  process.once(sig, async () => {
+    scheduler?.stop();
+    push?.stop();
+    await app.close();
+    process.exit(0);
+  });
+}

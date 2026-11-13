@@ -125,6 +125,19 @@ service cloud.firestore {
       allow delete: if isAdmin() || involved(resource.data);
     }
 
+    // Antrean pengingat terjadwal (sekali kirim). Hanya admin; pengiriman
+    // dilakukan layanan VPS (Admin SDK). Pengguna aplikasi tidak bisa membaca.
+    match /scheduled_reminders/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.status == 'pending'
+        && request.resource.data.sendAt is timestamp;
+      // Admin hanya boleh membatalkan jadwal yang masih menunggu.
+      allow update: if isAdmin()
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'cancelled';
+    }
+
     // ───────────── message framing (template edukasi) ─────────────
 
     match /message_framing/{id} {

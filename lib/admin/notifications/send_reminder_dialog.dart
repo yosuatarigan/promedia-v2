@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:promedia_v2/admin/admin_session.dart';
 import 'package:promedia_v2/admin/admin_ui.dart';
+import 'package:promedia_v2/admin/notifications/notif_actions.dart';
+import 'package:promedia_v2/admin/notifications/scheduled_reminders.dart';
 import 'package:promedia_v2/admin/notifications/user_notifications.dart';
 
 /// Jenis yang bisa dikirim admin. Jenis aktivitas bisa tampil sebagai pop-up
@@ -27,23 +29,28 @@ const _templates = {
   'umum': '',
 };
 
-/// Mengembalikan true bila terkirim.
-Future<bool?> showSendReminderDialog(
+/// Mengembalikan pesan hasil (untuk snackbar) bila terkirim / terjadwal.
+/// [keluarga]: keluarga pasien yang bisa dipilih sebagai pengirim.
+Future<String?> showSendReminderDialog(
   BuildContext context, {
   required NotifTarget target,
   required AdminProfile admin,
+  List<NotifTarget> keluarga = const [],
 }) {
-  return showDialog<bool>(
+  return showDialog<String>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => _SendReminderDialog(target: target, admin: admin),
+    builder: (_) =>
+        _SendReminderDialog(target: target, admin: admin, keluarga: keluarga),
   );
 }
 
 class _SendReminderDialog extends StatefulWidget {
   final NotifTarget target;
   final AdminProfile admin;
-  const _SendReminderDialog({required this.target, required this.admin});
+  final List<NotifTarget> keluarga;
+  const _SendReminderDialog(
+      {required this.target, required this.admin, required this.keluarga});
 
   @override
   State<_SendReminderDialog> createState() => _SendReminderDialogState();
@@ -57,8 +64,29 @@ class _SendReminderDialogState extends State<_SendReminderDialog> {
   bool _saving = false;
   String? _error;
 
+  /// null = dikirim sebagai Admin Promedia; selain itu uid keluarga.
+  String? _asUid;
+
+  /// null = sekarang; selain itu tanggal & jam pilihan
+  /// (lampau → tercatat dengan tanggal itu, masa depan → dijadwalkan).
+  DateTime? _at;
+
   bool get _isPasien => widget.target.role == 'pasien';
-  bool get _canPopup => _isPasien && _type != 'umum';
+  NotifTarget? get _asKeluarga => _asUid == null
+      ? null
+      : widget.keluarga.where((k) => k.uid == _asUid).firstOrNull;
+  bool get _onBehalf => _asKeluarga != null;
+  bool get _canPopup => _isPasien && _type != 'umum' && !_onBehalf;
+  bool get _scheduled =>
+      _at != null && _at!.isAfter(DateTime.now().add(const Duration(minutes: 1)));
+  List<String> get _types =>
+      _onBehalf ? _sendableTypes.where((t) => t != 'umum').toList() : _sendableTypes;
+
+  Future<void> _pickAt() async {
+    final v = await pickDateTime(context,
+        initial: _at ?? DateTime.now().add(const Duration(hours: 1)));
+    if (v != null) setState(() => _at = v);
+  }
 
   @override
   void dispose() {
@@ -84,27 +112,69 @@ class _SendReminderDialogState extends State<_SendReminderDialog> {
       _error = null;
     });
     try {
-      final popup = _canPopup && _popup;
-      await FirebaseFirestore.instance.collection('reminders').add({
-        'toUserId': widget.target.uid,
-        'noKode': widget.target.noKode,
-        'type': _type,
-        'message': _message.text.trim(),
-        // Aplikasi pasien hanya menampilkan pop-up untuk reminder yang
-        // fromAdmin == false. `sentByAdmin` menandai asal sebenarnya.
-        'fromAdmin': !popup,
-        'sentByAdmin': true,
-        'fromUserId': widget.admin.uid,
-        'fromUserName': 'Admin Promedia',
-        'isRead': false,
-        'createdAt': FieldValue.serverTimestamp(),
-        'createdVia': 'admin_web',
-      });
-      if (mounted) Navigator.pop(context, true);
+      final kel = _asKeluarga;
+      final Map<String, dynamic> payload;
+      if (kel != null) {
+        // Tampil di aplikasi persis seperti pengingat dari keluarga
+        // (pop-up aktif). Jejak admin hanya terlihat di Admin Panel.
+        payload = {
+          'toUserId': widget.target.uid,
+          'noKode': widget.target.noKode,
+          'type': _type,
+          'message': _message.text.trim(),
+          'fromAdmin': false,
+          'fromUserId': kel.uid,
+          'fromUserName': kel.nama,
+          'sentOnBehalf': true,
+          'actingAdminUid': widget.admin.uid,
+          'actingAdminName': widget.admin.nama,
+          'isRead': false,
+          'createdVia': 'admin_web_on_behalf',
+        };
+      } else {
+        final popup = _canPopup && _popup;
+        payload = {
+          'toUserId': widget.target.uid,
+          'noKode': widget.target.noKode,
+          'type': _type,
+          'message': _message.text.trim(),
+          // Aplikasi pasien hanya menampilkan pop-up untuk reminder yang
+          // fromAdmin == false. `sentByAdmin` menandai asal sebenarnya.
+          'fromAdmin': !popup,
+          'sentByAdmin': true,
+          'fromUserId': widget.admin.uid,
+          'fromUserName': 'Admin Promedia',
+          'isRead': false,
+          'createdVia': 'admin_web',
+        };
+      }
+
+      final String result;
+      if (_scheduled) {
+        await ScheduledReminders.schedule(
+          payload: payload,
+          sendAt: _at!,
+          adminUid: widget.admin.uid,
+          adminName: widget.admin.nama,
+        );
+        result = 'Pengingat dijadwalkan ${formatNotifDate(_at!)}';
+      } else {
+        await FirebaseFirestore.instance.collection('reminders').add({
+          ...payload,
+          'createdAt': _at == null
+              ? FieldValue.serverTimestamp()
+              : Timestamp.fromDate(_at!),
+          if (_at != null) 'backdatedBy': widget.admin.uid,
+        });
+        result = 'Pengingat terkirim ke ${widget.target.nama}';
+      }
+      if (mounted) Navigator.pop(context, result);
     } catch (e) {
       setState(() {
         _saving = false;
-        _error = 'Gagal mengirim: $e';
+        _error = e is FirebaseException && e.code == 'permission-denied'
+            ? 'Akses ditolak server. Pastikan akun admin masih aktif, lalu coba lagi.'
+            : 'Gagal ${_scheduled ? 'menjadwalkan' : 'mengirim'}: $e';
       });
     }
   }
@@ -157,6 +227,42 @@ class _SendReminderDialogState extends State<_SendReminderDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (_isPasien && widget.keluarga.isNotEmpty) ...[
+                  _sectionLabel('DIKIRIM SEBAGAI'),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _choice(
+                        icon: Icons.admin_panel_settings_outlined,
+                        label: 'Admin Promedia',
+                        selected: _asUid == null,
+                        onTap: () => setState(() => _asUid = null),
+                      ),
+                      for (final k in widget.keluarga)
+                        _choice(
+                          icon: Icons.family_restroom,
+                          label: k.nama,
+                          selected: _asUid == k.uid,
+                          onTap: () => setState(() {
+                            _asUid = k.uid;
+                            if (_type == 'umum') _setType('makan');
+                          }),
+                        ),
+                    ],
+                  ),
+                  if (_onBehalf) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Pasien melihatnya sebagai pengingat dari ${_asKeluarga!.nama} (tampil sebagai pop-up). '
+                      'Keterangan "dikirim admin atas nama" hanya terlihat di Admin Panel.',
+                      style: const TextStyle(
+                          fontSize: 12, color: AdminColors.textMuted, height: 1.4),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                ],
                 const Text('JENIS PENGINGAT',
                     style: TextStyle(
                         fontSize: 11,
@@ -168,7 +274,7 @@ class _SendReminderDialogState extends State<_SendReminderDialog> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    for (final key in _sendableTypes)
+                    for (final key in _types)
                       _TypeChip(
                         type: reminderTypeOf(key),
                         selected: _type == key,
@@ -192,7 +298,45 @@ class _SendReminderDialogState extends State<_SendReminderDialog> {
                       : null,
                 ),
                 const SizedBox(height: 4),
-                if (_isPasien)
+                _sectionLabel('WAKTU'),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _choice(
+                      icon: Icons.bolt_outlined,
+                      label: 'Sekarang',
+                      selected: _at == null,
+                      onTap: () => setState(() => _at = null),
+                    ),
+                    _choice(
+                      icon: Icons.event_outlined,
+                      label: _at == null
+                          ? 'Pilih tanggal & jam'
+                          : formatNotifDate(_at!),
+                      selected: _at != null,
+                      onTap: _pickAt,
+                    ),
+                  ],
+                ),
+                if (_at != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _scheduled
+                        ? 'Dijadwalkan: dikirim otomatis satu kali pada waktu tersebut.'
+                        : 'Waktu lampau: notifikasi langsung masuk dan tercatat dengan tanggal ini.',
+                    style: TextStyle(
+                        fontSize: 12,
+                        height: 1.4,
+                        color: _scheduled ? AdminColors.info : AdminColors.textMuted),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                if (_onBehalf)
+                  const SizedBox.shrink()
+                else if (_isPasien)
                   Container(
                     decoration: BoxDecoration(
                       border: Border.all(color: AdminColors.border),
@@ -263,11 +407,34 @@ class _SendReminderDialogState extends State<_SendReminderDialog> {
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: Colors.white))
               : const Icon(Icons.send_outlined, size: 18),
-          label: Text(_saving ? 'Mengirim…' : 'Kirim'),
+          label: Text(_saving
+              ? 'Menyimpan…'
+              : _scheduled
+                  ? 'Jadwalkan'
+                  : 'Kirim'),
         ),
       ],
     );
   }
+
+  Widget _sectionLabel(String text) => Text(text,
+      style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1,
+          color: AdminColors.textSubtle));
+
+  Widget _choice({
+    required IconData icon,
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) =>
+      _TypeChip(
+        type: ReminderType(label, icon, AdminColors.primary),
+        selected: selected,
+        onTap: _saving ? null : onTap,
+      );
 }
 
 class _TypeChip extends StatelessWidget {
