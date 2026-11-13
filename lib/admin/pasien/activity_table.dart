@@ -160,7 +160,11 @@ class _ActivityTableState extends State<ActivityTable>
         final shown = docs;
         // Data di server bisa lebih banyak dari yang sudah dimuat.
         final total = _total ?? docs.length;
-        final hasMore = docs.length >= _limit && total > docs.length;
+        // Bila jumlah total tak diketahui (count() gagal), anggap masih ada
+        // data lama selama halaman terisi penuh.
+        final hasMore = _total == null
+            ? docs.length >= _limit
+            : total > docs.length;
 
         return AdminCard(
           padding: EdgeInsets.zero,
@@ -175,9 +179,13 @@ class _ActivityTableState extends State<ActivityTable>
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        _total == null || _total == docs.length
-                            ? '${docs.length} ${c.singular}'
-                            : '$total ${c.singular}  ·  menampilkan ${docs.length} terbaru',
+                        _total == null
+                            ? (hasMore
+                                ? '${docs.length} ${c.singular} terbaru ditampilkan'
+                                : '${docs.length} ${c.singular}')
+                            : _total == docs.length
+                                ? '${docs.length} ${c.singular}'
+                                : '$total ${c.singular}  ·  menampilkan ${docs.length} terbaru',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -238,8 +246,9 @@ class _ActivityTableState extends State<ActivityTable>
                                     child: Center(
                                       child: OutlinedButton(
                                         onPressed: _loadMore,
-                                        child: Text(
-                                            'Tampilkan $_pageSize lagi (${total - docs.length} catatan lebih lama)'),
+                                        child: Text(_total == null
+                                            ? 'Tampilkan $_pageSize lagi'
+                                            : 'Tampilkan $_pageSize lagi (${total - docs.length} catatan lebih lama)'),
                                       ),
                                     ),
                                   ),

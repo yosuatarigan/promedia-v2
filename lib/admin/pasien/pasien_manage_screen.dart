@@ -252,9 +252,11 @@ class _SummaryTab extends StatefulWidget {
 
 /// Ringkasan satu jenis catatan: jumlah + tanggal input terakhir.
 class _ActivityStat {
-  final int count;
+  /// null bila agregasi count() gagal (mis. dibatasi kuota).
+  final int? count;
   final DateTime? latest;
-  const _ActivityStat(this.count, this.latest);
+  final bool hasAny;
+  const _ActivityStat(this.count, this.latest, this.hasAny);
 }
 
 class _SummaryTabState extends State<_SummaryTab>
@@ -279,15 +281,27 @@ class _SummaryTabState extends State<_SummaryTab>
     final kode = widget.pasien.noKode;
     _activity = Future.wait(kActivityConfigs.map((c) async {
       final q = db.collection(c.collection).where('noKode', isEqualTo: kode);
-      final results = await Future.wait([
-        q.count().get(),
-        q.orderBy(c.dateKey, descending: true).limit(1).get(),
-      ]);
-      final count = (results[0] as AggregateQuerySnapshot).count ?? 0;
-      final latestDocs = (results[1] as QuerySnapshot<Map<String, dynamic>>).docs;
+      // Masing-masing berdiri sendiri: kegagalan count() tidak menggagalkan
+      // tanggal input terakhir, dan sebaliknya.
+      final countF = q
+          .count()
+          .get()
+          .then<int?>((a) => a.count)
+          .catchError((_) => null);
+      final latestF = q
+          .orderBy(c.dateKey, descending: true)
+          .limit(1)
+          .get()
+          .then<List<QueryDocumentSnapshot<Map<String, dynamic>>>?>((s) => s.docs)
+          .catchError((_) => null);
+      final count = await countF;
+      final latestDocs = await latestF;
       return _ActivityStat(
         count,
-        latestDocs.isEmpty ? null : activityDate(c, latestDocs.first.data()),
+        (latestDocs == null || latestDocs.isEmpty)
+            ? null
+            : activityDate(c, latestDocs.first.data()),
+        (latestDocs?.isNotEmpty ?? false) || (count ?? 0) > 0,
       );
     }));
     final gula = kActivityConfigs.firstWhere((c) => c.id == 'gula');
@@ -404,7 +418,7 @@ class _SummaryTabState extends State<_SummaryTab>
     String last = '…';
     String count = '…';
     if (q != null) {
-      count = '${q.count}';
+      count = q.count?.toString() ?? (q.hasAny ? '•' : '0');
       final latest = q.latest;
       last = latest == null
           ? 'Belum ada'
