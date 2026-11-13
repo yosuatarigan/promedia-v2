@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:promedia_v2/admin/admin_ui.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:promedia_v2/message_framing_service.dart';
 import 'package:promedia_v2/message_framing_template.dart';
@@ -28,106 +29,176 @@ class _MessageFramingScreenState extends State<MessageFramingScreen> {
     'Pengobatan',
   ];
 
+  late final Stream<QuerySnapshot> _stream = _service.getAllMessageFraming();
+
+  /// Semua materi: bawaan + kategori custom yang sudah dipakai di data.
+  List<String> _allMateri = [];
+
+  List<String> _mergeMateri(List<QueryDocumentSnapshot> docs) {
+    final custom = <String>{};
+    for (final d in docs) {
+      final m = ((d.data() as Map<String, dynamic>)['materi'] ?? '').toString().trim();
+      if (m.isNotEmpty && !_materiList.contains(m)) custom.add(m);
+    }
+    return [..._materiList.skip(1), ...(custom.toList()..sort())];
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: Column(
-        children: [
-          _buildHeader(),
-          _buildFilterBar(),
-          Expanded(child: _buildMessageList()),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddEditDialog(),
-        backgroundColor: const Color(0xFFB83B7E),
-        icon: const Icon(Icons.add),
-        label: const Text('Tambah Pesan'),
+    return AdminPage(
+      title: 'Message Framing',
+      subtitle:
+          'Template pesan edukasi per materi dan hari, atau tulis pesan custom untuk pasien dan keluarga.',
+      scrollable: false,
+      actions: [
+        OutlinedButton.icon(
+          onPressed: () => _showAddEditDialog(),
+          icon: const Icon(Icons.library_add_outlined, size: 18),
+          label: const Text('Tambah Template'),
+        ),
+        ElevatedButton.icon(
+          onPressed: () => _showComposeDialog(),
+          icon: const Icon(Icons.edit_note, size: 20),
+          label: const Text('Tulis Pesan Custom'),
+        ),
+      ],
+      child: StreamBuilder<QuerySnapshot>(
+        stream: _stream,
+        builder: (context, snapshot) {
+          final docs = snapshot.data?.docs ?? [];
+          _allMateri = _mergeMateri(docs);
+          if (_selectedMateri != 'Semua' && !_allMateri.contains(_selectedMateri)) {
+            _selectedMateri = 'Semua';
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildFilterBar(['Semua', ..._allMateri]),
+              const SizedBox(height: 16),
+              Expanded(child: _buildMessageList(snapshot)),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      color: Colors.white,
-      child: const Row(
-        children: [
-          Text(
-            'Message Framing',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.white,
+  Widget _buildFilterBar(List<String> materiList) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
       child: Row(
-        children: [
-          const Text('Filter Materi: ', style: TextStyle(fontWeight: FontWeight.w500)),
-          const SizedBox(width: 12),
-          DropdownButton<String>(
-            value: _selectedMateri,
-            items: _materiList.map((materi) {
-              return DropdownMenuItem(value: materi, child: Text(materi));
-            }).toList(),
-            onChanged: (value) => setState(() => _selectedMateri = value!),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _service.getAllMessageFraming(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.message, size: 64, color: Colors.grey[400]),
-                const SizedBox(height: 16),
-                Text('Belum ada message framing', style: TextStyle(color: Colors.grey[600])),
-              ],
+        children: materiList.map((materi) {
+          final selected = _selectedMateri == materi;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Material(
+              color: selected ? AdminColors.primary : Colors.white,
+              borderRadius: BorderRadius.circular(999),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: () => setState(() => _selectedMateri = materi),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color:
+                          selected ? AdminColors.primary : AdminColors.border,
+                    ),
+                  ),
+                  child: Text(
+                    materi,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: selected ? Colors.white : AdminColors.textMuted,
+                    ),
+                  ),
+                ),
+              ),
             ),
           );
-        }
+        }).toList(),
+      ),
+    );
+  }
 
-        var messages = snapshot.data!.docs;
+  Widget _buildMessageList(AsyncSnapshot<QuerySnapshot> snapshot) {
+    if (snapshot.hasError) {
+      return AdminCard(
+        child: AdminEmptyState(
+          icon: Icons.error_outline,
+          title: 'Gagal memuat message framing',
+          message: '${snapshot.error}',
+        ),
+      );
+    }
+    if (!snapshot.hasData) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        if (_selectedMateri != 'Semua') {
-          messages = messages.where((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            return data['materi'] == _selectedMateri;
-          }).toList();
-        }
+    var messages = snapshot.data!.docs;
+    if (_selectedMateri != 'Semua') {
+      messages = messages.where((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data['materi'] == _selectedMateri;
+      }).toList();
+    }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
+    if (messages.isEmpty) {
+      return AdminCard(
+        child: AdminEmptyState(
+          icon: Icons.chat_bubble_outline,
+          title: _selectedMateri == 'Semua'
+              ? 'Belum ada message framing'
+              : 'Belum ada pesan untuk materi "$_selectedMateri"',
+          message: 'Klik "Tambah Template" atau "Tulis Pesan Custom".',
+        ),
+      );
+    }
+
+    return LayoutBuilder(builder: (context, c) {
+      final cols = c.maxWidth >= 1100 ? 2 : 1;
+      if (cols == 1) {
+        return ListView.separated(
           itemCount: messages.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final doc = messages[index];
-            final data = doc.data() as Map<String, dynamic>;
-            return _buildMessageCard(doc.id, data);
+            return _buildMessageCard(doc.id, doc.data() as Map<String, dynamic>);
           },
         );
-      },
-    );
+      }
+      // Dua kolom pada layar lebar.
+      final rows = <Widget>[];
+      for (var i = 0; i < messages.length; i += 2) {
+        final left = messages[i];
+        final right = i + 1 < messages.length ? messages[i + 1] : null;
+        rows.add(IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                  child: _buildMessageCard(
+                      left.id, left.data() as Map<String, dynamic>)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: right == null
+                    ? const SizedBox()
+                    : _buildMessageCard(
+                        right.id, right.data() as Map<String, dynamic>),
+              ),
+            ],
+          ),
+        ));
+      }
+      return ListView.separated(
+        itemCount: rows.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, i) => rows[i],
+      );
+    });
   }
 
   Widget _buildMessageCard(String id, Map<String, dynamic> data) {
@@ -136,62 +207,40 @@ class _MessageFramingScreenState extends State<MessageFramingScreen> {
     final message = data['message'] ?? '-';
     final hari = data['hari'] ?? 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return AdminCard(
+      padding: const EdgeInsets.fromLTRB(20, 16, 8, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFB83B7E).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'Hari $hari',
-                  style: const TextStyle(
-                    color: Color(0xFFB83B7E),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+              AdminBadge('Hari $hari', color: AdminColors.primary),
               const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  materi,
-                  style: const TextStyle(
-                    color: Colors.blue,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: AdminBadge('$materi', color: AdminColors.info),
                 ),
               ),
-              const Spacer(),
-              PopupMenuButton(
-                itemBuilder: (context) => [
-                  const PopupMenuItem(value: 'send', child: Text('Kirim Pesan')),
-                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                  const PopupMenuItem(value: 'delete', child: Text('Hapus')),
+              Tooltip(
+                message: 'Kirim pesan',
+                child: IconButton(
+                  onPressed: () => _showSendTargetDialog(data),
+                  icon: const Icon(Icons.send_outlined,
+                      size: 19, color: AdminColors.primary),
+                ),
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'Aksi lain',
+                icon: const Icon(Icons.more_horiz, color: AdminColors.textMuted),
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'send', child: Text('Kirim pesan')),
+                  PopupMenuItem(value: 'edit', child: Text('Edit')),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text('Hapus',
+                        style: TextStyle(color: AdminColors.danger)),
+                  ),
                 ],
                 onSelected: (value) {
                   if (value == 'send') _showSendTargetDialog(data);
@@ -201,22 +250,28 @@ class _MessageFramingScreenState extends State<MessageFramingScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            subMateri,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Text(
+              subMateri,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AdminColors.text,
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey[700],
-              height: 1.4,
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Text(
+              message,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AdminColors.textMuted,
+                height: 1.55,
+              ),
             ),
           ),
         ],
@@ -859,87 +914,61 @@ class _MessageFramingScreenState extends State<MessageFramingScreen> {
 
   void _showAddEditDialog({String? id, Map<String, dynamic>? data}) {
     final isEdit = id != null;
-    final materiController = TextEditingController(text: data?['materi'] ?? '');
-    final subMateriController = TextEditingController(text: data?['subMateri'] ?? '');
-    final messageController = TextEditingController(text: data?['message'] ?? '');
-    final hariController = TextEditingController(text: data?['hari']?.toString() ?? '');
-
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(isEdit ? 'Edit Pesan' : 'Tambah Pesan Baru'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                value: materiController.text.isEmpty ? null : materiController.text,
-                decoration: const InputDecoration(labelText: 'Materi'),
-                items: _materiList.skip(1).map((m) {
-                  return DropdownMenuItem(value: m, child: Text(m));
-                }).toList(),
-                onChanged: (value) => materiController.text = value ?? '',
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: subMateriController,
-                decoration: const InputDecoration(labelText: 'Sub Materi'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: messageController,
-                decoration: const InputDecoration(labelText: 'Pesan Edukasi'),
-                maxLines: 4,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: hariController,
-                decoration: const InputDecoration(labelText: 'Hari ke-'),
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                if (isEdit) {
-                  await _service.updateMessageFraming(
-                    id: id,
-                    materi: materiController.text,
-                    subMateri: subMateriController.text,
-                    message: messageController.text,
-                    hari: int.parse(hariController.text),
-                  );
-                } else {
-                  await _service.addMessageFraming(
-                    materi: materiController.text,
-                    subMateri: subMateriController.text,
-                    message: messageController.text,
-                    hari: int.parse(hariController.text),
-                  );
-                }
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(isEdit ? 'Pesan berhasil diupdate' : 'Pesan berhasil ditambahkan')),
-                  );
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e')),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB83B7E)),
-            child: const Text('Simpan'),
-          ),
-        ],
+      barrierDismissible: false,
+      builder: (_) => _MessageFormDialog(
+        mode: isEdit ? _MessageFormMode.editTemplate : _MessageFormMode.newTemplate,
+        materiOptions: _allMateri,
+        initial: data,
+        onSubmit: (r) async {
+          if (isEdit) {
+            await _service.updateMessageFraming(
+              id: id,
+              materi: r.materi,
+              subMateri: r.subMateri,
+              message: r.message,
+              hari: r.hari!,
+            );
+          } else {
+            await _service.addMessageFraming(
+              materi: r.materi,
+              subMateri: r.subMateri,
+              message: r.message,
+              hari: r.hari!,
+            );
+          }
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(isEdit
+                    ? 'Template berhasil diperbarui'
+                    : 'Template berhasil ditambahkan')));
+          }
+        },
+      ),
+    );
+  }
+
+  /// Pesan custom: ditulis dari nol, lalu dikirim lewat alur penerima yang sama.
+  void _showComposeDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _MessageFormDialog(
+        mode: _MessageFormMode.compose,
+        materiOptions: _allMateri,
+        onSubmit: (r) async {
+          if (r.saveAsTemplate) {
+            await _service.addMessageFraming(
+              materi: r.materi,
+              subMateri: r.subMateri,
+              message: r.message,
+              hari: r.hari!,
+            );
+          }
+          if (!mounted) return;
+          _handleSendByTargetType(r.message, r.materi, r.subMateri, r.target!);
+        },
       ),
     );
   }
@@ -1464,6 +1493,440 @@ class _SelectKeluargaDialogState extends State<_SelectKeluargaDialog> {
                 ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ========== FORM PESAN: TEMPLATE & PESAN CUSTOM ==========
+
+enum _MessageFormMode { newTemplate, editTemplate, compose }
+
+class _MessageFormResult {
+  final String materi;
+  final String subMateri;
+  final String message;
+  final int? hari;
+  final String? target;
+  final bool saveAsTemplate;
+
+  _MessageFormResult({
+    required this.materi,
+    required this.subMateri,
+    required this.message,
+    this.hari,
+    this.target,
+    this.saveAsTemplate = false,
+  });
+}
+
+class _MessageFormDialog extends StatefulWidget {
+  final _MessageFormMode mode;
+  final List<String> materiOptions;
+  final Map<String, dynamic>? initial;
+  final Future<void> Function(_MessageFormResult) onSubmit;
+
+  const _MessageFormDialog({
+    required this.mode,
+    required this.materiOptions,
+    required this.onSubmit,
+    this.initial,
+  });
+
+  @override
+  State<_MessageFormDialog> createState() => _MessageFormDialogState();
+}
+
+class _MessageFormDialogState extends State<_MessageFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _materi;
+  late final TextEditingController _subMateri;
+  late final TextEditingController _message;
+  late final TextEditingController _hari;
+  String _target = 'pasien';
+  bool _saveAsTemplate = false;
+  bool _saving = false;
+  bool _attempted = false;
+  String? _error;
+
+  bool get _compose => widget.mode == _MessageFormMode.compose;
+  bool get _needsHari => !_compose || _saveAsTemplate;
+
+  static const _targets = [
+    ('pasien', Icons.person_outline, 'Pilih pasien', 'Bisa sekaligus ke keluarganya'),
+    ('keluarga', Icons.people_outline, 'Pilih keluarga', 'Pilih akun keluarga tertentu'),
+    ('semua_pasien', Icons.groups_outlined, 'Semua pasien', 'Opsional: termasuk keluarga'),
+    ('semua_keluarga', Icons.family_restroom_outlined, 'Semua keluarga', 'Seluruh akun keluarga'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final d = widget.initial;
+    _materi = TextEditingController(text: d?['materi']?.toString() ?? (_compose ? 'Pengumuman' : ''));
+    _subMateri = TextEditingController(text: d?['subMateri']?.toString() ?? '');
+    _message = TextEditingController(text: d?['message']?.toString() ?? '');
+    _hari = TextEditingController(text: d?['hari']?.toString() ?? '');
+    _message.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _materi.dispose();
+    _subMateri.dispose();
+    _message.dispose();
+    _hari.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() {
+      _attempted = true;
+      _error = null;
+    });
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      final result = _MessageFormResult(
+        materi: _materi.text.trim(),
+        subMateri: _subMateri.text.trim(),
+        message: _message.text.trim(),
+        hari: _needsHari ? int.parse(_hari.text.trim()) : null,
+        target: _compose ? _target : null,
+        saveAsTemplate: _compose && _saveAsTemplate,
+      );
+      if (_compose) {
+        // Tutup dulu: alur kirim membuka dialog pemilihan penerima sendiri.
+        Navigator.pop(context);
+        await widget.onSubmit(result);
+      } else {
+        await widget.onSubmit(result);
+        if (mounted) Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = 'Gagal: $e';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = switch (widget.mode) {
+      _MessageFormMode.compose => 'Tulis Pesan Custom',
+      _MessageFormMode.editTemplate => 'Edit Template',
+      _MessageFormMode.newTemplate => 'Tambah Template',
+    };
+    final subtitle = _compose
+        ? 'Tulis pesan sendiri tanpa harus memakai template.'
+        : 'Template tersimpan di daftar message framing dan bisa dikirim kapan saja.';
+    final options = {
+      ...widget.materiOptions,
+      if (_compose) ...['Pengumuman', 'Motivasi', 'Lainnya'],
+    }.toList();
+
+    return AlertDialog(
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 16, 0),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AdminColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(_compose ? Icons.edit_note : Icons.library_books_outlined,
+                color: AdminColors.primary),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title),
+                const SizedBox(height: 2),
+                Text(subtitle,
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: AdminColors.textMuted)),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Tutup',
+            onPressed: _saving ? null : () => Navigator.pop(context),
+            icon: const Icon(Icons.close, color: AdminColors.textMuted),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 580,
+        child: Form(
+          key: _formKey,
+          autovalidateMode: _attempted
+              ? AutovalidateMode.onUserInteraction
+              : AutovalidateMode.disabled,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _materi,
+                        enabled: !_saving,
+                        decoration: InputDecoration(
+                          labelText: 'Kategori / materi',
+                          helperText: 'Pilih dari daftar atau ketik kategori baru',
+                          suffixIcon: PopupMenuButton<String>(
+                            tooltip: 'Pilih kategori',
+                            icon: const Icon(Icons.arrow_drop_down),
+                            itemBuilder: (_) => options
+                                .map((o) => PopupMenuItem(value: o, child: Text(o)))
+                                .toList(),
+                            onSelected: (v) => _materi.text = v,
+                          ),
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Kategori wajib diisi'
+                            : null,
+                      ),
+                    ),
+                    if (_needsHari) ...[
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 110,
+                        child: TextFormField(
+                          controller: _hari,
+                          enabled: !_saving,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(labelText: 'Hari ke-'),
+                          validator: (v) {
+                            final n = int.tryParse(v?.trim() ?? '');
+                            if (n == null || n < 1) return 'Angka ≥ 1';
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _subMateri,
+                  enabled: !_saving,
+                  decoration: InputDecoration(
+                    labelText: _compose ? 'Judul pesan' : 'Sub materi',
+                    hintText: _compose ? 'mis. Jadwal kontrol bulan ini' : null,
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? (_compose ? 'Judul wajib diisi' : 'Sub materi wajib diisi')
+                      : null,
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _message,
+                  enabled: !_saving,
+                  minLines: 4,
+                  maxLines: 8,
+                  maxLength: 600,
+                  decoration: const InputDecoration(
+                    labelText: 'Isi pesan',
+                    alignLabelWithHint: true,
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Isi pesan wajib diisi'
+                      : null,
+                ),
+                if (_compose) ...[
+                  _buildPreview(),
+                  const SizedBox(height: 18),
+                  const Text('KIRIM KE',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1,
+                          color: AdminColors.textSubtle)),
+                  const SizedBox(height: 10),
+                  LayoutBuilder(builder: (context, c) {
+                    final w = c.maxWidth >= 480 ? (c.maxWidth - 10) / 2 : c.maxWidth;
+                    return Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        for (final t in _targets)
+                          SizedBox(
+                            width: w,
+                            child: _TargetOption(
+                              icon: t.$2,
+                              title: t.$3,
+                              subtitle: t.$4,
+                              selected: _target == t.$1,
+                              onTap: _saving
+                                  ? null
+                                  : () => setState(() => _target = t.$1),
+                            ),
+                          ),
+                      ],
+                    );
+                  }),
+                  const SizedBox(height: 14),
+                  CheckboxListTile(
+                    value: _saveAsTemplate,
+                    onChanged: _saving
+                        ? null
+                        : (v) => setState(() => _saveAsTemplate = v ?? false),
+                    activeColor: AdminColors.primary,
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: const Text('Simpan juga sebagai template',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    subtitle: const Text(
+                        'Pesan masuk ke daftar message framing agar bisa dipakai lagi.',
+                        style: TextStyle(fontSize: 12, color: AdminColors.textMuted)),
+                  ),
+                ],
+                if (_error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(_error!, style: const TextStyle(color: AdminColors.danger)),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        OutlinedButton(
+          onPressed: _saving ? null : () => Navigator.pop(context),
+          child: const Text('Batal'),
+        ),
+        ElevatedButton.icon(
+          onPressed: _saving ? null : _submit,
+          icon: Icon(_compose ? Icons.arrow_forward : Icons.check, size: 18),
+          label: Text(_compose ? 'Lanjut pilih penerima' : 'Simpan'),
+        ),
+      ],
+    );
+  }
+
+  /// Pratinjau seperti yang terlihat di daftar notifikasi aplikasi pasien.
+  Widget _buildPreview() {
+    final text = _message.text.trim();
+    if (text.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AdminColors.background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AdminColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.teal.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.school, size: 18, color: Colors.teal),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('PRATINJAU DI APLIKASI',
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                        color: AdminColors.textSubtle)),
+                const SizedBox(height: 4),
+                Text(_materi.text.trim().isEmpty ? 'Edukasi' : _materi.text.trim(),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, color: AdminColors.text)),
+                Text(text,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 13, color: AdminColors.textMuted, height: 1.4)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TargetOption extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  const _TargetOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: selected ? AdminColors.primary.withOpacity(0.06) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AdminColors.primary : AdminColors.border,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon,
+                size: 20,
+                color: selected ? AdminColors.primary : AdminColors.textMuted),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: selected ? AdminColors.primary : AdminColors.text)),
+                  Text(subtitle,
+                      style: const TextStyle(
+                          fontSize: 11, color: AdminColors.textMuted)),
+                ],
+              ),
+            ),
+            Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                size: 18,
+                color: selected ? AdminColors.primary : AdminColors.textSubtle),
           ],
         ),
       ),

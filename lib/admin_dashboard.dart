@@ -1,20 +1,28 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:excel/excel.dart' hide Border;
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
+import 'package:promedia_v2/admin/add_user_dialog.dart';
+import 'package:promedia_v2/admin/delete_user_dialog.dart';
+import 'package:promedia_v2/admin/admin_session.dart';
+import 'package:promedia_v2/admin/admin_ui.dart';
+import 'package:promedia_v2/admin/notifications/user_notifications.dart';
+import 'package:promedia_v2/admin/pasien/edit_user_dialog.dart';
+import 'package:promedia_v2/admin/pasien/pasien_manage_screen.dart';
+import 'package:promedia_v2/admin/manage_admin_screen.dart';
 import 'package:promedia_v2/message_framing_screen.dart';
-import 'package:promedia_v2/pasien_detail_screen_admin.dart';
 import 'utils/file_downloader.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
-  const AdminDashboardScreen({super.key});
+  final AdminProfile admin;
+  const AdminDashboardScreen({super.key, required this.admin});
 
   @override
   State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
@@ -27,282 +35,64 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int _selectedIndex = 0;
   final Set<String> _revealedPasswords = {};
   bool _isExportingExcel = false;
+
+  // Jumlah notifikasi belum dibaca per user (kolom NOTIFIKASI di Manage Users).
+  UnreadNotifIndex _unread = UnreadNotifIndex.empty;
+  StreamSubscription<UnreadNotifIndex>? _unreadSub;
+
+  // Satu listener koleksi `users` untuk seluruh sesi admin. Sebelumnya
+  // StreamBuilder membuat listener baru di setiap build (ketik pencarian,
+  // ganti filter, update notifikasi) — di web tanpa cache, tiap listener
+  // baru membaca ulang semua dokumen user.
+  final _usersCtrl = StreamController<QuerySnapshot>.broadcast();
+  QuerySnapshot? _usersSnap;
+  StreamSubscription<QuerySnapshot>? _usersSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _unreadSub = UnreadNotifIndex.watch().listen(
+      (idx) => setState(() => _unread = idx),
+      onError: (_) {},
+    );
+    _usersSub = _firestore.collection('users').snapshots().listen(
+      (snap) {
+        _usersSnap = snap;
+        _usersCtrl.add(snap);
+      },
+      onError: _usersCtrl.addError,
+    );
+  }
+
+  @override
+  void dispose() {
+    _unreadSub?.cancel();
+    _usersSub?.cancel();
+    _usersCtrl.close();
+    super.dispose();
+  }
+
+  UnreadNotif _unreadOf(QueryDocumentSnapshot doc) {
+    final d = doc.data() as Map<String, dynamic>;
+    return _unread.forUser(
+      doc.id,
+      (d['noKode'] ?? '').toString(),
+      (d['role'] ?? '').toString(),
+    );
+  }
   
-  // Fungsi untuk mengambil data aktivitas makan real dari Firestore
-  Future<List<Map<String, dynamic>>> _fetchFoodLogs(String userId, String noKode) async {
-    try {
-      final snapshot = await _firestore
-          .collection('food_logs')
-          .where('noKode', isEqualTo: noKode)
-          .get();
-
-      if (snapshot.docs.isEmpty) {
-        print('No food logs found for noKode: $noKode');
-        return [];
-      }
-
-      final docs = snapshot.docs;
-      docs.sort((a, b) {
-        final aTime = (a.data()['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
-        final bTime = (b.data()['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
-        return bTime.compareTo(aTime);
-      });
-
-      final limitedDocs = docs.take(20).toList();
-
-      return limitedDocs.map((doc) {
-        final data = doc.data();
-        final tanggal = (data['tanggal'] as Timestamp).toDate();
-        
-        return {
-          'tanggal': DateFormat('yyyy-MM-dd').format(tanggal),
-          'waktu': data['jam'] ?? '-',
-          'kategori': data['kategori'] ?? '-',
-          'waktuMakan': data['waktu'] ?? '-',
-          'menu': data['foodName'] ?? '-',
-          'gram': (data['grams'] as num?)?.toDouble() ?? 0.0,
-          'kalori': (data['calories'] as num?)?.toDouble() ?? 0.0,
-          'karbohidrat': (data['carbohydrate'] as num?)?.toDouble() ?? 0.0,
-          'protein': (data['protein'] as num?)?.toDouble() ?? 0.0,
-          'lemak': (data['fat'] as num?)?.toDouble() ?? 0.0,
-        };
-      }).toList();
-    } catch (e) {
-      print('Error fetching food logs: $e');
-      return [];
-    }
-  }
-
-  // Fungsi untuk mengambil data minum obat real dari Firestore
-  Future<List<Map<String, dynamic>>> _fetchMedicationLogs(String userId, String noKode) async {
-    try {
-      final snapshot = await _firestore
-          .collection('medication_logs')
-          .where('noKode', isEqualTo: noKode)
-          .get();
-
-      if (snapshot.docs.isEmpty) {
-        print('No medication logs found for noKode: $noKode');
-        return [];
-      }
-
-      final docs = snapshot.docs;
-      docs.sort((a, b) {
-        final aTime = (a.data()['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
-        final bTime = (b.data()['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
-        return bTime.compareTo(aTime);
-      });
-
-      final limitedDocs = docs.take(20).toList();
-
-      return limitedDocs.map((doc) {
-        final data = doc.data();
-        final tanggal = (data['tanggal'] as Timestamp).toDate();
-        
-        return {
-          'tanggal': DateFormat('yyyy-MM-dd').format(tanggal),
-          'waktu': data['jam'] ?? '-',
-          'waktuMinum': data['waktu'] ?? '-',
-          'jenisObat': data['jenisObat'] ?? '-',
-          'dosis': (data['dosis'] as num?)?.toDouble() ?? 0.0,
-          'satuan': data['satuan'] ?? '-',
-          'userName': data['userName'] ?? '-',
-        };
-      }).toList();
-    } catch (e) {
-      print('Error fetching medication logs: $e');
-      return [];
-    }
-  }
-
-  // Fungsi untuk mengambil data perawatan kaki real dari Firestore
-  Future<List<Map<String, dynamic>>> _fetchFootCareLogs(String userId, String noKode) async {
-    try {
-      final snapshot = await _firestore
-          .collection('foot_care_logs')
-          .where('noKode', isEqualTo: noKode)
-          .get();
-
-      if (snapshot.docs.isEmpty) {
-        print('No foot care logs found for noKode: $noKode');
-        return [];
-      }
-
-      final docs = snapshot.docs;
-      docs.sort((a, b) {
-        final aTime = (a.data()['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
-        final bTime = (b.data()['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
-        return bTime.compareTo(aTime);
-      });
-
-      final limitedDocs = docs.take(20).toList();
-
-      return limitedDocs.map((doc) {
-        final data = doc.data();
-        final tanggal = (data['tanggal'] as Timestamp).toDate();
-        
-        return {
-          'tanggal': DateFormat('yyyy-MM-dd').format(tanggal),
-          'waktu': data['jam'] ?? '-',
-          'kondisiKaki': List<String>.from(data['kondisiKaki'] ?? []),
-          'skorRisiko': (data['skorRisiko'] as num?)?.toInt() ?? 0,
-          'statusKondisi': data['statusKondisi'] ?? '-',
-          'deskripsiObservasi': data['deskripsiObservasi'] ?? '-',
-          'rekomendasi': List<String>.from(data['rekomendasi'] ?? []),
-          'userName': data['userName'] ?? '-',
-        };
-      }).toList();
-    } catch (e) {
-      print('Error fetching foot care logs: $e');
-      return [];
-    }
-  }
-
-  // Fungsi untuk mengambil data manajemen stress real dari Firestore
-  Future<List<Map<String, dynamic>>> _fetchStressLogs(String userId, String noKode) async {
-    try {
-      final snapshot = await _firestore
-          .collection('stress_management_logs')
-          .where('noKode', isEqualTo: noKode)
-          .get();
-
-      if (snapshot.docs.isEmpty) {
-        print('No stress logs found for noKode: $noKode');
-        return [];
-      }
-
-      final docs = snapshot.docs;
-      docs.sort((a, b) {
-        final aTime = (a.data()['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
-        final bTime = (b.data()['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
-        return bTime.compareTo(aTime);
-      });
-
-      final limitedDocs = docs.take(20).toList();
-
-      return limitedDocs.map((doc) {
-        final data = doc.data();
-        final tanggal = (data['tanggal'] as Timestamp).toDate();
-        
-        return {
-          'tanggal': DateFormat('yyyy-MM-dd').format(tanggal),
-          'waktu': data['jam'] ?? '-',
-          'tekananDarah': data['tekananDarah'] ?? '-',
-          'perasaan': data['perasaan'] ?? '-',
-          'skorStress': (data['skorStress'] as num?)?.toInt() ?? 0,
-          'statusStress': data['statusStress'] ?? '-',
-          'deskripsiObservasi': data['deskripsiObservasi'] ?? '-',
-          'analisaTekananDarah': data['analisaTekananDarah'] ?? '-',
-          'analisisPerasaan': data['analisisPerasaan'] ?? '-',
-          'rekomendasi': List<String>.from(data['rekomendasi'] ?? []),
-          'userName': data['userName'] ?? '-',
-        };
-      }).toList();
-    } catch (e) {
-      print('Error fetching stress logs: $e');
-      return [];
-    }
-  }
-
-  // Fungsi untuk mengambil data aktivitas tidur real dari Firestore
-  Future<List<Map<String, dynamic>>> _fetchAktivitasTidurLogs(String userId, String noKode) async {
-    try {
-      final snapshot = await _firestore
-          .collection('aktivitas_tidur_logs')
-          .where('noKode', isEqualTo: noKode)
-          .get();
-
-      if (snapshot.docs.isEmpty) {
-        print('No aktivitas tidur logs found for noKode: $noKode');
-        return [];
-      }
-
-      final docs = snapshot.docs;
-      docs.sort((a, b) {
-        final aTime = (a.data()['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
-        final bTime = (b.data()['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
-        return bTime.compareTo(aTime);
-      });
-
-      final limitedDocs = docs.take(20).toList();
-
-      return limitedDocs.map((doc) {
-        final data = doc.data();
-        final tanggal = (data['tanggal'] as Timestamp).toDate();
-
-        return {
-          'tanggal': DateFormat('yyyy-MM-dd').format(tanggal),
-          'jamTidur': data['jamTidur'] ?? '-',
-          'jamBangun': data['jamBangun'] ?? '-',
-          'durasiMenit': (data['durasiMenit'] as num?)?.toInt() ?? 0,
-          'kualitas': data['kualitas'] ?? '-',
-          'catatan': data['catatan'] ?? '',
-          'userName': data['userName'] ?? '-',
-        };
-      }).toList();
-    } catch (e) {
-      print('Error fetching aktivitas tidur logs: $e');
-      return [];
-    }
-  }
-
-  // Fungsi untuk mengambil data latihan fisik real dari Firestore
-  Future<List<Map<String, dynamic>>> _fetchLatihanFisikLogs(String userId, String noKode) async {
-    try {
-      final snapshot = await _firestore
-          .collection('latihan_fisik_logs')
-          .where('noKode', isEqualTo: noKode)
-          .get();
-
-      if (snapshot.docs.isEmpty) {
-        print('No latihan fisik logs found for noKode: $noKode');
-        return [];
-      }
-
-      final docs = snapshot.docs;
-      docs.sort((a, b) {
-        final aTime = (a.data()['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
-        final bTime = (b.data()['tanggal'] as Timestamp?)?.toDate() ?? DateTime(1970);
-        return bTime.compareTo(aTime);
-      });
-
-      final limitedDocs = docs.take(20).toList();
-
-      return limitedDocs.map((doc) {
-        final data = doc.data();
-        final tanggal = (data['tanggal'] as Timestamp).toDate();
-        
-        return {
-          'tanggal': DateFormat('yyyy-MM-dd').format(tanggal),
-          'waktu': data['jam'] ?? '-',
-          'jenisOlahraga': data['jenisOlahraga'] ?? '-',
-          'durasi': (data['durasi'] as num?)?.toInt() ?? 0,
-          'satuanDurasi': data['satuanDurasi'] ?? 'Menit',
-          'kaloriTerbakar': (data['kaloriTerbakar'] as num?)?.toInt() ?? 0,
-          'kategoriIntensitas': data['kategoriIntensitas'] ?? '-',
-          'manfaat': List<String>.from(data['manfaat'] ?? []),
-          'rekomendasi': List<String>.from(data['rekomendasi'] ?? []),
-          'userName': data['userName'] ?? '-',
-        };
-      }).toList();
-    } catch (e) {
-      print('Error fetching latihan fisik logs: $e');
-      return [];
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 768;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
       body: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
     );
   }
 
   Widget _buildDesktopLayout() {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildSidebar(),
         Expanded(child: _buildMainContent()),
@@ -323,10 +113,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildBottomNavBar() {
+    final logoutIndex = _menuTitles.length;
     return BottomNavigationBar(
-      currentIndex: _selectedIndex > 2 ? 2 : _selectedIndex,
+      currentIndex: _selectedIndex < logoutIndex ? _selectedIndex : 0,
       onTap: (index) {
-        if (index == 3) {
+        if (index == logoutIndex) {
           _confirmLogout();
         } else {
           setState(() => _selectedIndex = index);
@@ -335,10 +126,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       selectedItemColor: const Color(0xFFB83B7E),
       unselectedItemColor: Colors.grey,
       type: BottomNavigationBarType.fixed,
-      items: const [
+      items: [
         BottomNavigationBarItem(
           icon: Icon(Icons.dashboard),
-          label: 'Dashboard',
+          label: 'Beranda',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.people),
@@ -348,6 +139,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           icon: Icon(Icons.message),
           label: 'Message',
         ),
+        if (widget.admin.isSuperadmin)
+          BottomNavigationBarItem(
+            icon: Icon(Icons.admin_panel_settings),
+            label: 'Admin',
+          ),
         BottomNavigationBarItem(
           icon: Icon(Icons.logout),
           label: 'Logout',
@@ -384,117 +180,208 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Widget _buildSidebar() {
     return Container(
-      width: 260,
-      color: const Color(0xFFB83B7E),
-      child: Column(
-        children: [
-          const SizedBox(height: 40),
-          const Text(
-            'Admin Panel',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 40),
-          _buildSidebarItem(
-            icon: Icons.dashboard,
-            title: 'Dashboard',
-            index: 0,
-          ),
-          _buildSidebarItem(
-            icon: Icons.people,
-            title: 'Manage Users',
-            index: 1,
-          ),
-          _buildSidebarItem(
-            icon: Icons.message,
-            title: 'Message Framing',
-            index: 2,
-          ),
-          // const Spacer(),
-          // _buildSidebarItem(
-          //   icon: Icons.logout,
-          //   title: 'Logout',
-          //   index: -1,
-          //   onTap: () => _confirmLogout(),
-          // ),
-          // const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSidebarItem({
-    required IconData icon,
-    required String title,
-    required int index,
-    VoidCallback? onTap,
-  }) {
-    final isSelected = _selectedIndex == index;
-    return InkWell(
-      onTap: onTap ??
-          () {
-            setState(() => _selectedIndex = index);
-          },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+      width: 256,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [AdminColors.sidebarTop, AdminColors.sidebarBottom],
         ),
-        child: Row(
+      ),
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(icon, color: Colors.white),
-            const SizedBox(width: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 28, 20, 28),
+              child: _BrandMark(),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(24, 0, 24, 8),
+              child: Text(
+                'MENU',
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                ),
               ),
             ),
+            _buildSidebarItem(
+              icon: Icons.space_dashboard_outlined,
+              activeIcon: Icons.space_dashboard,
+              title: 'Dashboard',
+              index: 0,
+            ),
+            _buildSidebarItem(
+              icon: Icons.people_outline,
+              activeIcon: Icons.people,
+              title: 'Manage Users',
+              index: 1,
+            ),
+            _buildSidebarItem(
+              icon: Icons.chat_bubble_outline,
+              activeIcon: Icons.chat_bubble,
+              title: 'Message Framing',
+              index: 2,
+            ),
+            if (widget.admin.isSuperadmin) ...[
+              const Padding(
+                padding: EdgeInsets.fromLTRB(24, 20, 24, 8),
+                child: Text(
+                  'PENGATURAN',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              _buildSidebarItem(
+                icon: Icons.admin_panel_settings_outlined,
+                activeIcon: Icons.admin_panel_settings,
+                title: 'Kelola Admin',
+                index: 3,
+              ),
+            ],
+            const Spacer(),
+            _buildSidebarAdminInfo(),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMobileAppBar() {
-    final titles = ['Dashboard', 'Manage Users', 'Message Framing'];
+  Widget _buildSidebarAdminInfo() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFB83B7E),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              AdminAvatar.initials(widget.admin.nama),
+              style: const TextStyle(
+                color: AdminColors.primaryDark,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.admin.nama,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  widget.admin.roleLabel,
+                  style: const TextStyle(color: Colors.white60, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Logout',
+            onPressed: _confirmLogout,
+            icon: const Icon(Icons.logout_rounded, color: Colors.white70, size: 20),
           ),
         ],
       ),
+    );
+  }
+
+  List<String> get _menuTitles => [
+        'Dashboard',
+        'Manage Users',
+        'Message Framing',
+        if (widget.admin.isSuperadmin) 'Kelola Admin',
+      ];
+
+  Widget _buildSidebarItem({
+    required IconData icon,
+    required IconData activeIcon,
+    required String title,
+    required int index,
+  }) {
+    final isSelected = _selectedIndex == index;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: Material(
+        color: isSelected ? Colors.white : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          hoverColor: Colors.white.withOpacity(0.08),
+          onTap: () => setState(() => _selectedIndex = index),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            child: Row(
+              children: [
+                Icon(
+                  isSelected ? activeIcon : icon,
+                  size: 20,
+                  color: isSelected ? AdminColors.primary : Colors.white70,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: isSelected ? AdminColors.primaryDark : Colors.white.withOpacity(0.85),
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileAppBar() {
+    final titles = _menuTitles;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AdminColors.sidebarTop, AdminColors.sidebarBottom],
+        ),
+      ),
       child: SafeArea(
+        bottom: false,
         child: Row(
           children: [
-            const Text(
-              'Admin Panel',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            const _BrandMark(compact: true),
             const Spacer(),
             Text(
               _selectedIndex < titles.length ? titles[_selectedIndex] : 'Dashboard',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
             ),
           ],
         ),
@@ -509,134 +396,401 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       return _buildUserManagement();
     } else if (_selectedIndex == 2) {
       return const MessageFramingScreen();
+    } else if (_selectedIndex == 3 && widget.admin.isSuperadmin) {
+      return ManageAdminScreen(currentAdmin: widget.admin);
     } else {
       return _buildDashboardOverview();
     }
   }
 
   Widget _buildDashboardOverview() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+    final now = DateTime.now();
+    final greeting = now.hour < 11
+        ? 'Selamat pagi'
+        : now.hour < 15
+            ? 'Selamat siang'
+            : now.hour < 18
+                ? 'Selamat sore'
+                : 'Selamat malam';
+
+    return AdminPage(
+      title: '$greeting, ${widget.admin.nama}',
+      subtitle:
+          '${DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now)}  ·  Ringkasan data pengguna Promedia',
+      child: StreamBuilder<QuerySnapshot>(
+        stream: _usersCtrl.stream,
+        initialData: _usersSnap,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return AdminEmptyState(
+              icon: Icons.error_outline,
+              title: 'Gagal memuat data',
+              message: '${snapshot.error}',
+            );
+          }
+          if (!snapshot.hasData) {
+            return const Padding(
+              padding: EdgeInsets.all(48),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          final users = snapshot.data!.docs;
+          String roleOf(QueryDocumentSnapshot d) =>
+              ((d.data() as Map<String, dynamic>)['role'] ?? '').toString();
+          DateTime? createdOf(QueryDocumentSnapshot d) =>
+              ((d.data() as Map<String, dynamic>)['createdAt'] as Timestamp?)?.toDate();
+
+          final pasien = users.where((d) => roleOf(d) == 'pasien').length;
+          final keluarga = users.where((d) => roleOf(d) == 'keluarga').length;
+          final weekAgo = now.subtract(const Duration(days: 7));
+          final baru = users.where((d) {
+            final c = createdOf(d);
+            return c != null && c.isAfter(weekAgo);
+          }).length;
+          final recent = users.where((d) => createdOf(d) != null).toList()
+            ..sort((a, b) => createdOf(b)!.compareTo(createdOf(a)!));
+
+          String share(int n) => users.isEmpty
+              ? '-'
+              : '${(n * 100 / users.length).round()}% dari total';
+
+          return LayoutBuilder(builder: (context, c) {
+            const gap = 16.0;
+            final cols = c.maxWidth >= 1000 ? 4 : (c.maxWidth >= 560 ? 2 : 1);
+            final w = (c.maxWidth - gap * (cols - 1)) / cols;
+            final wide = c.maxWidth >= 1000;
+
+            final recentCard = _buildRecentUsersCard(recent.take(6).toList());
+            final sideCard = _buildCompositionCard(pasien, keluarga, users.length);
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    _buildStatCard('Total Pengguna', users.length,
+                        Icons.people_alt_outlined, AdminColors.info, w,
+                        caption: 'Pasien & keluarga'),
+                    _buildStatCard('Pasien', pasien, Icons.favorite_border,
+                        AdminColors.pasien, w,
+                        caption: share(pasien)),
+                    _buildStatCard('Keluarga', keluarga,
+                        Icons.family_restroom_outlined, AdminColors.keluarga, w,
+                        caption: share(keluarga)),
+                    _buildStatCard('Pendaftar Baru', baru,
+                        Icons.person_add_alt_outlined, AdminColors.warning, w,
+                        caption: '7 hari terakhir'),
+                  ],
+                ),
+                const SizedBox(height: gap),
+                if (wide)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 3, child: recentCard),
+                      const SizedBox(width: gap),
+                      Expanded(flex: 2, child: sideCard),
+                    ],
+                  )
+                else ...[
+                  recentCard,
+                  const SizedBox(height: gap),
+                  sideCard,
+                ],
+              ],
+            );
+          });
+        },
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, int value, IconData icon, Color color,
+      double width,
+      {String? caption}) {
+    return SizedBox(
+      width: width,
+      child: AdminCard(
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AdminColors.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    NumberFormat.decimalPattern('id_ID').format(value),
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: AdminColors.text,
+                      height: 1.2,
+                    ),
+                  ),
+                  if (caption != null)
+                    Text(
+                      caption,
+                      style: const TextStyle(
+                          fontSize: 12, color: AdminColors.textSubtle),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentUsersCard(List<QueryDocumentSnapshot> recent) {
+    return AdminCard(
+      padding: EdgeInsets.zero,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Dashboard Overview',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 12, 14),
+            child: AdminCardTitle(
+              'Pengguna Terbaru',
+              subtitle: 'Pendaftar paling akhir',
+              trailing: TextButton(
+                onPressed: () => setState(() => _selectedIndex = 1),
+                child: const Text('Lihat semua'),
+              ),
             ),
           ),
-          const SizedBox(height: 24),
-          StreamBuilder<QuerySnapshot>(
-            stream: _firestore.collection('users').snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              final users = snapshot.data!.docs;
-              final pasienCount = users.where((doc) => doc['role'] == 'pasien').length;
-              final keluargaCount = users.where((doc) => doc['role'] == 'keluarga').length;
-
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  final isDesktop = constraints.maxWidth > 768;
-                  return Wrap(
-                    spacing: 16,
-                    runSpacing: 16,
-                    children: [
-                      _buildStatCard(
-                        'Total Users',
-                        users.length.toString(),
-                        Icons.people,
-                        Colors.blue,
-                        isDesktop ? constraints.maxWidth / 3 - 32 : constraints.maxWidth,
-                      ),
-                      _buildStatCard(
-                        'Pasien',
-                        pasienCount.toString(),
-                        Icons.person,
-                        const Color(0xFFB83B7E),
-                        isDesktop ? constraints.maxWidth / 3 - 32 : constraints.maxWidth,
-                      ),
-                      _buildStatCard(
-                        'Keluarga',
-                        keluargaCount.toString(),
-                        Icons.family_restroom,
-                        Colors.green,
-                        isDesktop ? constraints.maxWidth / 3 - 32 : constraints.maxWidth,
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-          ),
+          const Divider(),
+          if (recent.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('Belum ada pengguna',
+                  style: TextStyle(color: AdminColors.textMuted)),
+            ),
+          for (var i = 0; i < recent.length; i++) ...[
+            if (i > 0) const Divider(indent: 20, endIndent: 20),
+            _buildRecentUserRow(recent[i]),
+          ],
+          const SizedBox(height: 6),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard(String title, String count, IconData icon, Color color, double width) {
-    return Container(
-      width: width,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+  Widget _buildRecentUserRow(QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final nama = (data['namaLengkap'] ?? '-').toString();
+    final role = (data['role'] ?? '-').toString();
+    final created = (data['createdAt'] as Timestamp?)?.toDate();
+    return InkWell(
+      onTap: () => _showUserDetail(doc),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            AdminAvatar(nama,
+                color: role == 'keluarga'
+                    ? AdminColors.keluarga
+                    : AdminColors.pasien),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(nama,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AdminColors.text)),
+                  Text(
+                    (data['email'] ?? '-').toString(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 13, color: AdminColors.textMuted),
+                  ),
+                ],
+              ),
             ),
-            child: Icon(icon, color: color, size: 32),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                count,
+            const SizedBox(width: 12),
+            AdminBadge.role(role),
+            const SizedBox(width: 16),
+            SizedBox(
+              width: 72,
+              child: Text(
+                created == null
+                    ? '-'
+                    : DateFormat('d MMM yy', 'id_ID').format(created),
+                textAlign: TextAlign.right,
                 style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+                    fontSize: 12, color: AdminColors.textSubtle),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompositionCard(int pasien, int keluarga, int total) {
+    Widget bar(String label, int value, Color color) {
+      final ratio = total == 0 ? 0.0 : value / total;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Text(label,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w500, color: AdminColors.text)),
+              const Spacer(),
+              Text('$value',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700, color: AdminColors.text)),
+              const SizedBox(width: 6),
+              Text('(${(ratio * 100).round()}%)',
+                  style: const TextStyle(
+                      fontSize: 12, color: AdminColors.textMuted)),
             ],
           ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 8,
+              color: color,
+              backgroundColor: color.withOpacity(0.12),
+            ),
+          ),
+        ],
+      );
+    }
+
+    Widget quickAction(IconData icon, String label, VoidCallback onTap) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: AdminColors.border),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: AdminColors.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(label,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w500, color: AdminColors.text)),
+              ),
+              const Icon(Icons.chevron_right,
+                  size: 20, color: AdminColors.textSubtle),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return AdminCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const AdminCardTitle('Komposisi Pengguna',
+              subtitle: 'Perbandingan pasien dan keluarga'),
+          const SizedBox(height: 20),
+          bar('Pasien', pasien, AdminColors.pasien),
+          const SizedBox(height: 16),
+          bar('Keluarga', keluarga, AdminColors.keluarga),
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 16),
+          const Text('Aksi Cepat',
+              style: TextStyle(
+                  fontWeight: FontWeight.w600, color: AdminColors.text)),
+          const SizedBox(height: 12),
+          quickAction(Icons.people_outline, 'Kelola pengguna',
+              () => setState(() => _selectedIndex = 1)),
+          const SizedBox(height: 8),
+          quickAction(Icons.chat_bubble_outline, 'Kirim message framing',
+              () => setState(() => _selectedIndex = 2)),
+          const SizedBox(height: 8),
+          quickAction(Icons.download_outlined, 'Export semua data (Excel)',
+              _isExportingExcel ? () {} : _exportAllToExcel),
         ],
       ),
+    );
+  }
+
+  Future<void> _openAddUser() async {
+    final nama = await showAddUserDialog(context, admin: widget.admin);
+    if (nama == null || !mounted) return;
+    setState(() => _selectedRole = 'all');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$nama berhasil ditambahkan')),
     );
   }
 
   Widget _buildUserManagement() {
-    return Column(
-      children: [
-        _buildUserFilters(),
-        Expanded(child: _buildUserList()),
+    return AdminPage(
+      title: 'Manage Users',
+      subtitle: 'Cari, lihat detail, dan kelola data pasien serta keluarga.',
+      scrollable: false,
+      actions: [
+        OutlinedButton.icon(
+          onPressed: _isExportingExcel ? null : _exportAllToExcel,
+          icon: _isExportingExcel
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.download_outlined, size: 18),
+          label: Text(_isExportingExcel ? 'Mengekspor...' : 'Export Excel'),
+        ),
+        ElevatedButton.icon(
+          onPressed: _openAddUser,
+          icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
+          label: const Text('Tambah Pengguna'),
+        ),
       ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildUserFilters(),
+          const SizedBox(height: 16),
+          Expanded(child: _buildUserList()),
+        ],
+      ),
     );
   }
 
@@ -686,7 +840,51 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   // ─── Excel Export Semua Data ─────────────────────────────────
+  /// Export membaca seluruh isi koleksi. Tampilkan perkiraan jumlah baca
+  /// (dihitung murah lewat count()) dan minta konfirmasi dulu.
+  Future<bool> _confirmExport() async {
+    const cols = [
+      'users',
+      'food_logs',
+      'medication_logs',
+      'aktivitas_tidur_logs',
+      'latihan_fisik_logs',
+      'stress_management_logs',
+      'foot_care_logs',
+    ];
+    int? total;
+    try {
+      final counts = await Future.wait(
+          cols.map((c) => _firestore.collection(c).count().get()));
+      total = counts.fold<int>(0, (a, b) => a + (b.count ?? 0));
+    } catch (_) {}
+    if (!mounted) return false;
+    final fmt = NumberFormat.decimalPattern('id_ID');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Export semua data?'),
+        content: Text(
+          total == null
+              ? 'Export akan membaca seluruh data pengguna dan catatan aktivitas dari database.'
+              : 'Export akan membaca sekitar ${fmt.format(total)} data dari database. '
+                  'Gunakan seperlunya agar kuota harian database tidak cepat habis.',
+        ),
+        actions: [
+          OutlinedButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Export')),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
   Future<void> _exportAllToExcel() async {
+    if (!await _confirmExport()) return;
     setState(() => _isExportingExcel = true);
 
     try {
@@ -1153,126 +1351,143 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // ─────────────────────────────────────────────────────────────
 
   Widget _buildUserFilters() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      color: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Manage Users',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+    final search = TextField(
+      onChanged: (value) => setState(() => _searchQuery = value),
+      decoration: const InputDecoration(
+        hintText: 'Cari nama, email, atau NIK…',
+        prefixIcon: Icon(Icons.search, size: 20),
+      ),
+    );
+
+    Widget chip(String value, String label) {
+      final selected = _selectedRole == value;
+      return Padding(
+        padding: const EdgeInsets.all(3),
+        child: Material(
+          color: selected ? AdminColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => setState(() => _selectedRole = value),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: selected ? Colors.white : AdminColors.textMuted,
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  onChanged: (value) => setState(() => _searchQuery = value),
-                  decoration: InputDecoration(
-                    hintText: 'Cari nama, email, atau NIK...',
-                    prefixIcon: const Icon(Icons.search),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              DropdownButton<String>(
-                value: _selectedRole,
-                items: const [
-                  DropdownMenuItem(value: 'all', child: Text('Semua')),
-                  DropdownMenuItem(value: 'pasien', child: Text('Pasien')),
-                  DropdownMenuItem(value: 'keluarga', child: Text('Keluarga')),
-                ],
-                onChanged: (value) => setState(() => _selectedRole = value!),
-              ),
-              // const SizedBox(width: 16),
-              // ElevatedButton.icon(
-              //   onPressed: _importFromCSV,
-              //   icon: const Icon(Icons.upload_file, color: Colors.white),
-              //   label: const Text('Import CSV', style: TextStyle(color: Colors.white)),
-              //   style: ElevatedButton.styleFrom(
-              //     backgroundColor: const Color(0xFFB83B7E),
-              //     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              //   ),
-              // ),
-              const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: _isExportingExcel ? null : _exportAllToExcel,
-                icon: _isExportingExcel
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Icon(Icons.download_outlined, color: Colors.white),
-                label: Text(
-                  _isExportingExcel ? 'Mengekspor...' : 'Export Excel',
-                  style: const TextStyle(color: Colors.white),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[700],
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-            ],
-          ),
+        ),
+      );
+    }
+
+    final roleFilter = Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: AdminColors.border),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          chip('all', 'Semua'),
+          chip('pasien', 'Pasien'),
+          chip('keluarga', 'Keluarga'),
         ],
       ),
     );
+
+    return LayoutBuilder(builder: (context, c) {
+      if (c.maxWidth < 640) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [search, const SizedBox(height: 12), roleFilter],
+        );
+      }
+      return Row(
+        children: [
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: search,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          roleFilter,
+        ],
+      );
+    });
   }
 
   Widget _buildUserList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection('users').orderBy('createdAt', descending: true).snapshots(),
+      // Diurutkan di sisi klien agar user tanpa createdAt tetap tampil.
+      stream: _usersCtrl.stream,
+      initialData: _usersSnap,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.hasError) {
+          return AdminEmptyState(
+            icon: Icons.error_outline,
+            title: 'Gagal memuat data',
+            message: '${snapshot.error}',
+          );
+        }
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('Tidak ada data user'));
-        }
+        DateTime createdOf(QueryDocumentSnapshot d) =>
+            ((d.data() as Map<String, dynamic>)['createdAt'] as Timestamp?)
+                ?.toDate() ??
+            DateTime(1970);
 
-        var users = snapshot.data!.docs;
+        var users = snapshot.data!.docs.toList()
+          ..sort((a, b) => createdOf(b).compareTo(createdOf(a)));
 
         if (_selectedRole != 'all') {
-          users = users.where((doc) => doc['role'] == _selectedRole).toList();
+          users = users
+              .where((doc) =>
+                  (doc.data() as Map<String, dynamic>)['role'] == _selectedRole)
+              .toList();
         }
 
         if (_searchQuery.isNotEmpty) {
+          final q = _searchQuery.toLowerCase();
           users = users.where((doc) {
             final data = doc.data() as Map<String, dynamic>;
-            final searchLower = _searchQuery.toLowerCase();
-            return data['namaLengkap']?.toLowerCase().contains(searchLower) == true ||
-                data['email']?.toLowerCase().contains(searchLower) == true ||
-                data['nik']?.toLowerCase().contains(searchLower) == true;
+            bool has(String key) =>
+                (data[key] ?? '').toString().toLowerCase().contains(q);
+            return has('namaLengkap') || has('email') || has('nik') || has('noKode');
           }).toList();
+        }
+
+        if (users.isEmpty) {
+          return AdminCard(
+            child: AdminEmptyState(
+              icon: Icons.person_search_outlined,
+              title: _searchQuery.isEmpty
+                  ? 'Belum ada pengguna'
+                  : 'Tidak ada hasil untuk "$_searchQuery"',
+              message: _searchQuery.isEmpty
+                  ? null
+                  : 'Coba kata kunci lain atau ubah filter role.',
+            ),
+          );
         }
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final isDesktop = constraints.maxWidth > 768;
-            
-            if (isDesktop) {
+            if (constraints.maxWidth > 760) {
               return _buildDesktopTable(users);
-            } else {
-              return _buildMobileList(users);
             }
+            return _buildMobileList(users);
           },
         );
       },
@@ -1280,133 +1495,247 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildDesktopTable(List<QueryDocumentSnapshot> users) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+    return AdminCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+            child: Text(
+              '${users.length} pengguna',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AdminColors.textMuted,
+              ),
             ),
-          ],
-        ),
-        child: DataTable(
-          columns: const [
-            DataColumn(label: Text('Nama', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('NIK', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Role', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Password', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Aksi', style: TextStyle(fontWeight: FontWeight.bold))),
-          ],
-          rows: users.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            final docId = doc.id;
-            final pass = data['password'] as String?;
-            final isRevealed = _revealedPasswords.contains(docId);
-            return DataRow(
-              cells: [
-                DataCell(Text(data['namaLengkap'] ?? '-')),
-                DataCell(Text(data['email'] ?? '-')),
-                DataCell(Text(data['nik'] ?? '-')),
-                DataCell(_buildRoleBadge(data['role'] ?? '-')),
-                DataCell(
-                  pass == null
-                      ? const Text('-', style: TextStyle(color: Colors.grey))
-                      : Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              isRevealed ? pass : '••••••••',
-                              style: const TextStyle(fontFamily: 'monospace'),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                isRevealed ? Icons.visibility_off : Icons.visibility,
-                                size: 16,
-                                color: Colors.grey.shade600,
-                              ),
-                              onPressed: () => setState(() {
-                                if (isRevealed) {
-                                  _revealedPasswords.remove(docId);
-                                } else {
-                                  _revealedPasswords.add(docId);
-                                }
-                              }),
-                            ),
-                          ],
-                        ),
+          ),
+          const Divider(),
+          Expanded(
+            child: LayoutBuilder(builder: (context, c) {
+              return Scrollbar(
+                child: SingleChildScrollView(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: c.maxWidth),
+                      child: DataTable(
+                        showCheckboxColumn: false,
+                        columns: const [
+                          DataColumn(label: Text('PENGGUNA')),
+                          DataColumn(label: Text('NIK')),
+                          DataColumn(label: Text('ROLE')),
+                          DataColumn(label: Text('PASSWORD')),
+                          DataColumn(label: Text('NOTIFIKASI')),
+                          DataColumn(label: Text('AKSI')),
+                        ],
+                        rows: users.map(_buildUserRow).toList(),
+                      ),
+                    ),
+                  ),
                 ),
-                DataCell(Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.visibility, color: Colors.blue),
-                      onPressed: () => _showUserDetail(doc),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.orange),
-                      onPressed: () => _showEditUser(doc),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _confirmDelete(doc),
-                    ),
-                  ],
-                )),
-              ],
-            );
-          }).toList(),
-        ),
+              );
+            }),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildMobileList(List<QueryDocumentSnapshot> users) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: users.length,
-      itemBuilder: (context, index) {
-        final data = users[index].data() as Map<String, dynamic>;
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            leading: CircleAvatar(
-              backgroundColor: const Color(0xFFB83B7E).withOpacity(0.1),
-              child: Icon(
-                data['role'] == 'pasien' ? Icons.person : Icons.family_restroom,
-                color: const Color(0xFFB83B7E),
-              ),
-            ),
-            title: Text(
-              data['namaLengkap'] ?? '-',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
+  DataRow _buildUserRow(QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final docId = doc.id;
+    final nama = (data['namaLengkap'] ?? '-').toString();
+    final role = (data['role'] ?? '-').toString();
+    final pass = data['password'] as String?;
+    final isRevealed = _revealedPasswords.contains(docId);
+
+    return DataRow(
+      onSelectChanged: (_) => _showUserDetail(doc),
+      cells: [
+        DataCell(Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AdminAvatar(nama,
+                size: 34,
+                color: role == 'keluarga'
+                    ? AdminColors.keluarga
+                    : AdminColors.pasien),
+            const SizedBox(width: 12),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 4),
-                Text(data['email'] ?? '-'),
-                const SizedBox(height: 4),
-                _buildRoleBadge(data['role'] ?? '-'),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  child: Text(nama,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                ),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  child: Text(
+                      '${data['email'] ?? '-'}  ·  Kode ${data['noKode'] ?? '-'}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 12, color: AdminColors.textMuted)),
+                ),
               ],
             ),
-            trailing: PopupMenuButton(
-              itemBuilder: (context) => [
-                const PopupMenuItem(value: 'view', child: Text('Lihat Detail')),
-                const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                const PopupMenuItem(value: 'delete', child: Text('Hapus')),
-              ],
-              onSelected: (value) {
-                if (value == 'view') _showUserDetail(users[index]);
-                if (value == 'edit') _showEditUser(users[index]);
-                if (value == 'delete') _confirmDelete(users[index]);
-              },
+          ],
+        )),
+        DataCell(Text((data['nik'] ?? '-').toString(),
+            style: const TextStyle(color: AdminColors.textMuted))),
+        DataCell(Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AdminBadge.role(role),
+            if (data['accountDisabled'] == true) ...[
+              const SizedBox(width: 6),
+              const AdminBadge('Nonaktif', color: AdminColors.textMuted, icon: Icons.block),
+            ],
+          ],
+        )),
+        DataCell(
+          pass == null
+              ? const Text('-', style: TextStyle(color: AdminColors.textSubtle))
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 90,
+                      child: Text(
+                        isRevealed ? pass : '••••••••',
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontFamily: 'monospace',
+                            color: AdminColors.textMuted),
+                      ),
+                    ),
+                    AdminIconAction(
+                      icon: isRevealed
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      tooltip: isRevealed ? 'Sembunyikan' : 'Tampilkan password',
+                      onPressed: () => setState(() {
+                        if (isRevealed) {
+                          _revealedPasswords.remove(docId);
+                        } else {
+                          _revealedPasswords.add(docId);
+                        }
+                      }),
+                    ),
+                  ],
+                ),
+        ),
+        DataCell(UnreadNotifBadge(
+          info: _unreadOf(doc),
+          onTap: () => _openNotifications(doc),
+        )),
+        DataCell(Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AdminIconAction(
+              icon: Icons.open_in_new_rounded,
+              tooltip: 'Lihat detail',
+              color: AdminColors.info,
+              onPressed: () => _showUserDetail(doc),
+            ),
+            AdminIconAction(
+              icon: Icons.notifications_none_rounded,
+              tooltip: 'Notifikasi',
+              color: AdminColors.primary,
+              onPressed: () => _openNotifications(doc),
+            ),
+            AdminIconAction(
+              icon: Icons.edit_outlined,
+              tooltip: 'Edit',
+              color: AdminColors.warning,
+              onPressed: () => _showEditUser(doc),
+            ),
+            AdminIconAction(
+              icon: Icons.delete_outline,
+              tooltip: 'Hapus / nonaktifkan',
+              color: AdminColors.danger,
+              onPressed: () => _confirmDelete(doc),
+            ),
+          ],
+        )),
+      ],
+    );
+  }
+
+  Widget _buildMobileList(List<QueryDocumentSnapshot> users) {
+    return ListView.separated(
+      itemCount: users.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final doc = users[index];
+        final data = doc.data() as Map<String, dynamic>;
+        final nama = (data['namaLengkap'] ?? '-').toString();
+        final role = (data['role'] ?? '-').toString();
+        return AdminCard(
+          padding: EdgeInsets.zero,
+          child: InkWell(
+            onTap: () => _showUserDetail(doc),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 4, 14),
+              child: Row(
+                children: [
+                  AdminAvatar(nama,
+                      color: role == 'keluarga'
+                          ? AdminColors.keluarga
+                          : AdminColors.pasien),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(nama,
+                            style: const TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text((data['email'] ?? '-').toString(),
+                            style: const TextStyle(
+                                fontSize: 13, color: AdminColors.textMuted)),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: [
+                            AdminBadge.role(role),
+                            if (data['accountDisabled'] == true)
+                              const AdminBadge('Nonaktif',
+                                  color: AdminColors.textMuted, icon: Icons.block),
+                            UnreadNotifBadge(
+                              info: _unreadOf(doc),
+                              compact: true,
+                              onTap: () => _openNotifications(doc),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    tooltip: 'Aksi',
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'view', child: Text('Lihat detail')),
+                      PopupMenuItem(value: 'notif', child: Text('Notifikasi')),
+                      PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      PopupMenuItem(value: 'delete', child: Text('Hapus')),
+                    ],
+                    onSelected: (value) {
+                      if (value == 'view') _showUserDetail(doc);
+                      if (value == 'notif') _openNotifications(doc);
+                      if (value == 'edit') _showEditUser(doc);
+                      if (value == 'delete') _confirmDelete(doc);
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -1414,62 +1743,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildRoleBadge(String role) {
-    final color = role == 'pasien' ? const Color(0xFFB83B7E) : Colors.green;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        role.toUpperCase(),
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
+  void _openNotifications(DocumentSnapshot doc) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => UserNotificationsScreen(
+          target: NotifTarget.fromDoc(doc),
+          admin: widget.admin,
         ),
       ),
     );
   }
 
-  void _showPasienDetail(QueryDocumentSnapshot doc) async {
-    final data = doc.data() as Map<String, dynamic>;
-    final userId = data['uid'] as String;
-    final noKode = data['noKode'] as String;
-    
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFB83B7E)),
-        ),
-      ),
-    );
-    
-    final foodLogs = await _fetchFoodLogs(userId, noKode);
-    final medicationLogs = await _fetchMedicationLogs(userId, noKode);
-    final footCareLogs = await _fetchFootCareLogs(userId, noKode);
-    final stressLogs = await _fetchStressLogs(userId, noKode);
-    final latihanFisikLogs = await _fetchLatihanFisikLogs(userId, noKode);
-    final aktivitasTidurLogs = await _fetchAktivitasTidurLogs(userId, noKode);
-
-    if (!mounted) return;
-
-    Navigator.pop(context);
-
+  void _showPasienDetail(QueryDocumentSnapshot doc) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PasienDetailScreen(
-          userData: data,
-          foodLogs: foodLogs,
-          medicationLogs: medicationLogs,
-          footCareLogs: footCareLogs,
-          stressLogs: stressLogs,
-          latihanFisikLogs: latihanFisikLogs,
-          aktivitasTidurLogs: aktivitasTidurLogs,
+        builder: (_) => PasienManageScreen(
+          userRef: _firestore.collection('users').doc(doc.id),
+          admin: widget.admin,
         ),
       ),
     );
@@ -1483,6 +1775,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       return;
     }
     
+    final nama = (data['namaLengkap'] ?? '-').toString();
+    final role = (data['role'] ?? '-').toString();
+    String v(String key) {
+      final val = data[key]?.toString().trim() ?? '';
+      return val.isEmpty ? '-' : val;
+    }
+
     showDialog(
       context: context,
       builder: (context) {
@@ -1490,57 +1789,125 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         final pass = data['password'] as String?;
         return StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
-            title: const Text('Detail User'),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildDetailRow('Nama', data['namaLengkap'] ?? '-'),
-                  _buildDetailRow('Email', data['email'] ?? '-'),
-                  _buildDetailRow('NIK', data['nik'] ?? '-'),
-                  _buildDetailRow('No HP', data['noHp'] ?? '-'),
-                  _buildDetailRow('No Kode', data['noKode'] ?? '-'),
-                  _buildDetailRow('Alamat', data['alamat'] ?? '-'),
-                  _buildDetailRow('Jenis Kelamin', data['jenisKelamin'] ?? '-'),
-                  _buildDetailRow('Role', data['role'] ?? '-'),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Password',
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Text(
-                              pass == null
-                                  ? '-'
-                                  : (obscurePass ? '••••••••' : pass),
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+            title: Row(
+              children: [
+                AdminAvatar(nama,
+                    size: 48,
+                    color: role == 'keluarga'
+                        ? AdminColors.keluarga
+                        : AdminColors.pasien),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(nama,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          AdminBadge.role(role),
+                          const SizedBox(width: 8),
+                          Text('Kode ${v('noKode')}',
                               style: const TextStyle(
-                                  fontFamily: 'monospace', fontSize: 15),
-                            ),
-                            if (pass != null)
-                              IconButton(
-                                icon: Icon(obscurePass
-                                    ? Icons.visibility
-                                    : Icons.visibility_off),
-                                onPressed: () => setDialogState(
-                                    () => obscurePass = !obscurePass),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w400,
+                                  color: AdminColors.textMuted)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 480,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 24,
+                      runSpacing: 16,
+                      children: [
+                        _buildDetailRow('Email', v('email')),
+                        _buildDetailRow('NIK', v('nik')),
+                        _buildDetailRow('No HP', v('noHp')),
+                        _buildDetailRow('Jenis Kelamin', v('jenisKelamin')),
+                        _buildDetailRow('Alamat', v('alamat')),
+                        SizedBox(
+                          width: 216,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Password',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: AdminColors.textMuted,
+                                      fontWeight: FontWeight.w500)),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      pass == null
+                                          ? '-'
+                                          : (obscurePass ? '••••••••' : pass),
+                                      style: const TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontSize: 15,
+                                          color: AdminColors.text),
+                                    ),
+                                  ),
+                                  if (pass != null)
+                                    AdminIconAction(
+                                      icon: obscurePass
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                      tooltip: obscurePass
+                                          ? 'Tampilkan'
+                                          : 'Sembunyikan',
+                                      onPressed: () => setDialogState(
+                                          () => obscurePass = !obscurePass),
+                                    ),
+                                ],
                               ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
+            actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
             actions: [
-              TextButton(
+              OutlinedButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Tutup'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _openNotifications(doc);
+                },
+                icon: const Icon(Icons.notifications_none_rounded, size: 18),
+                label: const Text('Notifikasi'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showEditUser(doc);
+                },
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Edit'),
               ),
             ],
           ),
@@ -1550,8 +1917,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+    return SizedBox(
+      width: 216,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1559,141 +1926,86 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             label,
             style: const TextStyle(
               fontSize: 12,
-              color: Colors.grey,
+              color: AdminColors.textMuted,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(fontSize: 15, color: AdminColors.text),
           ),
         ],
       ),
     );
   }
 
-  void _showEditUser(QueryDocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    final namaController = TextEditingController(text: data['namaLengkap']);
-    final emailController = TextEditingController(text: data['email']);
-    final noHpController = TextEditingController(text: data['noHp']?.replaceFirst('+62', ''));
-    final alamatController = TextEditingController(text: data['alamat']);
-    String? selectedJenisKelamin = data['jenisKelamin'];
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit User'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: namaController,
-                decoration: const InputDecoration(labelText: 'Nama Lengkap'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                enabled: false,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: noHpController,
-                decoration: const InputDecoration(
-                  labelText: 'No HP',
-                  prefixText: '+62',
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: alamatController,
-                decoration: const InputDecoration(labelText: 'Alamat'),
-              ),
-              const SizedBox(height: 12),
-              StatefulBuilder(
-                builder: (context, setState) => DropdownButtonFormField<String>(
-                  value: selectedJenisKelamin,
-                  decoration: const InputDecoration(labelText: 'Jenis Kelamin'),
-                  items: const [
-                    DropdownMenuItem(value: 'Laki-laki', child: Text('Laki-laki')),
-                    DropdownMenuItem(value: 'Perempuan', child: Text('Perempuan')),
-                  ],
-                  onChanged: (value) => setState(() => selectedJenisKelamin = value),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await _firestore.collection('users').doc(doc.id).update({
-                'namaLengkap': namaController.text,
-                'noHp': '+62${noHpController.text}',
-                'alamat': alamatController.text,
-                'jenisKelamin': selectedJenisKelamin,
-              });
-              if (mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('User berhasil diupdate')),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFB83B7E),
-            ),
-            child: const Text('Simpan'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _showEditUser(QueryDocumentSnapshot doc) async {
+    final ok = await showEditUserDialog(context, doc: doc, admin: widget.admin);
+    if (ok == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data pengguna diperbarui')),
+      );
+    }
   }
 
-  void _confirmDelete(QueryDocumentSnapshot doc) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Konfirmasi Hapus'),
-        content: const Text('Apakah Anda yakin ingin menghapus user ini?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await _firestore.collection('users').doc(doc.id).delete();
-              if (mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('User berhasil dihapus')),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _confirmDelete(QueryDocumentSnapshot doc) async {
+    final msg = await showDeleteUserDialog(context, doc);
+    if (msg != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    }
   }
 
   Future<void> _logout() async {
+    // AdminAuthGate otomatis kembali ke halaman login.
     await FirebaseAuth.instance.signOut();
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/login');
-    }
+  }
+}
+
+/// Logo + nama aplikasi di sidebar / app bar admin.
+class _BrandMark extends StatelessWidget {
+  final bool compact;
+  const _BrandMark({this.compact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final size = compact ? 32.0 : 40.0;
+    return Row(
+      children: [
+        Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(compact ? 9 : 11),
+          ),
+          child: Icon(Icons.favorite_rounded,
+              color: AdminColors.primary, size: size * 0.55),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Promedia',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: compact ? 16 : 19,
+                fontWeight: FontWeight.w700,
+                height: 1.1,
+              ),
+            ),
+            Text(
+              'Admin Panel',
+              style: TextStyle(
+                color: Colors.white60,
+                fontSize: compact ? 11 : 12,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }

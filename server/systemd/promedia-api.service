@@ -1,0 +1,30 @@
+[Unit]
+Description=Promedia API (kelola akun pengguna untuk Admin Panel)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=promedia
+Group=promedia
+WorkingDirectory=/opt/promedia/app
+EnvironmentFile=/opt/promedia/.env
+Environment=NODE_OPTIONS=--max-old-space-size=96
+ExecStart=/opt/promedia/node/bin/node src/index.js
+Restart=always
+RestartSec=5
+
+# Batas agar tidak mengganggu layanan lain di VPS bersama ini
+MemoryMax=160M
+CPUQuota=25%
+
+# Pengamanan
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+
+[Install]
+WantedBy=multi-user.target

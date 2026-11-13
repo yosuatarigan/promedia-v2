@@ -1,0 +1,135 @@
+rules_version = '2';
+
+// Firestore security rules — Promedia (aplikasi mobile + Admin Panel web).
+//
+// Prinsip:
+// - Admin Panel: hanya akun di koleksi `admins` yang aktif. Super Admin saja
+//   yang boleh mengelola `admins`.
+// - Pasien & keluarga: hanya data dengan `noKode` yang sama dengan akun
+//   mereka (pasien dan keluarganya berbagi satu no kode).
+// - Tanpa login: hanya pencarian 1 dokumen di `users` yang dipakai layar
+//   login & registrasi aplikasi (lihat catatan di bawah).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ───────────── helper ─────────────
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function adminPath() {
+      return /databases/$(database)/documents/admins/$(request.auth.uid);
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(adminPath())
+        && get(adminPath()).data.isActive != false
+        && get(adminPath()).data.role in ['admin', 'superadmin'];
+    }
+
+    function isSuperadmin() {
+      return isAdmin() && get(adminPath()).data.role == 'superadmin';
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function isAppUser() {
+      return signedIn() && exists(userPath());
+    }
+
+    function myKode() {
+      return get(userPath()).data.noKode;
+    }
+
+    // Data milik pasangan pasien–keluarga yang sedang login.
+    function ownsKode(data) {
+      return isAppUser() && data.noKode == myKode();
+    }
+
+    // ───────────── admins ─────────────
+
+    match /admins/{uid} {
+      // Gate login Admin Panel membaca dokumen milik sendiri.
+      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create, update: if isSuperadmin();
+      allow delete: if false; // nonaktifkan lewat isActive, jangan hapus
+    }
+
+    // ───────────── users ─────────────
+
+    match /users/{uid} {
+      // CATATAN: layar login & registrasi aplikasi mencari akun berdasarkan
+      // noKode/NIK SEBELUM login (selalu dengan limit(1)). Selama alur itu
+      // belum diubah, pencarian 1 dokumen tanpa login harus tetap diizinkan.
+      allow list: if signedIn() || request.query.limit <= 1;
+      allow get: if signedIn();
+
+      // Registrasi aplikasi menulis dokumennya sendiri; admin membuat akun
+      // pasien/keluarga dari Admin Panel.
+      allow create: if (signedIn() && request.auth.uid == uid) || isAdmin();
+      allow update: if (signedIn() && request.auth.uid == uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ───────────── catatan aktivitas pasien ─────────────
+
+    function isLogCollection(name) {
+      return name in [
+        'food_logs',
+        'medication_logs',
+        'foot_care_logs',
+        'stress_management_logs',
+        'latihan_fisik_logs',
+        'aktivitas_tidur_logs',
+        'blood_sugar_logs',
+        'glucose_logs',
+        'hba1c_logs',
+        'chat_messages'
+      ];
+    }
+
+    match /{logCollection}/{logId} {
+      allow read: if isLogCollection(logCollection)
+        && (isAdmin() || ownsKode(resource.data));
+      allow create: if isLogCollection(logCollection)
+        && (isAdmin() || ownsKode(request.resource.data));
+      allow update: if isLogCollection(logCollection)
+        && (isAdmin()
+          || (ownsKode(resource.data) && ownsKode(request.resource.data)));
+      allow delete: if isLogCollection(logCollection)
+        && (isAdmin() || ownsKode(resource.data));
+    }
+
+    // ───────────── pengingat & notifikasi ─────────────
+
+    match /reminders/{id} {
+      function involved(data) {
+        return signedIn() && (
+          data.get('toUserId', null) == request.auth.uid
+          || data.get('fromUserId', null) == request.auth.uid
+          || (isAppUser() && data.get('noKode', null) == myKode())
+        );
+      }
+
+      allow read: if isAdmin() || involved(resource.data);
+      // Keluarga mengirim pengingat atas namanya sendiri.
+      allow create: if isAdmin()
+        || (isAppUser() && request.resource.data.fromUserId == request.auth.uid);
+      // Penerima menandai dibaca / menunda.
+      allow update: if isAdmin() || involved(resource.data);
+      allow delete: if isAdmin() || involved(resource.data);
+    }
+
+    // ───────────── message framing (template edukasi) ─────────────
+
+    match /message_framing/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

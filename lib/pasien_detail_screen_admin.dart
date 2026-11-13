@@ -605,48 +605,44 @@ class PasienDetailScreenState extends State<PasienDetailScreen> {
     ];
 
     return Container(
-      height: 80,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      height: 60,
       color: Colors.white,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         itemCount: tabs.length,
         itemBuilder: (context, index) {
           final isSelected = _selectedTab == index;
-          return GestureDetector(
-            onTap: () => setState(() => _selectedTab = index),
-            child: Container(
-              margin: const EdgeInsets.only(right: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFB83B7E) : Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: isSelected ? [
-                  BoxShadow(
-                    color: const Color(0xFFB83B7E).withOpacity(0.3),
-                    blurRadius: 5,
-                    offset: const Offset(0, 2),
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Material(
+              color: isSelected ? const Color(0xFFB83B7E) : const Color(0xFFF6F1F5),
+              borderRadius: BorderRadius.circular(999),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: () => setState(() => _selectedTab = index),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        tabs[index]['icon'] as IconData,
+                        size: 18,
+                        color: isSelected ? Colors.white : const Color(0xFFB83B7E),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        tabs[index]['label'] as String,
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : Colors.black87,
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                ] : [],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    tabs[index]['icon'] as IconData,
-                    color: isSelected ? Colors.white : const Color(0xFFB83B7E),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    tabs[index]['label'] as String,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black87,
-                      fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           );
