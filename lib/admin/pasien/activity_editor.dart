@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:promedia_v2/admin/admin_session.dart';
 import 'package:promedia_v2/admin/admin_ui.dart';
 import 'package:promedia_v2/admin/pasien/activity_config.dart';
+import 'package:promedia_v2/food_item.dart';
+import 'package:promedia_v2/tkpi_data.dart';
 
 /// Identitas pasien pemilik catatan.
 class PasienRef {
@@ -65,6 +67,7 @@ class _ActivityEditorState extends State<_ActivityEditor> {
   late final Map<String, dynamic> _orig;
   final Map<String, TextEditingController> _ctrl = {};
   final Map<String, String?> _choice = {};
+  final Map<String, Set<String>> _multi = {};
   late DateTime _date;
   late TimeOfDay _time;
   bool _saving = false;
@@ -89,6 +92,9 @@ class _ActivityEditorState extends State<_ActivityEditor> {
         case FieldKind.choice:
           _choice[f.key] = v?.toString();
           break;
+        case FieldKind.multiChoice:
+          _multi[f.key] = {if (v is List) ...v.map((e) => e.toString())};
+          break;
         case FieldKind.stringList:
           _ctrl[f.key] = TextEditingController(
               text: v is List ? v.map((e) => e.toString()).join('\n') : '');
@@ -98,8 +104,21 @@ class _ActivityEditorState extends State<_ActivityEditor> {
           _ctrl[f.key] = TextEditingController(text: v == null ? '' : fmtNum(v, decimals: 2));
           break;
         default:
-          _ctrl[f.key] = TextEditingController(text: v?.toString() ?? '');
+          final text = v?.toString() ?? '';
+          _ctrl[f.key] = TextEditingController(
+              text: f.emptyValue != null && text == f.emptyValue ? '' : text);
       }
+    }
+    if (!_isEdit && c.newDefaults != null) {
+      final when = DateTime(
+          _date.year, _date.month, _date.day, _time.hour, _time.minute);
+      c.newDefaults!(when).forEach((k, v) {
+        if (_choice.containsKey(k)) {
+          _choice[k] = v?.toString();
+        } else {
+          _ctrl[k]?.text = v?.toString() ?? '';
+        }
+      });
     }
     for (final ctl in _ctrl.values) {
       ctl.addListener(() => setState(() {}));
@@ -136,6 +155,14 @@ class _ActivityEditorState extends State<_ActivityEditor> {
         case FieldKind.choice:
           out[f.key] = _choice[f.key];
           break;
+        case FieldKind.multiChoice:
+          // Urutan mengikuti daftar pilihan; nilai lama di luar daftar tetap ikut.
+          final sel = _multi[f.key] ?? {};
+          out[f.key] = [
+            ...f.options.where(sel.contains),
+            ...sel.where((v) => !f.options.contains(v)),
+          ];
+          break;
         case FieldKind.number:
           out[f.key] = double.tryParse(_ctrl[f.key]!.text.trim().replaceAll(',', '.'));
           break;
@@ -167,7 +194,10 @@ class _ActivityEditorState extends State<_ActivityEditor> {
     });
     final formOk = _formKey.currentState!.validate();
     final missingTime = c.fields.any((f) =>
-        f.kind == FieldKind.time && f.required && _ctrl[f.key]!.text.isEmpty);
+        f.required &&
+        ((f.kind == FieldKind.time || f.kind == FieldKind.food) &&
+                _ctrl[f.key]!.text.isEmpty ||
+            f.kind == FieldKind.multiChoice && (_multi[f.key]?.isEmpty ?? true)));
     if (!formOk || missingTime) return;
 
     final values = _collect();
@@ -227,8 +257,10 @@ class _ActivityEditorState extends State<_ActivityEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final inputs = c.fields.where((f) => !f.derived).toList();
-    final derived = c.fields.where((f) => f.derived).toList();
+    final inputs =
+        c.fields.where((f) => !f.derived && !f.readOnly).toList();
+    final derived = c.fields.where((f) => f.derived && !f.readOnly).toList();
+    final results = c.fields.where((f) => f.readOnly).toList();
 
     return AlertDialog(
       titlePadding: const EdgeInsets.fromLTRB(24, 24, 16, 0),
@@ -282,6 +314,10 @@ class _ActivityEditorState extends State<_ActivityEditor> {
                 _buildDateRow(),
                 const SizedBox(height: 16),
                 ..._spaced(inputs.map(_buildField)),
+                if (results.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _buildResults(results),
+                ],
                 if (derived.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Theme(
@@ -405,6 +441,94 @@ class _ActivityEditorState extends State<_ActivityEditor> {
         const SizedBox(width: 12),
         Expanded(flex: 2, child: timeField),
       ],
+    );
+  }
+
+  static FoodItem? _findFood(String name) =>
+      TKPIData.foods.where((f) => f.name == name).firstOrNull;
+
+  /// Panel hasil perhitungan otomatis (seperti dialog hasil di aplikasi).
+  Widget _buildResults(List<ActivityField> fields) {
+    final computed = _computed;
+    // Catatan lama yang belum bisa dihitung ulang (mis. makanan di luar
+    // daftar TKPI) tetap menampilkan nilai tersimpan.
+    dynamic valueOf(ActivityField f) =>
+        computed.containsKey(f.key) ? computed[f.key] : _orig[f.key];
+    final ready = computed.isNotEmpty ||
+        (_isEdit && fields.any((f) => _orig[f.key] != null));
+    String fmt(ActivityField f, dynamic v) {
+      if (v == null) return '-';
+      if (f.key == 'durasiMenit' && v is num) {
+        return '${v ~/ 60} jam ${v % 60} menit';
+      }
+      if (v is num) {
+        final n = fmtNum(v, decimals: 1);
+        return f.unit == null ? n : '$n ${f.unit}';
+      }
+      return v.toString();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: c.color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.color.withOpacity(0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_awesome, size: 16, color: c.color),
+              const SizedBox(width: 8),
+              Text('Hasil perhitungan otomatis',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600, color: c.color)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (!ready)
+            const Text('Lengkapi isian di atas untuk melihat hasilnya.',
+                style: TextStyle(fontSize: 13, color: AdminColors.textMuted))
+          else
+            for (final f in fields)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 150,
+                      child: Text(f.label,
+                          style: const TextStyle(
+                              fontSize: 13, color: AdminColors.textMuted)),
+                    ),
+                    Expanded(
+                      child: valueOf(f) is List
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (final item in valueOf(f) as List)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 3),
+                                    child: Text('• $item',
+                                        style: const TextStyle(
+                                            fontSize: 13, height: 1.35)),
+                                  ),
+                              ],
+                            )
+                          : Text(fmt(f, valueOf(f)),
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.35)),
+                    ),
+                  ],
+                ),
+              ),
+        ],
+      ),
     );
   }
 
@@ -539,6 +663,74 @@ class _ActivityEditorState extends State<_ActivityEditor> {
           validator: requiredCheck,
         );
 
+      case FieldKind.food:
+        final ctl = _ctrl[f.key]!;
+        final food = _findFood(ctl.text);
+        return _PickerField(
+          label: f.label,
+          icon: Icons.search,
+          value: ctl.text.isEmpty
+              ? 'Pilih dari daftar makanan (TKPI)'
+              : (food == null
+                  ? '${ctl.text}  (tidak ada di daftar TKPI)'
+                  : '${food.name}  ·  ${food.category}'),
+          enabled: !_saving,
+          errorText: _attempted && f.required && ctl.text.isEmpty
+              ? 'Pilih jenis makanan'
+              : null,
+          onTap: () async {
+            final picked = await showDialog<FoodItem>(
+              context: context,
+              builder: (_) => _FoodPickerDialog(initial: food),
+            );
+            if (picked != null) ctl.text = picked.name;
+          },
+        );
+
+      case FieldKind.multiChoice:
+        final sel = _multi[f.key] ??= {};
+        return InputDecorator(
+          decoration: InputDecoration(
+            labelText: f.label,
+            helperText: f.exclusiveOption == null
+                ? 'Boleh pilih lebih dari satu'
+                : 'Boleh pilih lebih dari satu, kecuali "${f.exclusiveOption}"',
+            errorText: _attempted && f.required && sel.isEmpty
+                ? 'Pilih minimal satu'
+                : null,
+          ),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final o in {...f.options, ...sel})
+                FilterChip(
+                  label: Text(o, style: const TextStyle(fontSize: 13)),
+                  selected: sel.contains(o),
+                  selectedColor: c.color.withOpacity(0.15),
+                  checkmarkColor: c.color,
+                  onSelected: _saving
+                      ? null
+                      : (on) => setState(() {
+                            // Aturan sama dengan aplikasi: opsi eksklusif
+                            // menghapus pilihan lain, dan sebaliknya.
+                            if (on && o == f.exclusiveOption) {
+                              sel
+                                ..clear()
+                                ..add(o);
+                            } else if (on) {
+                              sel
+                                ..remove(f.exclusiveOption)
+                                ..add(o);
+                            } else {
+                              sel.remove(o);
+                            }
+                          }),
+                ),
+            ],
+          ),
+        );
+
       case FieldKind.text:
         return TextFormField(
           controller: _ctrl[f.key],
@@ -547,6 +739,129 @@ class _ActivityEditorState extends State<_ActivityEditor> {
           validator: requiredCheck,
         );
     }
+  }
+}
+
+/// Pemilih makanan dari database TKPI — pencarian + filter kategori,
+/// sama dengan daftar makanan di aplikasi.
+class _FoodPickerDialog extends StatefulWidget {
+  final FoodItem? initial;
+  const _FoodPickerDialog({this.initial});
+
+  @override
+  State<_FoodPickerDialog> createState() => _FoodPickerDialogState();
+}
+
+class _FoodPickerDialogState extends State<_FoodPickerDialog> {
+  String _query = '';
+  String? _category;
+
+  @override
+  Widget build(BuildContext context) {
+    final categories = TKPIData.getCategories();
+    var foods = TKPIData.foods;
+    if (_category != null) {
+      foods = foods.where((f) => f.category == _category).toList();
+    }
+    if (_query.isNotEmpty) {
+      final q = _query.toLowerCase();
+      foods = foods.where((f) => f.name.toLowerCase().contains(q)).toList();
+    }
+
+    return Dialog(
+      insetPadding: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560, maxHeight: 640),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text('Pilih Jenis Makanan',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w700)),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: AdminColors.textMuted),
+                  ),
+                ],
+              ),
+              const Text('Database TKPI — nilai gizi per 100 gram',
+                  style: TextStyle(fontSize: 12, color: AdminColors.textMuted)),
+              const SizedBox(height: 12),
+              TextField(
+                autofocus: true,
+                onChanged: (v) => setState(() => _query = v),
+                decoration: const InputDecoration(
+                  hintText: 'Cari makanan…',
+                  prefixIcon: Icon(Icons.search, size: 20),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 36,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    for (final cat in [null, ...categories])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ChoiceChip(
+                          label: Text(cat ?? 'Semua',
+                              style: const TextStyle(fontSize: 12)),
+                          selected: _category == cat,
+                          onSelected: (_) => setState(() => _category = cat),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text('${foods.length} makanan',
+                  style: const TextStyle(
+                      fontSize: 12, color: AdminColors.textSubtle)),
+              const Divider(),
+              Expanded(
+                child: foods.isEmpty
+                    ? const Center(
+                        child: Text('Makanan tidak ditemukan',
+                            style: TextStyle(color: AdminColors.textMuted)))
+                    : ListView.separated(
+                        itemCount: foods.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (_, i) {
+                          final f = foods[i];
+                          final selected = widget.initial?.name == f.name;
+                          return ListTile(
+                            dense: true,
+                            selected: selected,
+                            title: Text(f.name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
+                            subtitle: Text(
+                                '${f.category}  ·  ${fmtNum(f.energyKcal)} kkal  ·  '
+                                'KH ${fmtNum(f.carbohydrate, decimals: 1)} g  ·  '
+                                'P ${fmtNum(f.protein, decimals: 1)} g  ·  '
+                                'L ${fmtNum(f.fat, decimals: 1)} g'),
+                            trailing: selected
+                                ? const Icon(Icons.check_circle,
+                                    color: AdminColors.primary)
+                                : null,
+                            onTap: () => Navigator.pop(context, f),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:promedia_v2/admin/admin_ui.dart';
+import 'package:promedia_v2/logic/activity_logic.dart';
+import 'package:promedia_v2/tkpi_data.dart';
 
 /// Jenis input untuk satu field catatan aktivitas.
 enum FieldKind {
@@ -19,6 +21,12 @@ enum FieldKind {
 
   /// Jam "HH:mm" yang disimpan sebagai string.
   time,
+
+  /// Nama makanan dari database TKPI (pemilih dengan pencarian).
+  food,
+
+  /// Pilihan ganda (disimpan sebagai list), mis. kondisi kaki.
+  multiChoice,
 }
 
 class ActivityField {
@@ -37,6 +45,13 @@ class ActivityField {
   final bool readOnly;
   final String? helper;
 
+  /// Untuk [FieldKind.multiChoice]: opsi yang meniadakan opsi lain
+  /// (mis. "Tidak ada masalah").
+  final String? exclusiveOption;
+
+  /// Nilai tersimpan yang berarti "kosong" (mis. "-" pada tekanan darah).
+  final String? emptyValue;
+
   const ActivityField(
     this.key,
     this.label,
@@ -47,6 +62,8 @@ class ActivityField {
     this.derived = false,
     this.readOnly = false,
     this.helper,
+    this.exclusiveOption,
+    this.emptyValue,
   });
 }
 
@@ -84,6 +101,9 @@ class ActivityConfig {
   /// Menghitung ulang field turunan yang rumusnya sederhana dan pasti.
   final Map<String, dynamic> Function(Map<String, dynamic> data)? recompute;
 
+  /// Nilai awal untuk catatan baru berdasarkan waktu yang dipilih.
+  final Map<String, dynamic> Function(DateTime when)? newDefaults;
+
   /// Penjelasan singkat yang tampil di form.
   final String? note;
 
@@ -101,6 +121,7 @@ class ActivityConfig {
     this.dateHasTime = true,
     this.defaults = const {},
     this.recompute,
+    this.newDefaults,
     this.note,
   });
 }
@@ -148,7 +169,6 @@ String hba1cStatus(double nilai) {
 }
 
 const _yaTidak = ['Ya', 'Tidak'];
-const _waktu = ['Pagi', 'Siang', 'Malam'];
 
 // ───────────────────────── configs ─────────────────────────
 
@@ -213,20 +233,41 @@ final List<ActivityConfig> kActivityConfigs = [
     icon: Icons.restaurant_outlined,
     color: AdminColors.warning,
     timeKey: 'jam',
-    note: 'Nilai gizi tidak dihitung ulang otomatis bila nama makanan atau gram diubah.',
+    note: 'Sama seperti di aplikasi: pilih makanan dari database TKPI dan porsinya. '
+        'Berat dan nilai gizi dihitung otomatis.',
+    newDefaults: (when) => {'waktu': FoodLogic.waktuMakan(when.hour)},
+    recompute: (d) {
+      final name = d['foodName'] as String?;
+      final porsi = d['porsi'] as String?;
+      if (name == null || porsi == null) return const {};
+      final food = TKPIData.foods.where((f) => f.name == name).firstOrNull;
+      if (food == null) return const {};
+      final grams = FoodLogic.porsiToGrams(porsi);
+      return {
+        'grams': grams,
+        'calories': food.calculateCalories(grams),
+        'carbohydrate': food.calculateCarbs(grams),
+        'protein': food.calculateProtein(grams),
+        'fat': food.calculateFat(grams),
+      };
+    },
     fields: const [
-      ActivityField('waktu', 'Waktu makan', FieldKind.choice,
-          options: _waktu, required: true),
       ActivityField('kategori', 'Kategori', FieldKind.choice,
-          options: ['Makan Utama', 'Snack'], required: true),
-      ActivityField('foodName', 'Nama makanan', FieldKind.text, required: true),
-      ActivityField('porsi', 'Porsi', FieldKind.suggest,
-          options: ['¼ piring', '1/3 piring', '½ piring', '1 piring']),
-      ActivityField('grams', 'Berat', FieldKind.number, unit: 'gram'),
-      ActivityField('calories', 'Kalori', FieldKind.number, unit: 'kkal'),
-      ActivityField('carbohydrate', 'Karbohidrat', FieldKind.number, unit: 'g'),
-      ActivityField('protein', 'Protein', FieldKind.number, unit: 'g'),
-      ActivityField('fat', 'Lemak', FieldKind.number, unit: 'g'),
+          options: FoodLogic.kategoriOptions, required: true),
+      ActivityField('waktu', 'Waktu makan', FieldKind.choice,
+          options: FoodLogic.waktuOptions, required: true),
+      ActivityField('foodName', 'Jenis makanan', FieldKind.food, required: true),
+      ActivityField('porsi', 'Porsi', FieldKind.choice,
+          options: FoodLogic.porsiOptions, required: true),
+      ActivityField('grams', 'Berat', FieldKind.number,
+          unit: 'gram', readOnly: true),
+      ActivityField('calories', 'Kalori', FieldKind.number,
+          unit: 'kkal', readOnly: true),
+      ActivityField('carbohydrate', 'Karbohidrat', FieldKind.number,
+          unit: 'g', readOnly: true),
+      ActivityField('protein', 'Protein', FieldKind.number,
+          unit: 'g', readOnly: true),
+      ActivityField('fat', 'Lemak', FieldKind.number, unit: 'g', readOnly: true),
     ],
     columns: [
       TableColumn('WAKTU', (d) => str(d['waktu'])),
@@ -245,22 +286,23 @@ final List<ActivityConfig> kActivityConfigs = [
     icon: Icons.medication_outlined,
     color: AdminColors.info,
     timeKey: 'jam',
-    fields: const [
-      ActivityField('waktu', 'Waktu minum', FieldKind.choice,
-          options: _waktu, required: true),
+    note: 'Sama seperti di aplikasi: bila satuan tidak dipilih, Insulin memakai '
+        '"Unit" dan obat lain "Tablet". Obat di luar daftar bisa diketik langsung.',
+    recompute: (d) => {
+      if (d['satuan'] == null)
+        'satuan': MedicationLogic.defaultSatuan(d['jenisObat'] as String?),
+    },
+    fields: [
+      const ActivityField('waktu', 'Waktu minum', FieldKind.choice,
+          options: MedicationLogic.waktuOptions, required: true),
       ActivityField('jenisObat', 'Jenis obat', FieldKind.suggest,
           required: true,
-          options: [
-            'Metformin',
-            'Insulin',
-            'Glimepiride',
-            'Glibenclamide',
-            'Glipizide',
-            'Acarbose',
-          ]),
-      ActivityField('dosis', 'Dosis', FieldKind.number, required: true),
-      ActivityField('satuan', 'Satuan', FieldKind.choice,
-          options: ['Tablet', 'Unit'], required: true),
+          options: MedicationLogic.jenisObatList
+              .where((o) => o != 'Lainnya')
+              .toList()),
+      const ActivityField('dosis', 'Dosis', FieldKind.number, required: true),
+      const ActivityField('satuan', 'Satuan', FieldKind.choice,
+          options: MedicationLogic.satuanOptions),
     ],
     columns: [
       TableColumn('WAKTU', (d) => str(d['waktu'])),
@@ -276,37 +318,33 @@ final List<ActivityConfig> kActivityConfigs = [
     icon: Icons.directions_run_outlined,
     color: AdminColors.keluarga,
     timeKey: 'jam',
-    note: 'Kalori terbakar, intensitas, manfaat, dan rekomendasi dihitung aplikasi saat input dan tidak berubah otomatis.',
+    note: 'Kalori terbakar, intensitas, manfaat, dan rekomendasi dihitung '
+        'otomatis dengan rumus yang sama seperti aplikasi.',
+    newDefaults: (_) => {'satuanDurasi': 'Menit'},
+    recompute: (d) {
+      final jenis = d['jenisOlahraga'] as String?;
+      final durasi = d['durasi'] as int?;
+      if (jenis == null || durasi == null) return const {};
+      return {
+        'kaloriTerbakar': ExerciseLogic.hitungKalori(jenis, durasi),
+        'kategoriIntensitas': ExerciseLogic.kategoriIntensitas(durasi),
+        'manfaat': ExerciseLogic.manfaat(jenis, durasi),
+        'rekomendasi': ExerciseLogic.rekomendasi(durasi),
+      };
+    },
     fields: const [
-      ActivityField('jenisOlahraga', 'Jenis olahraga', FieldKind.suggest,
-          required: true,
-          options: [
-            'Jalan Kaki',
-            'Rumah Tangga',
-            'Senam',
-            'Jogging',
-            'Bersepeda',
-            'Lari',
-            'Badminton',
-            'Yoga',
-          ]),
+      ActivityField('jenisOlahraga', 'Jenis olahraga', FieldKind.choice,
+          required: true, options: ExerciseLogic.daftarOlahraga),
       ActivityField('durasi', 'Durasi', FieldKind.integer, required: true),
       ActivityField('satuanDurasi', 'Satuan durasi', FieldKind.choice,
-          options: ['Menit', 'Total Durasi']),
+          options: ExerciseLogic.satuanDurasiOptions, required: true),
       ActivityField('kaloriTerbakar', 'Kalori terbakar', FieldKind.integer,
-          unit: 'kkal', derived: true),
-      ActivityField('kategoriIntensitas', 'Kategori intensitas',
-          FieldKind.suggest,
-          derived: true,
-          options: [
-            'SANGAT RINGAN',
-            'RINGAN - Aktivitas Fisik',
-            'SEDANG - Olahraga Teratur',
-            'TINGGI - Olahraga Intensif',
-          ]),
-      ActivityField('manfaat', 'Manfaat', FieldKind.stringList, derived: true),
+          unit: 'kkal', readOnly: true),
+      ActivityField('kategoriIntensitas', 'Kategori intensitas', FieldKind.text,
+          readOnly: true),
+      ActivityField('manfaat', 'Manfaat', FieldKind.stringList, readOnly: true),
       ActivityField('rekomendasi', 'Rekomendasi', FieldKind.stringList,
-          derived: true),
+          readOnly: true),
     ],
     columns: [
       TableColumn('OLAHRAGA', (d) => str(d['jenisOlahraga'])),
@@ -323,35 +361,57 @@ final List<ActivityConfig> kActivityConfigs = [
     icon: Icons.accessibility_new_outlined,
     color: Color(0xFF2B9BA8),
     timeKey: 'jam',
-    note: 'Skor risiko, status, dan rekomendasi dihitung aplikasi saat input dan tidak berubah otomatis.',
+    note: 'Skor risiko, status, deskripsi, dan rekomendasi dihitung otomatis '
+        'dengan rumus yang sama seperti aplikasi.',
+    recompute: (d) {
+      final kondisi = (d['kondisiKaki'] as List?)?.cast<String>() ?? const [];
+      final answers = [
+        d['memeriksaSepatu'],
+        d['mengeringkanKaki'],
+        d['menggunakanAlasKaki'],
+        d['menggunakanPelembab'],
+      ];
+      if (kondisi.isEmpty || answers.contains(null)) return const {};
+      final logic = FootCareLogic(
+        kondisiKaki: kondisi.toSet(),
+        memeriksaSepatu: d['memeriksaSepatu'] as String?,
+        mengeringkanKaki: d['mengeringkanKaki'] as String?,
+        menggunakanAlasKaki: d['menggunakanAlasKaki'] as String?,
+        menggunakanPelembab: d['menggunakanPelembab'] as String?,
+      );
+      return {
+        'skorRisiko': logic.hitungSkorRisiko(),
+        'statusKondisi': logic.getStatusKondisi(),
+        'deskripsiObservasi': logic.getDeskripsiObservasi(),
+        'rekomendasi': logic.getRekomendasi(),
+      };
+    },
     fields: const [
-      ActivityField('mengeringkanKaki', 'Mengeringkan kaki', FieldKind.choice,
-          options: _yaTidak),
-      ActivityField('memeriksaSepatu', 'Memeriksa sepatu', FieldKind.choice,
-          options: _yaTidak),
-      ActivityField('menggunakanPelembab', 'Menggunakan pelembab',
+      ActivityField('kondisiKaki', 'Kondisi kaki', FieldKind.multiChoice,
+          required: true,
+          options: FootCareLogic.kondisiOptions,
+          exclusiveOption: 'Tidak ada masalah'),
+      ActivityField('memeriksaSepatu', 'Memeriksa bagian dalam sepatu',
           FieldKind.choice,
-          options: _yaTidak),
+          options: _yaTidak, required: true),
+      ActivityField('mengeringkanKaki', 'Mengeringkan kaki setelah dicuci',
+          FieldKind.choice,
+          options: _yaTidak, required: true),
       ActivityField('menggunakanAlasKaki', 'Menggunakan alas kaki',
           FieldKind.choice,
-          options: _yaTidak),
-      ActivityField('kondisiKaki', 'Kondisi kaki', FieldKind.stringList,
-          helper: 'Satu kondisi per baris, mis. "Tidak ada masalah"'),
+          options: _yaTidak, required: true),
+      ActivityField('menggunakanPelembab', 'Menggunakan pelembab / lotion',
+          FieldKind.choice,
+          options: _yaTidak, required: true),
       ActivityField('skorRisiko', 'Skor risiko', FieldKind.integer,
-          derived: true),
-      ActivityField('statusKondisi', 'Status kondisi', FieldKind.suggest,
-          derived: true,
-          options: [
-            'BAIK - Pertahankan Perawatan',
-            'RENDAH - Perlu Perbaikan Kebiasaan',
-            'SEDANG - Perlu Perawatan Khusus',
-            'TINGGI - Perlu Perhatian Medis Segera',
-          ]),
+          readOnly: true),
+      ActivityField('statusKondisi', 'Status kondisi', FieldKind.text,
+          readOnly: true),
       ActivityField('deskripsiObservasi', 'Deskripsi observasi',
           FieldKind.multiline,
-          derived: true),
+          readOnly: true),
       ActivityField('rekomendasi', 'Rekomendasi', FieldKind.stringList,
-          derived: true),
+          readOnly: true),
     ],
     columns: [
       TableColumn('KONDISI', (d) {
@@ -370,42 +430,44 @@ final List<ActivityConfig> kActivityConfigs = [
     icon: Icons.self_improvement_outlined,
     color: Color(0xFF9C4DCC),
     timeKey: 'jam',
-    note: 'Skor, status, analisis, dan rekomendasi dihitung aplikasi saat input dan tidak berubah otomatis.',
+    note: 'Skor, status, analisis, dan rekomendasi dihitung otomatis dengan '
+        'rumus yang sama seperti aplikasi.',
+    recompute: (d) {
+      final perasaan = d['perasaan'] as String?;
+      if (perasaan == null) return const {};
+      var td = ((d['tekananDarah'] as String?) ?? '').trim();
+      if (td == '-') td = '';
+      final logic = StressLogic(tekananDarah: td, selectedPerasaan: perasaan);
+      return {
+        'tekananDarah': td.isEmpty ? '-' : td,
+        'skorStress': logic.hitungSkorStress(),
+        'statusStress': logic.getStatusStress(),
+        'deskripsiObservasi': logic.getDeskripsiObservasi(),
+        'analisaTekananDarah': logic.getAnalisaTekananDarah(),
+        'analisisPerasaan': logic.getAnalisisPerasaan(),
+        'rekomendasi': logic.getRekomendasi(),
+      };
+    },
     fields: const [
-      ActivityField('perasaan', 'Perasaan', FieldKind.suggest,
-          required: true,
-          options: [
-            'Perasaan Senang',
-            'Perasaan Cemas',
-            'Perasaan Sedih',
-            'Perasaan Marah',
-            'Perasaan Stres',
-            'Perasaan Takut',
-          ]),
-      ActivityField('tekananDarah', 'Tekanan darah', FieldKind.text,
-          helper: 'Format sistolik/diastolik, mis. 120/80. Isi "-" bila tidak diukur.'),
+      ActivityField('perasaan', 'Kondisi perasaan', FieldKind.choice,
+          required: true, options: StressLogic.daftarPerasaan),
+      ActivityField('tekananDarah', 'Tekanan darah (opsional)', FieldKind.text,
+          emptyValue: '-',
+          helper: 'Format sistolik/diastolik, mis. 120/80. Kosongkan bila tidak diukur.'),
       ActivityField('skorStress', 'Skor stress', FieldKind.integer,
-          derived: true),
-      ActivityField('statusStress', 'Status stress', FieldKind.suggest,
-          derived: true,
-          options: [
-            'BAIK - Pertahankan',
-            'RINGAN - Perlu Pemantauan',
-            'SEDANG - Perlu Teknik Relaksasi',
-            'SEDANG-TINGGI - Perlu Intervensi',
-            'TINGGI - Perlu Konseling Profesional',
-          ]),
-      ActivityField('analisisPerasaan', 'Analisis perasaan',
-          FieldKind.multiline,
-          derived: true),
+          readOnly: true),
+      ActivityField('statusStress', 'Status stress', FieldKind.text,
+          readOnly: true),
+      ActivityField('analisisPerasaan', 'Analisis perasaan', FieldKind.multiline,
+          readOnly: true),
       ActivityField('analisaTekananDarah', 'Analisis tekanan darah',
           FieldKind.multiline,
-          derived: true),
+          readOnly: true),
       ActivityField('deskripsiObservasi', 'Deskripsi observasi',
           FieldKind.multiline,
-          derived: true),
+          readOnly: true),
       ActivityField('rekomendasi', 'Rekomendasi', FieldKind.stringList,
-          derived: true),
+          readOnly: true),
     ],
     columns: [
       TableColumn('PERASAAN', (d) => str(d['perasaan'])),
