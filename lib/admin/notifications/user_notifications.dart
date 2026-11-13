@@ -578,9 +578,16 @@ class UnreadNotifIndex {
     return r;
   }
 
+  /// Jendela "notifikasi terbaru". Dibatasi agar listener tidak ikut membaca
+  /// pesan lama yang menumpuk (mis. edukasi ke akun keluarga).
+  static const window = Duration(days: 30);
+
   static Stream<UnreadNotifIndex> watch() => FirebaseFirestore.instance
       .collection('reminders')
       .where('isRead', isEqualTo: false)
+      .where('createdAt',
+          isGreaterThanOrEqualTo:
+              Timestamp.fromDate(DateTime.now().subtract(window)))
       .snapshots()
       .map((snap) {
         final byUid = <String, UnreadNotif>{};
@@ -663,7 +670,7 @@ class UnreadNotifBadge extends StatelessWidget {
 
     return Tooltip(
       message: has
-          ? '${info.count} notifikasi belum dibaca'
+          ? '${info.count} notifikasi belum dibaca (30 hari terakhir)'
               '${info.latest == null ? '' : '\nTerbaru: ${DateFormat('d MMM yyyy, HH:mm', 'id_ID').format(info.latest!)}'}'
           : 'Tidak ada notifikasi baru',
       child: InkWell(

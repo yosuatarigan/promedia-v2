@@ -39,6 +39,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   UnreadNotifIndex _unread = UnreadNotifIndex.empty;
   StreamSubscription<UnreadNotifIndex>? _unreadSub;
 
+  // Satu listener koleksi `users` untuk seluruh sesi admin. Sebelumnya
+  // StreamBuilder membuat listener baru di setiap build (ketik pencarian,
+  // ganti filter, update notifikasi) — di web tanpa cache, tiap listener
+  // baru membaca ulang semua dokumen user.
+  final _usersCtrl = StreamController<QuerySnapshot>.broadcast();
+  QuerySnapshot? _usersSnap;
+  StreamSubscription<QuerySnapshot>? _usersSub;
+
   @override
   void initState() {
     super.initState();
@@ -46,11 +54,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       (idx) => setState(() => _unread = idx),
       onError: (_) {},
     );
+    _usersSub = _firestore.collection('users').snapshots().listen(
+      (snap) {
+        _usersSnap = snap;
+        _usersCtrl.add(snap);
+      },
+      onError: _usersCtrl.addError,
+    );
   }
 
   @override
   void dispose() {
     _unreadSub?.cancel();
+    _usersSub?.cancel();
+    _usersCtrl.close();
     super.dispose();
   }
 
@@ -400,7 +417,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       subtitle:
           '${DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now)}  ·  Ringkasan data pengguna Promedia',
       child: StreamBuilder<QuerySnapshot>(
-        stream: _firestore.collection('users').snapshots(),
+        stream: _usersCtrl.stream,
+        initialData: _usersSnap,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return AdminEmptyState(
@@ -821,7 +839,51 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   // ─── Excel Export Semua Data ─────────────────────────────────
+  /// Export membaca seluruh isi koleksi. Tampilkan perkiraan jumlah baca
+  /// (dihitung murah lewat count()) dan minta konfirmasi dulu.
+  Future<bool> _confirmExport() async {
+    const cols = [
+      'users',
+      'food_logs',
+      'medication_logs',
+      'aktivitas_tidur_logs',
+      'latihan_fisik_logs',
+      'stress_management_logs',
+      'foot_care_logs',
+    ];
+    int? total;
+    try {
+      final counts = await Future.wait(
+          cols.map((c) => _firestore.collection(c).count().get()));
+      total = counts.fold<int>(0, (a, b) => a + (b.count ?? 0));
+    } catch (_) {}
+    if (!mounted) return false;
+    final fmt = NumberFormat.decimalPattern('id_ID');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Export semua data?'),
+        content: Text(
+          total == null
+              ? 'Export akan membaca seluruh data pengguna dan catatan aktivitas dari database.'
+              : 'Export akan membaca sekitar ${fmt.format(total)} data dari database. '
+                  'Gunakan seperlunya agar kuota harian database tidak cepat habis.',
+        ),
+        actions: [
+          OutlinedButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Export')),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
   Future<void> _exportAllToExcel() async {
+    if (!await _confirmExport()) return;
     setState(() => _isExportingExcel = true);
 
     try {
@@ -1366,7 +1428,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildUserList() {
     return StreamBuilder<QuerySnapshot>(
       // Diurutkan di sisi klien agar user tanpa createdAt tetap tampil.
-      stream: _firestore.collection('users').snapshots(),
+      stream: _usersCtrl.stream,
+      initialData: _usersSnap,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return AdminEmptyState(

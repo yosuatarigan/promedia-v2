@@ -17,6 +17,8 @@ class ManageAdminScreen extends StatefulWidget {
 
 class _ManageAdminScreenState extends State<ManageAdminScreen> {
   final _admins = FirebaseFirestore.instance.collection(kAdminsCollection);
+  late final Stream<QuerySnapshot<Map<String, dynamic>>> _adminsStream =
+      _admins.snapshots();
 
   void _snack(String msg, {bool error = false}) {
     if (!mounted) return;
@@ -50,7 +52,7 @@ class _ManageAdminScreenState extends State<ManageAdminScreen> {
         ),
       ],
       child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: _admins.snapshots(),
+        stream: _adminsStream,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return AdminCard(

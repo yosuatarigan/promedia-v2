@@ -22,20 +22,53 @@ class ActivityTable extends StatefulWidget {
   State<ActivityTable> createState() => _ActivityTableState();
 }
 
-class _ActivityTableState extends State<ActivityTable> {
+class _ActivityTableState extends State<ActivityTable>
+    with AutomaticKeepAliveClientMixin {
   static const _pageSize = 25;
   int _limit = _pageSize;
-  late final Stream<QuerySnapshot<Map<String, dynamic>>> _stream;
+
+  /// Hanya [_limit] catatan terbaru yang dibaca (diurutkan di server).
+  /// Stream dibuat ulang hanya saat [_limit] berubah, bukan tiap build.
+  late Stream<QuerySnapshot<Map<String, dynamic>>> _stream;
+
+  /// Jumlah total catatan lewat agregasi count() — 1 baca per 1.000 dokumen.
+  int? _total;
 
   ActivityConfig get c => widget.config;
+
+  Query<Map<String, dynamic>> get _base => FirebaseFirestore.instance
+      .collection(c.collection)
+      .where('noKode', isEqualTo: widget.pasien.noKode);
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    _stream = FirebaseFirestore.instance
-        .collection(c.collection)
-        .where('noKode', isEqualTo: widget.pasien.noKode)
-        .snapshots();
+    _stream = _pageStream();
+    _loadTotal();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> _pageStream() => _base
+      .orderBy(c.dateKey, descending: true)
+      .limit(_limit)
+      .snapshots();
+
+  Future<void> _loadTotal() async {
+    try {
+      final agg = await _base.count().get();
+      if (mounted) setState(() => _total = agg.count);
+    } catch (_) {
+      // Jumlah hanya informasi; tabel tetap tampil.
+    }
+  }
+
+  void _loadMore() {
+    setState(() {
+      _limit += _pageSize;
+      _stream = _pageStream();
+    });
   }
 
   void _snack(String msg, {bool error = false}) {
@@ -49,7 +82,10 @@ class _ActivityTableState extends State<ActivityTable> {
   Future<void> _add() async {
     final ok = await showActivityEditor(context,
         config: c, pasien: widget.pasien, admin: widget.admin);
-    if (ok == true) _snack('${_cap(c.singular)} ditambahkan');
+    if (ok == true) {
+      _snack('${_cap(c.singular)} ditambahkan');
+      _loadTotal();
+    }
   }
 
   Future<void> _edit(DocumentSnapshot doc) async {
@@ -83,6 +119,7 @@ class _ActivityTableState extends State<ActivityTable> {
     try {
       await doc.reference.delete();
       _snack('${_cap(c.singular)} dihapus');
+      _loadTotal();
     } catch (e) {
       _snack('Gagal menghapus: $e', error: true);
     }
@@ -93,6 +130,7 @@ class _ActivityTableState extends State<ActivityTable> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: _stream,
       builder: (context, snap) {
@@ -119,7 +157,10 @@ class _ActivityTableState extends State<ActivityTable> {
             final jb = c.timeKey == null ? '' : (b.data()[c.timeKey] ?? '').toString();
             return jb.compareTo(ja);
           });
-        final shown = docs.take(_limit).toList();
+        final shown = docs;
+        // Data di server bisa lebih banyak dari yang sudah dimuat.
+        final total = _total ?? docs.length;
+        final hasMore = docs.length >= _limit && total > docs.length;
 
         return AdminCard(
           padding: EdgeInsets.zero,
@@ -134,7 +175,9 @@ class _ActivityTableState extends State<ActivityTable> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        '${docs.length} ${c.singular}',
+                        _total == null || _total == docs.length
+                            ? '${docs.length} ${c.singular}'
+                            : '$total ${c.singular}  ·  menampilkan ${docs.length} terbaru',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -189,15 +232,14 @@ class _ActivityTableState extends State<ActivityTable> {
                                     ),
                                   ),
                                 ),
-                                if (docs.length > shown.length)
+                                if (hasMore)
                                   Padding(
                                     padding: const EdgeInsets.all(16),
                                     child: Center(
                                       child: OutlinedButton(
-                                        onPressed: () => setState(
-                                            () => _limit += _pageSize),
+                                        onPressed: _loadMore,
                                         child: Text(
-                                            'Tampilkan lebih banyak (${docs.length - shown.length} lagi)'),
+                                            'Tampilkan $_pageSize lagi (${total - docs.length} catatan lebih lama)'),
                                       ),
                                     ),
                                   ),

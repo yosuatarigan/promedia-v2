@@ -250,9 +250,19 @@ class _SummaryTab extends StatefulWidget {
   State<_SummaryTab> createState() => _SummaryTabState();
 }
 
+/// Ringkasan satu jenis catatan: jumlah + tanggal input terakhir.
+class _ActivityStat {
+  final int count;
+  final DateTime? latest;
+  const _ActivityStat(this.count, this.latest);
+}
+
 class _SummaryTabState extends State<_SummaryTab>
     with AutomaticKeepAliveClientMixin {
-  late Future<List<QuerySnapshot<Map<String, dynamic>>>> _activity;
+  // Hemat baca: jumlah lewat count() + 1 catatan terbaru per jenis,
+  // bukan memuat semua catatan pasien.
+  late Future<List<_ActivityStat>> _activity;
+  late Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _glucose;
   late Future<QuerySnapshot<Map<String, dynamic>>> _keluarga;
 
   @override
@@ -267,8 +277,27 @@ class _SummaryTabState extends State<_SummaryTab>
   void _load() {
     final db = FirebaseFirestore.instance;
     final kode = widget.pasien.noKode;
-    _activity = Future.wait(kActivityConfigs.map((c) =>
-        db.collection(c.collection).where('noKode', isEqualTo: kode).get()));
+    _activity = Future.wait(kActivityConfigs.map((c) async {
+      final q = db.collection(c.collection).where('noKode', isEqualTo: kode);
+      final results = await Future.wait([
+        q.count().get(),
+        q.orderBy(c.dateKey, descending: true).limit(1).get(),
+      ]);
+      final count = (results[0] as AggregateQuerySnapshot).count ?? 0;
+      final latestDocs = (results[1] as QuerySnapshot<Map<String, dynamic>>).docs;
+      return _ActivityStat(
+        count,
+        latestDocs.isEmpty ? null : activityDate(c, latestDocs.first.data()),
+      );
+    }));
+    final gula = kActivityConfigs.firstWhere((c) => c.id == 'gula');
+    _glucose = db
+        .collection(gula.collection)
+        .where('noKode', isEqualTo: kode)
+        .orderBy(gula.dateKey, descending: true)
+        .limit(14)
+        .get()
+        .then((s) => s.docs.reversed.toList());
     _keluarga = db
         .collection('users')
         .where('noKode', isEqualTo: kode)
@@ -326,7 +355,7 @@ class _SummaryTabState extends State<_SummaryTab>
   }
 
   Widget _buildActivityGrid(double fullWidth, bool wide) {
-    return FutureBuilder<List<QuerySnapshot<Map<String, dynamic>>>>(
+    return FutureBuilder<List<_ActivityStat>>(
       future: _activity,
       builder: (context, snap) {
         return AdminCard(
@@ -370,17 +399,13 @@ class _SummaryTabState extends State<_SummaryTab>
     );
   }
 
-  Widget _activityTile(int i, QuerySnapshot<Map<String, dynamic>>? q) {
+  Widget _activityTile(int i, _ActivityStat? q) {
     final c = kActivityConfigs[i];
     String last = '…';
     String count = '…';
     if (q != null) {
-      count = '${q.size}';
-      DateTime? latest;
-      for (final d in q.docs) {
-        final t = activityDate(c, d.data());
-        if (t != null && (latest == null || t.isAfter(latest))) latest = t;
-      }
+      count = '${q.count}';
+      final latest = q.latest;
       last = latest == null
           ? 'Belum ada'
           : 'Terakhir ${DateFormat('d MMM yy', 'id_ID').format(latest)}';
@@ -432,16 +457,11 @@ class _SummaryTabState extends State<_SummaryTab>
 
   Widget _buildGlucoseChart() {
     final gula = kActivityConfigs.indexWhere((c) => c.id == 'gula');
-    return FutureBuilder<List<QuerySnapshot<Map<String, dynamic>>>>(
-      future: _activity,
+    return FutureBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
+      future: _glucose,
       builder: (context, snap) {
         final c = kActivityConfigs[gula];
-        final docs = snap.hasData
-            ? (snap.data![gula].docs.toList()
-              ..sort((a, b) => (activityDate(c, a.data()) ?? DateTime(1970))
-                  .compareTo(activityDate(c, b.data()) ?? DateTime(1970))))
-            : <QueryDocumentSnapshot<Map<String, dynamic>>>[];
-        final recent = docs.length > 14 ? docs.sublist(docs.length - 14) : docs;
+        final recent = snap.data ?? const [];
 
         const series = [
           ('gulaDarahPuasa', 'Puasa', AdminColors.info),
