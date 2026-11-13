@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:promedia_v2/admin/admin_session.dart';
 import 'package:promedia_v2/admin/admin_ui.dart';
+import 'package:promedia_v2/admin/notifications/notif_actions.dart';
+import 'package:promedia_v2/admin/notifications/scheduled_reminders.dart';
 import 'package:promedia_v2/admin/notifications/send_reminder_dialog.dart';
 
 /// Pengguna yang riwayat notifikasinya ditampilkan.
@@ -152,10 +154,16 @@ class _UserNotificationsViewState extends State<UserNotificationsView>
   final Map<String, Map<String, QueryDocumentSnapshot<Map<String, dynamic>>>>
       _sources = {};
   final Map<String, String> _names = {};
+
+  /// Keluarga dengan no kode yang sama (untuk "kirim atas nama").
+  final List<NotifTarget> _keluarga = [];
   int _loadedSources = 0;
   int _expectedSources = 0;
   Object? _error;
   String _filter = 'semua';
+  bool _selectMode = false;
+  final Set<String> _selected = {};
+  bool _bulkBusy = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -195,6 +203,7 @@ class _UserNotificationsViewState extends State<UserNotificationsView>
       setState(() {
         for (final d in snap.docs) {
           _names[d.id] = (d.data()['namaLengkap'] ?? '-').toString();
+          if (d.data()['role'] == 'keluarga') _keluarga.add(NotifTarget.fromDoc(d));
         }
       });
     } catch (_) {}
@@ -222,8 +231,10 @@ class _UserNotificationsViewState extends State<UserNotificationsView>
     return list;
   }
 
+  /// Pengingat "atas nama keluarga" dihitung sebagai pengingat keluarga.
   bool _isFromAdmin(Map<String, dynamic> d) =>
-      d['fromAdmin'] == true || d['sentByAdmin'] == true;
+      d['sentOnBehalf'] != true &&
+      (d['fromAdmin'] == true || d['sentByAdmin'] == true);
 
   bool _match(Map<String, dynamic> d) {
     switch (_filter) {
@@ -249,13 +260,43 @@ class _UserNotificationsViewState extends State<UserNotificationsView>
   }
 
   Future<void> _send() async {
-    final ok = await showSendReminderDialog(context,
-        target: widget.target, admin: widget.admin);
-    if (ok == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Pengingat terkirim ke ${t.nama}')),
-      );
+    final msg = await showSendReminderDialog(context,
+        target: widget.target, admin: widget.admin, keluarga: _keluarga);
+    if (msg != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
+  }
+
+  void _snack(String msg) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    }
+  }
+
+  Future<void> _setRead(
+      List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, bool read) async {
+    if (docs.isEmpty) return;
+    setState(() => _bulkBusy = true);
+    try {
+      await NotifActions.setRead(docs.map((d) => d.reference), read, widget.admin);
+      _snack('${docs.length} notifikasi ditandai ${read ? 'sudah' : 'belum'} dibaca');
+      if (_selectMode) {
+        setState(() {
+          _selected.clear();
+          _selectMode = false;
+        });
+      }
+    } catch (e) {
+      _snack('Gagal mengubah status: $e');
+    } finally {
+      if (mounted) setState(() => _bulkBusy = false);
+    }
+  }
+
+  Future<void> _editDate(QueryDocumentSnapshot<Map<String, dynamic>> doc) async {
+    final ok =
+        await showEditNotifDateDialog(context, doc: doc, admin: widget.admin);
+    if (ok == true) _snack('Tanggal notifikasi diperbarui');
   }
 
   Future<void> _delete(DocumentSnapshot doc) async {
@@ -338,6 +379,14 @@ class _UserNotificationsViewState extends State<UserNotificationsView>
                     ],
                   ),
                 ),
+                if (!_selectMode && all.isNotEmpty) ...[
+                  OutlinedButton.icon(
+                    onPressed: () => setState(() => _selectMode = true),
+                    icon: const Icon(Icons.checklist, size: 18),
+                    label: const Text('Pilih'),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 ElevatedButton.icon(
                   onPressed: _send,
                   icon: const Icon(Icons.notifications_active_outlined, size: 18),
@@ -346,6 +395,8 @@ class _UserNotificationsViewState extends State<UserNotificationsView>
               ],
             ),
           ),
+          ScheduledRemindersPanel(target: t, adminUid: widget.admin.uid),
+          if (_selectMode) _buildBulkBar(shown),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
@@ -365,6 +416,69 @@ class _UserNotificationsViewState extends State<UserNotificationsView>
           ),
           const Divider(),
           Expanded(child: _buildList(shown)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBulkBar(List<QueryDocumentSnapshot<Map<String, dynamic>>> shown) {
+    final picked = shown.where((d) => _selected.contains(d.id)).toList();
+    final allPicked = shown.isNotEmpty && picked.length == shown.length;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AdminColors.primarySoft,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Checkbox(
+            value: allPicked,
+            activeColor: AdminColors.primary,
+            onChanged: _bulkBusy
+                ? null
+                : (v) => setState(() {
+                      if (v == true) {
+                        _selected.addAll(shown.map((d) => d.id));
+                      } else {
+                        _selected.removeAll(shown.map((d) => d.id));
+                      }
+                    }),
+          ),
+          Text('${picked.length} dipilih',
+              style: const TextStyle(
+                  fontWeight: FontWeight.w600, color: AdminColors.text)),
+          const SizedBox(width: 8),
+          TextButton.icon(
+            onPressed:
+                _bulkBusy || picked.isEmpty ? null : () => _setRead(picked, true),
+            icon: const Icon(Icons.mark_email_read_outlined, size: 18),
+            label: const Text('Tandai dibaca'),
+          ),
+          TextButton.icon(
+            onPressed:
+                _bulkBusy || picked.isEmpty ? null : () => _setRead(picked, false),
+            icon: const Icon(Icons.mark_email_unread_outlined, size: 18),
+            label: const Text('Tandai belum dibaca'),
+          ),
+          TextButton(
+            onPressed: _bulkBusy
+                ? null
+                : () => setState(() {
+                      _selectMode = false;
+                      _selected.clear();
+                    }),
+            child: const Text('Selesai'),
+          ),
+          if (_bulkBusy)
+            const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2)),
         ],
       ),
     );
@@ -419,6 +533,9 @@ class _UserNotificationsViewState extends State<UserNotificationsView>
     final to = _nameOf(d['toUserId'] as String?,
         fallback: d['toUserId'] == null ? 'Pasien (belum terdaftar)' : 'Pengguna lain');
 
+    final original = (d['originalCreatedAt'] as Timestamp?)?.toDate();
+    final onBehalf = d['sentOnBehalf'] == true;
+
     final title = d['type'] == 'edukasi' && (d['subMateri'] ?? '').toString().isNotEmpty
         ? '${d['materi'] ?? 'Edukasi'} · ${d['subMateri']}'
         : type.label;
@@ -428,6 +545,19 @@ class _UserNotificationsViewState extends State<UserNotificationsView>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_selectMode)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Checkbox(
+                value: _selected.contains(doc.id),
+                activeColor: AdminColors.primary,
+                onChanged: _bulkBusy
+                    ? null
+                    : (v) => setState(() => v == true
+                        ? _selected.add(doc.id)
+                        : _selected.remove(doc.id)),
+              ),
+            ),
           Container(
             width: 40,
             height: 40,
@@ -458,8 +588,24 @@ class _UserNotificationsViewState extends State<UserNotificationsView>
                       const AdminBadge('Dibaca', color: AdminColors.success),
                     if (snoozed)
                       const AdminBadge('Ditunda', color: AdminColors.warning),
-                    if (d['sentByAdmin'] == true)
+                    if (d['sentByAdmin'] == true && d['fromAdmin'] == false)
                       const AdminBadge('Pop-up', color: AdminColors.info),
+                    if (onBehalf)
+                      Tooltip(
+                        message:
+                            'Dikirim oleh ${d['actingAdminName'] ?? 'admin'} atas nama ${d['fromUserName'] ?? 'keluarga'}. '
+                            'Label ini hanya terlihat di Admin Panel.',
+                        child: const AdminBadge('Dikirim admin atas nama',
+                            color: AdminColors.keluarga,
+                            icon: Icons.support_agent),
+                      ),
+                    if (original != null)
+                      Tooltip(
+                        message: 'Waktu asli: ${formatNotifDate(original)}',
+                        child: const AdminBadge('Tanggal diubah',
+                            color: AdminColors.warning,
+                            icon: Icons.edit_calendar_outlined),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -494,15 +640,31 @@ class _UserNotificationsViewState extends State<UserNotificationsView>
           PopupMenuButton<String>(
             tooltip: 'Aksi',
             icon: const Icon(Icons.more_horiz, color: AdminColors.textMuted),
-            itemBuilder: (_) => const [
+            itemBuilder: (_) => [
               PopupMenuItem(
+                value: 'read',
+                child: Text(isRead ? 'Tandai belum dibaca' : 'Tandai dibaca'),
+              ),
+              const PopupMenuItem(
+                value: 'date',
+                child: Text('Ubah tanggal & jam'),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
                 value: 'delete',
                 child: Text('Hapus notifikasi',
                     style: TextStyle(color: AdminColors.danger)),
               ),
             ],
             onSelected: (v) {
-              if (v == 'delete') _delete(doc);
+              switch (v) {
+                case 'read':
+                  _setRead([doc], !isRead);
+                case 'date':
+                  _editDate(doc);
+                case 'delete':
+                  _delete(doc);
+              }
             },
           ),
         ],
