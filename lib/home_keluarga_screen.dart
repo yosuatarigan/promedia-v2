@@ -12,6 +12,7 @@ import 'detail_minum_obat_screen.dart';
 import 'detail_perawatan_kaki_screen.dart';
 import 'chat_list_screen.dart';
 import 'notifikasi_screen.dart';
+import 'reminder_service.dart';
 import 'pengelolaan_makanan_screen.dart';
 import 'terapi_obat_screen.dart';
 import 'latihan_fisik_screen.dart';
@@ -28,6 +29,11 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
   int _selectedIndex = 0;
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
+
+  // Jumlah notifikasi belum dibaca (pesan edukasi / pengingat dari admin).
+  // Dibuat sekali agar tidak membuat listener baru di setiap build.
+  late final Stream<int> _unreadCount =
+      ReminderService().getUnreadReminderCount();
 
   @override
   void didChangeDependencies() {
@@ -210,7 +216,70 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                         ),
                       ),
                       // Notification Icon
-                   
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const NotifikasiScreen(),
+                            ),
+                          );
+                        },
+                        child: StreamBuilder<int>(
+                          stream: _unreadCount,
+                          builder: (context, snapshot) {
+                            final unreadCount = snapshot.data ?? 0;
+
+                            return Stack(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.yellow.shade600,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.notifications,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                ),
+                                if (unreadCount > 0)
+                                  Positioned(
+                                    right: 0,
+                                    top: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      constraints: const BoxConstraints(
+                                        minWidth: 20,
+                                        minHeight: 20,
+                                      ),
+                                      child: Text(
+                                        unreadCount > 9
+                                            ? '9+'
+                                            : unreadCount.toString(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
                     ],
                   ),
                 );
