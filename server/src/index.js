@@ -92,8 +92,18 @@ app.register(async (v1) => {
   });
 }, { prefix: '/v1' });
 
+/** Firestore menolak karena kuota harian habis (gRPC 8 / HTTP 429). */
+function isQuotaExhausted(err) {
+  return err?.code === 8 || err?.code === 'resource-exhausted' || /RESOURCE_EXHAUSTED|Quota exceeded/i.test(err?.message ?? '');
+}
+
 app.setErrorHandler((err, req, reply) => {
   req.log.error(err);
+  if (isQuotaExhausted(err)) {
+    return reply.code(503).send({
+      error: 'Kuota database harian sedang habis. Coba lagi setelah pukul 15.00 WIB.',
+    });
+  }
   const status = err.statusCode && err.statusCode < 500 ? err.statusCode : 500;
   reply.code(status).send({ error: status === 500 ? 'Terjadi kesalahan di server' : err.message });
 });
