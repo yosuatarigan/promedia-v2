@@ -60,7 +60,7 @@ class Pilar5PenggunaanObatPage extends StatelessWidget {
     return Column(
       children: [
         ZoomableImage(
-          imagePath: 'assets/edukasi/pilar5/1.png',
+          imagePath: 'assets/edukasi/pilar5/1.webp',
           margin: const EdgeInsets.only(bottom: 16),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [

@@ -14,19 +14,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<OnboardingData> _pages = [
     OnboardingData(
-      image: 'assets/8.png',
+      image: 'assets/8.webp',
       title: 'Tracking Kebutuhan Pasien',
       description:
           'Dengan aplikasi Promedia, pasien diabetes, keluarga mendapatkan kemudahan dalam melakukan tracking kebutuhan pasien dengan Diabetes',
     ),
     OnboardingData(
-      image: 'assets/9.png',
+      image: 'assets/9.webp',
       title: 'Fitur Pengingat',
       description:
           'Dengan dilengkapi fitur pengingat maka pasien dengan Diabetes tidak perlu khawatir melewatkan waktu penting dalam kebutuhan pasien. Keluarga pasien juga dapat mengingatkan melalui aplikasi.',
     ),
     OnboardingData(
-      image: 'assets/10.png',
+      image: 'assets/10.webp',
       title: 'Sistem Terintegrasi',
       description:
           'Aplikasi Promedia adalah Program Manajemen Edukasi Diabetes yang terintegrasi antara pasien dan keluarga. Sehingga seluruh kebutuhan dan perawatan pasien dapat dipantau oleh keluarga.',
@@ -53,7 +53,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Image.asset('assets/1.png', height: 40),
+                    Image.asset('assets/1.webp', height: 40),
                     TextButton(
                       onPressed: () {
                         Navigator.pushReplacement(
@@ -131,13 +131,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String _getIndicatorImage() {
     switch (_currentPage) {
       case 0:
-        return 'assets/5.png';
+        return 'assets/5.webp';
       case 1:
         return 'assets/6.png';
       case 2:
-        return 'assets/7.png';
+        return 'assets/7.webp';
       default:
-        return 'assets/5.png';
+        return 'assets/5.webp';
     }
   }
 }

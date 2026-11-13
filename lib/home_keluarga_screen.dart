@@ -52,10 +52,10 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Precache semua gambar aktivitas agar tidak flickering
-    precacheImage(const AssetImage('assets/21.png'), context);
-    precacheImage(const AssetImage('assets/22.png'), context);
-    precacheImage(const AssetImage('assets/23.png'), context);
-    precacheImage(const AssetImage('assets/24.png'), context);
+    precacheImage(const AssetImage('assets/21.webp'), context);
+    precacheImage(const AssetImage('assets/22.webp'), context);
+    precacheImage(const AssetImage('assets/23.webp'), context);
+    precacheImage(const AssetImage('assets/24.webp'), context);
   }
 
   String _getGreeting() {
@@ -332,7 +332,7 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                                     ),
                                   ),
                               child: _buildProgramCard(
-                                'assets/25.png',
+                                'assets/25.webp',
                                 'Pengelolaan\nDiabetes',
                               ),
                             ),
@@ -455,7 +455,7 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                       mainAxisSpacing: 16,
                       childAspectRatio: 0.9,
                       children: [
-                        _buildRiwayatCard('assets/21.png', 'Makan', true, () {
+                        _buildRiwayatCard('assets/21.webp', 'Makan', true, () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -464,7 +464,7 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                           );
                         }),
                         _buildRiwayatCard(
-                          'assets/22.png',
+                          'assets/22.webp',
                           'Minum Obat',
                           true,
                           () {
@@ -478,7 +478,7 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                           },
                         ),
                         _buildRiwayatCard(
-                          'assets/23.png',
+                          'assets/23.webp',
                           'Perawatan Kaki',
                           true,
                           () {
@@ -493,7 +493,7 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
                           },
                         ),
                         _buildRiwayatCard(
-                          'assets/24.png',
+                          'assets/24.webp',
                           'Manajemen Stress',
                           true,
                           () {
