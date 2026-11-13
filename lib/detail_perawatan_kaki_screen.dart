@@ -1,3 +1,4 @@
+import 'package:promedia_v2/utils/stream_memo.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,6 +17,7 @@ class DetailPerawatanKakiScreen extends StatefulWidget {
 
 class _DetailPerawatanKakiScreenState
     extends State<DetailPerawatanKakiScreen> {
+  final _logsMemo = StreamMemo<QuerySnapshot>();
   final FootCareService _footCareService = FootCareService();
   final ReminderService _reminderService = ReminderService();
   final _auth = FirebaseAuth.instance;
@@ -543,7 +545,8 @@ class _DetailPerawatanKakiScreenState
 
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _footCareService.getFootCareLogsByDate(noKode!, selectedDate),
+              stream: _logsMemo.get(
+                  '$noKode|$selectedDate', () => _footCareService.getFootCareLogsByDate(noKode!, selectedDate)),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(

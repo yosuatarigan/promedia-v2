@@ -1,6 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// Jumlah maksimal notifikasi yang dimuat di layar Notifikasi.
+const kReminderListLimit = 100;
+
+/// Lencana belum dibaca hanya menampilkan sampai "9+", jadi cukup 10.
+const kUnreadBadgeLimit = 10;
+
 class ReminderService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -65,6 +71,9 @@ class ReminderService {
         .collection('reminders')
         .where('toUserId', isEqualTo: currentUser.uid)
         .orderBy('createdAt', descending: true)
+        // Dibatasi: pesan edukasi harian terus bertambah; tanpa batas setiap
+        // buka layar membaca seluruh riwayat.
+        .limit(kReminderListLimit)
         .snapshots();
   }
 
@@ -76,6 +85,7 @@ class ReminderService {
         .where('noKode', isEqualTo: noKode)
         .where('toUserId', isNull: true)
         .orderBy('createdAt', descending: true)
+        .limit(kReminderListLimit)
         .snapshots();
   }
 
@@ -101,6 +111,9 @@ class ReminderService {
         .collection('reminders')
         .where('toUserId', isEqualTo: currentUser.uid)
         .where('isRead', isEqualTo: false)
+        .orderBy('createdAt', descending: true)
+        // Lencana cukup sampai "9+"; tidak perlu membaca semua yang belum dibaca.
+        .limit(kUnreadBadgeLimit)
         .snapshots()
         .map((snapshot) => snapshot.docs.length);
   }
@@ -129,6 +142,7 @@ class ReminderService {
           .where('toUserId', isEqualTo: currentUser.uid)
           .where('isRead', isEqualTo: false)
           .orderBy('createdAt', descending: true)
+          .limit(30)
           .get();
 
       // Query 2: reminder berbasis noKode (toUserId null — dikirim sebelum pasien terdaftar)
@@ -139,6 +153,7 @@ class ReminderService {
               .where('toUserId', isNull: true)
               .where('isRead', isEqualTo: false)
               .orderBy('createdAt', descending: true)
+              .limit(30)
               .get()
           : null;
 

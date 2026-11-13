@@ -93,12 +93,16 @@ export class PushSender {
       tokens,
       notification: { title, body },
       data: { reminderId: ref.id, type: String(r.type ?? '') },
-      android: { priority: 'high', notification: { channelId: 'pengingat' } },
+      // Tanpa channelId: aplikasi belum membuat channel khusus, FCM memakai
+      // channel bawaan sehingga notifikasi tetap tampil.
+      android: { priority: 'high' },
       apns: { payload: { aps: { sound: 'default' } } },
     });
     const dead = res.responses
       .map((x, i) => (!x.success && DEAD_TOKEN.has(x.error?.code) ? tokens[i] : null))
       .filter(Boolean);
+    const errors = res.responses.filter((x) => !x.success).map((x) => x.error?.code ?? 'unknown');
+    if (errors.length) this.log.warn({ reminderId: ref.id, errors }, 'push partly failed');
     if (dead.length) await userRef.update({ fcmTokens: FieldValue.arrayRemove(...dead) });
     this.stats.sent += res.successCount;
     this.stats.failed += res.failureCount;

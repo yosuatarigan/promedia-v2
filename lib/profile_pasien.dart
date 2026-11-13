@@ -1,3 +1,4 @@
+import 'package:promedia_v2/push_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,22 @@ class ProfilPasienScreen extends StatefulWidget {
 }
 
 class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
+  // Stream disimpan agar tidak membuat listener Firestore baru di setiap build.
+  final Map<String, Stream<QuerySnapshot>> _logStreams = {};
+
+  Stream<QuerySnapshot> _latestLogs(String collection, int limit) {
+    final noKode = userData?['noKode'];
+    return _logStreams.putIfAbsent(
+      '$collection|$noKode|$limit',
+      () => _firestore
+          .collection(collection)
+          .where('noKode', isEqualTo: noKode)
+          .orderBy('tanggal', descending: true)
+          .limit(limit)
+          .snapshots(),
+    );
+  }
+
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
@@ -466,12 +483,7 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
             _buildInfoItem('Status', 'Sudah dihitung'),
           ] else ...[
             StreamBuilder<QuerySnapshot>(
-              stream: _firestore
-                  .collection('food_logs')
-                  .where('noKode', isEqualTo: userData?['noKode'])
-                  .orderBy('tanggal', descending: true)
-                  .limit(1)
-                  .snapshots(),
+              stream: _latestLogs('food_logs', 1),
               builder: (context, snapshot) {
                 if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
                   final latestFood =
@@ -551,12 +563,7 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
           ),
           const SizedBox(height: 12),
           StreamBuilder<QuerySnapshot>(
-            stream: _firestore
-                .collection('food_logs')
-                .where('noKode', isEqualTo: userData?['noKode'])
-                .orderBy('tanggal', descending: true)
-                .limit(2)
-                .snapshots(),
+            stream: _latestLogs('food_logs', 2),
             builder: (context, snapshot) {
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return _buildInfoItem('Status', 'Belum ada data');
@@ -604,12 +611,7 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
           ),
           const SizedBox(height: 12),
           StreamBuilder<QuerySnapshot>(
-            stream: _firestore
-                .collection('medication_logs')
-                .where('noKode', isEqualTo: userData?['noKode'])
-                .orderBy('tanggal', descending: true)
-                .limit(2)
-                .snapshots(),
+            stream: _latestLogs('medication_logs', 2),
             builder: (context, snapshot) {
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return _buildInfoItem('Status', 'Belum ada data');
@@ -658,12 +660,7 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
           ),
           const SizedBox(height: 12),
           StreamBuilder<QuerySnapshot>(
-            stream: _firestore
-                .collection('foot_care_logs')
-                .where('noKode', isEqualTo: userData?['noKode'])
-                .orderBy('tanggal', descending: true)
-                .limit(2)
-                .snapshots(),
+            stream: _latestLogs('foot_care_logs', 2),
             builder: (context, snapshot) {
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return _buildInfoItem('Status', 'Belum ada data');
@@ -711,12 +708,7 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
           ),
           const SizedBox(height: 12),
           StreamBuilder<QuerySnapshot>(
-            stream: _firestore
-                .collection('stress_management_logs')
-                .where('noKode', isEqualTo: userData?['noKode'])
-                .orderBy('tanggal', descending: true)
-                .limit(1)
-                .snapshots(),
+            stream: _latestLogs('stress_management_logs', 1),
             builder: (context, snapshot) {
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return Column(
@@ -789,6 +781,7 @@ class _ProfilPasienScreenState extends State<ProfilPasienScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
+              await PushService.unregisterCurrentUser();
               await _auth.signOut();
             },
             style: ElevatedButton.styleFrom(

@@ -1,3 +1,4 @@
+import 'package:promedia_v2/utils/stream_memo.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,6 +15,7 @@ class DetailMinumObatScreen extends StatefulWidget {
 }
 
 class _DetailMinumObatScreenState extends State<DetailMinumObatScreen> {
+  final _logsMemo = StreamMemo<QuerySnapshot>();
   final MedicationLogService _medicationService = MedicationLogService();
   final ReminderService _reminderService = ReminderService();
   final _auth = FirebaseAuth.instance;
@@ -273,7 +275,8 @@ class _DetailMinumObatScreenState extends State<DetailMinumObatScreen> {
 
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _medicationService.getMedicationLogsByDate(noKode!, selectedDate),
+              stream: _logsMemo.get(
+                  '$noKode|$selectedDate', () => _medicationService.getMedicationLogsByDate(noKode!, selectedDate)),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
