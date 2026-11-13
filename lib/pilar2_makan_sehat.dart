@@ -145,7 +145,7 @@ class Pilar2MakanSehatPage extends StatelessWidget {
           const Color(0xFF10B981),
         ),
         const SizedBox(height: 16),
-        ZoomableImage(imagePath: 'assets/edukasi/pilar2/1jadwalmakan.png'),
+        ZoomableImage(imagePath: 'assets/edukasi/pilar2/1jadwalmakan.webp'),
         const SizedBox(height: 16),
         const Text(
           'Jadwal Makan yang Disarankan',
@@ -222,8 +222,8 @@ class Pilar2MakanSehatPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildImg('assets/materibaru/jumlahmakan/1.png'),
-        _buildImg('assets/materibaru/jumlahmakan/2.png'),
+        _buildImg('assets/materibaru/jumlahmakan/1.webp'),
+        _buildImg('assets/materibaru/jumlahmakan/2.webp'),
         _buildImg('assets/materibaru/jumlahmakan/4.jpeg'),
         _buildKisahCard(),
       ],
@@ -231,7 +231,7 @@ class Pilar2MakanSehatPage extends StatelessWidget {
   }
 
   Widget _buildKisahCard() {
-    return _buildImg('assets/materibaru/jumlahmakan/pakyaya.png');
+    return _buildImg('assets/materibaru/jumlahmakan/pakyaya.webp');
   }
 
   Widget _buildJenisMakanan() {
@@ -239,7 +239,7 @@ class Pilar2MakanSehatPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ZoomableImage(
-          imagePath: 'assets/edukasi/pilar2/pilihanmakan.png',
+          imagePath: 'assets/edukasi/pilar2/pilihanmakan.webp',
           margin: const EdgeInsets.only(bottom: 16),
         ),
         _buildSubMateri('Makanan Pokok', Icons.rice_bowl_rounded, const Color(0xFFF59E0B), _buildMakananPokok()),
@@ -289,22 +289,22 @@ class Pilar2MakanSehatPage extends StatelessWidget {
   Widget _buildMakananPokok() {
     return Column(
       children: [
-        _buildImg('assets/materibaru/jenismakanan/makananpokok.png'),
-        _buildImg('assets/materibaru/jenismakanan/makananpokok2.png'),
+        _buildImg('assets/materibaru/jenismakanan/makananpokok.webp'),
+        _buildImg('assets/materibaru/jenismakanan/makananpokok2.webp'),
       ],
     );
   }
 
   Widget _buildBuah() {
-    return _buildImg('assets/materibaru/jenismakanan/buahaman.png');
+    return _buildImg('assets/materibaru/jenismakanan/buahaman.webp');
   }
 
   Widget _buildSayuran() {
     return Column(
       children: [
-        _buildImg('assets/materibaru/jenismakanan/sayuran/1.png'),
-        _buildImg('assets/materibaru/jenismakanan/sayuran/2.png'),
-        _buildImg('assets/materibaru/jenismakanan/sayuran/3.png'),
+        _buildImg('assets/materibaru/jenismakanan/sayuran/1.webp'),
+        _buildImg('assets/materibaru/jenismakanan/sayuran/2.webp'),
+        _buildImg('assets/materibaru/jenismakanan/sayuran/3.webp'),
       ],
     );
   }
@@ -312,8 +312,8 @@ class Pilar2MakanSehatPage extends StatelessWidget {
   Widget _buildProtein() {
     return Column(
       children: [
-        _buildImg('assets/materibaru/jenismakanan/protein/1.png'),
-        _buildImg('assets/materibaru/jenismakanan/protein/2.png'),
+        _buildImg('assets/materibaru/jenismakanan/protein/1.webp'),
+        _buildImg('assets/materibaru/jenismakanan/protein/2.webp'),
       ],
     );
   }
@@ -321,8 +321,8 @@ class Pilar2MakanSehatPage extends StatelessWidget {
   Widget _buildMinuman() {
     return Column(
       children: [
-        _buildImg('assets/materibaru/jenismakanan/minuman/1.png'),
-        _buildImg('assets/materibaru/jenismakanan/minuman/2.png'),
+        _buildImg('assets/materibaru/jenismakanan/minuman/1.webp'),
+        _buildImg('assets/materibaru/jenismakanan/minuman/2.webp'),
       ],
     );
   }
@@ -380,17 +380,17 @@ class Pilar2MakanSehatPage extends StatelessWidget {
               Column(
                 children: [
                   ZoomableImage(
-                    imagePath: 'assets/edukasi/pilar2/41caramemasak1.png',
+                    imagePath: 'assets/edukasi/pilar2/41caramemasak1.webp',
                     borderRadius: BorderRadius.circular(8),
                   ),
                   const SizedBox(height: 8),
                   ZoomableImage(
-                    imagePath: 'assets/edukasi/pilar2/41caramemasak2.png',
+                    imagePath: 'assets/edukasi/pilar2/41caramemasak2.webp',
                     borderRadius: BorderRadius.circular(8),
                   ),
                   const SizedBox(height: 8),
                   ZoomableImage(
-                    imagePath: 'assets/edukasi/pilar2/41caramemasak3.png',
+                    imagePath: 'assets/edukasi/pilar2/41caramemasak3.webp',
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ],
@@ -444,7 +444,7 @@ class Pilar2MakanSehatPage extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               ZoomableImage(
-                imagePath: 'assets/edukasi/pilar2/42urutanmakan1.png',
+                imagePath: 'assets/edukasi/pilar2/42urutanmakan1.webp',
                 borderRadius: BorderRadius.circular(8),
               ),
             ],
@@ -460,15 +460,15 @@ class Pilar2MakanSehatPage extends StatelessWidget {
           '4. Agar Porsi Makan Seimbang',
           Icons.pie_chart_rounded,
           const Color(0xFF10B981),
-          ['assets/materibaru/tipspilar2/agarporsimakanseimbang.png'],
+          ['assets/materibaru/tipspilar2/agarporsimakanseimbang.webp'],
         ),
         _buildTipImageSection(
           '5. Pengelolaan Makan Saat Bepergian',
           Icons.luggage_rounded,
           const Color(0xFFF59E0B),
           [
-            'assets/materibaru/tipspilar2/tipsberpergian1.png',
-            'assets/materibaru/tipspilar2/tipsberpergian2.png',
+            'assets/materibaru/tipspilar2/tipsberpergian1.webp',
+            'assets/materibaru/tipspilar2/tipsberpergian2.webp',
           ],
         ),
         _buildTipImageSection(
@@ -476,8 +476,8 @@ class Pilar2MakanSehatPage extends StatelessWidget {
           Icons.mosque_rounded,
           const Color(0xFF6366F1),
           [
-            'assets/materibaru/tipspilar2/tipspuasa1.png',
-            'assets/materibaru/tipspilar2/tipspuasa2.png',
+            'assets/materibaru/tipspilar2/tipspuasa1.webp',
+            'assets/materibaru/tipspilar2/tipspuasa2.webp',
           ],
         ),
       ],

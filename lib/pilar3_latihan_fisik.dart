@@ -221,7 +221,7 @@ class Pilar3LatihanFisikPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ZoomableImage(
-          imagePath: 'assets/edukasi/pilar3/1.png',
+          imagePath: 'assets/edukasi/pilar3/1.webp',
           margin: const EdgeInsets.only(bottom: 16),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [

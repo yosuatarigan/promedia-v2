@@ -537,7 +537,7 @@ class Pilar4PemantauanPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ZoomableImage(
-          imagePath: 'assets/materibaru/caramemeriksaguladarah.png',
+          imagePath: 'assets/materibaru/caramemeriksaguladarah.webp',
           margin: const EdgeInsets.only(bottom: 16),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [

@@ -55,7 +55,7 @@ class RiwayatAktivitasScreen extends StatelessWidget {
               children: [
                 _buildActivityCard(
                   context,
-                  'assets/21.png',
+                  'assets/21.webp',
                   'Makan',
                   hasNotification: true,
                   onTap: () {
@@ -69,7 +69,7 @@ class RiwayatAktivitasScreen extends StatelessWidget {
                 ),
                 _buildActivityCard(
                   context,
-                  'assets/22.png',
+                  'assets/22.webp',
                   'Minum Obat',
                   hasNotification: true,
                   onTap: () {
@@ -83,7 +83,7 @@ class RiwayatAktivitasScreen extends StatelessWidget {
                 ),
                 _buildActivityCard(
                   context,
-                  'assets/23.png',
+                  'assets/23.webp',
                   'Perawatan Kaki',
                   hasNotification: true,
                   onTap: () {
@@ -97,7 +97,7 @@ class RiwayatAktivitasScreen extends StatelessWidget {
                 ),
                 _buildActivityCard(
                   context,
-                  'assets/24.png',
+                  'assets/24.webp',
                   'Manajemen Stress',
                   hasNotification: true,
                   onTap: () {

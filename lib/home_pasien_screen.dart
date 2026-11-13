@@ -97,10 +97,10 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    precacheImage(const AssetImage('assets/21.png'), context);
-    precacheImage(const AssetImage('assets/22.png'), context);
-    precacheImage(const AssetImage('assets/23.png'), context);
-    precacheImage(const AssetImage('assets/24.png'), context);
+    precacheImage(const AssetImage('assets/21.webp'), context);
+    precacheImage(const AssetImage('assets/22.webp'), context);
+    precacheImage(const AssetImage('assets/23.webp'), context);
+    precacheImage(const AssetImage('assets/24.webp'), context);
   }
 
   // Check dan tampilkan reminder pop-up
@@ -504,25 +504,25 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                               left: 20, right: 20, top: 8),
                           children: [
                             _buildActivityCard(
-                              'assets/21.png',
+                              'assets/21.webp',
                               'Makan',
                               hasNotification: true,
                             ),
                             const SizedBox(width: 16),
                             _buildActivityCard(
-                              'assets/22.png',
+                              'assets/22.webp',
                               'Minum Obat',
                               hasNotification: true,
                             ),
                             const SizedBox(width: 16),
                             _buildActivityCard(
-                              'assets/23.png',
+                              'assets/23.webp',
                               'Perawatan Kaki',
                               hasNotification: true,
                             ),
                             const SizedBox(width: 16),
                             _buildActivityCard(
-                              'assets/24.png',
+                              'assets/24.webp',
                               'Manajemen Stress',
                               hasNotification: true,
                             ),
@@ -565,7 +565,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                                     ),
                                   ),
                               child: _buildProgramCard(
-                                'assets/25.png',
+                                'assets/25.webp',
                                 'Pengelolaan\nDiabetes',
                               ),
                             ),
@@ -753,7 +753,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                       mainAxisSpacing: 16,
                       childAspectRatio: 0.9,
                       children: [
-                        _buildRiwayatCard('assets/21.png', 'Makan', true, () {
+                        _buildRiwayatCard('assets/21.webp', 'Makan', true, () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -762,7 +762,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                           );
                         }),
                         _buildRiwayatCard(
-                          'assets/22.png',
+                          'assets/22.webp',
                           'Minum Obat',
                           true,
                           () {
@@ -776,7 +776,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                           },
                         ),
                         _buildRiwayatCard(
-                          'assets/23.png',
+                          'assets/23.webp',
                           'Perawatan Kaki',
                           true,
                           () {
@@ -791,7 +791,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                           },
                         ),
                         _buildRiwayatCard(
-                          'assets/24.png',
+                          'assets/24.webp',
                           'Manajemen Stress',
                           true,
                           () {

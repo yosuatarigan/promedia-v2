@@ -119,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Header
                   Padding(
                     padding: const EdgeInsets.all(20.0),
-                    child: Image.asset('assets/18.png', height: 80),
+                    child: Image.asset('assets/18.webp', height: 80),
                   ),
 
                   const SizedBox(height: 40),

@@ -30,12 +30,12 @@ class _SplashscreenState extends State<Splashscreen> {
         children: [
           Align(
             alignment: Alignment.centerRight,
-            child: Image.asset('assets/3.png', width: size.width * 0.6),
+            child: Image.asset('assets/3.webp', width: size.width * 0.6),
           ),
-          Image.asset('assets/2.png', width: size.width * 0.8),
+          Image.asset('assets/2.webp', width: size.width * 0.8),
           Align(
             alignment: Alignment.centerLeft,
-            child: Image.asset('assets/4.png', width: size.width * 0.8),
+            child: Image.asset('assets/4.webp', width: size.width * 0.8),
           ),
         ],
       ),

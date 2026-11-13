@@ -30,25 +30,25 @@ class Pilar1EdukasiPage extends StatelessWidget {
           _buildImageMateriCard(
             number: '1',
             title: 'Pemahaman Dasar tentang Diabetes',
-            imagePath: 'assets/edukasi/pilar1/1.png',
+            imagePath: 'assets/edukasi/pilar1/1.webp',
             color: const Color(0xFF6366F1),
           ),
           _buildImageMateriCard(
             number: '2',
             title: 'Tanda dan Gejala Diabetes',
-            imagePath: 'assets/edukasi/pilar1/2.png',
+            imagePath: 'assets/edukasi/pilar1/2.webp',
             color: const Color(0xFFEF4444),
           ),
           _buildImageMateriCard(
             number: '3',
             title: 'Faktor Risiko Diabetes Tipe 2',
-            imagePath: 'assets/edukasi/pilar1/3.png',
+            imagePath: 'assets/edukasi/pilar1/3.webp',
             color: const Color(0xFFF59E0B),
           ),
           _buildImageMateriCard(
             number: '4',
             title: 'Merokok Meningkatkan Risiko',
-            imagePath: 'assets/edukasi/pilar1/4.png',
+            imagePath: 'assets/edukasi/pilar1/4.webp',
             color: const Color(0xFFDC2626),
           ),
           _buildTextMateriCard(

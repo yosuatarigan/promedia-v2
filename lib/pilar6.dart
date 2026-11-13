@@ -144,7 +144,7 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ZoomableImage(
-          imagePath: 'assets/edukasi/pilar6/1.png',
+          imagePath: 'assets/edukasi/pilar6/1.webp',
           margin: const EdgeInsets.only(bottom: 16),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
@@ -206,7 +206,7 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ZoomableImage(
-          imagePath: 'assets/edukasi/pilar6/5.png',
+          imagePath: 'assets/edukasi/pilar6/5.webp',
           margin: const EdgeInsets.only(bottom: 16),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
@@ -327,7 +327,7 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         ZoomableImage(
-          imagePath: 'assets/materibaru/tipsmemilihsepatu.png',
+          imagePath: 'assets/materibaru/tipsmemilihsepatu.webp',
           margin: const EdgeInsets.only(bottom: 16),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
@@ -450,9 +450,9 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        _buildSingleImage('assets/materibaru/tipsperawatanluka1.png'),
-        _buildSingleImage('assets/materibaru/tipsperawatanluka2.png'),
-        _buildSingleImage('assets/materibaru/tipsperawatanluka3.png'),
+        _buildSingleImage('assets/materibaru/tipsperawatanluka1.webp'),
+        _buildSingleImage('assets/materibaru/tipsperawatanluka2.webp'),
+        _buildSingleImage('assets/materibaru/tipsperawatanluka3.webp'),
       ],
     );
   }
@@ -622,7 +622,7 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
       children: [
         // Image 3 - Manajemen Stress Edukasi
         ZoomableImage(
-          imagePath: 'assets/edukasi/pilar6/3.png',
+          imagePath: 'assets/edukasi/pilar6/3.webp',
           margin: const EdgeInsets.only(bottom: 12),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
@@ -635,7 +635,7 @@ class Pilar6PencegahanKomplikasiPage extends StatelessWidget {
         ),
         // Image 4 - 5 Praktik Pereda Stress (Sudah lengkap di gambar)
         ZoomableImage(
-          imagePath: 'assets/edukasi/pilar6/4.png',
+          imagePath: 'assets/edukasi/pilar6/4.webp',
           margin: const EdgeInsets.only(bottom: 16),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
