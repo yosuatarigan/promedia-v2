@@ -36,6 +36,24 @@ Semua `/v1/*` wajib header `Authorization: Bearer <Firebase ID token>` milik **a
 | POST | `/v1/users/:uid/disable` `{ "disabled": true\|false }` | Nonaktifkan / aktifkan akun login; sesi aktif diputus |
 | DELETE | `/v1/users/:uid` | Hapus permanen: akun login, profil, notifikasi; untuk pasien juga semua catatan aktivitas & chat dengan `noKode`-nya. Akun keluarga tidak menyentuh catatan pasien. Dicatat di koleksi `admin_audit` |
 
+## Pengingat terjadwal & push (v0.2.0)
+
+- **Scheduler** (aktif default; matikan dengan `SCHEDULER_ENABLED=0` di `/opt/promedia/.env`).
+  Satu listener Firestore pada `scheduled_reminders where status == 'pending'` + timer di memori
+  — tanpa polling, jadi hampir tidak menambah pembacaan. Saat jatuh tempo, transaksi membuat
+  dokumen `reminders` (field `scheduledFor`, `scheduledReminderId`) dan mengubah jadwal ke
+  `status: 'sent'`. Gagal 4× → `status: 'failed'` + `error`. Jadwal yang terlewat saat layanan
+  mati langsung dikirim begitu layanan hidup lagi. Admin hanya bisa membuat (`pending`) dan
+  membatalkan (`cancelled`) lewat rules.
+- **Push FCM** (mati default; nyalakan dengan `PUSH_ENABLED=1`). Mengirim notifikasi untuk
+  pengingat baru (≤10 menit) ke token di `users/{uid}.fcmTokens`; token mati dibuang, lalu
+  `pushedAt` diisi. Pengingat bertanggal lampau (diisi admin) tidak di-push. Syarat sebelum
+  dinyalakan:
+  1. aplikasi mobile menyimpan token FCM ke `users/{uid}.fcmTokens` (rilis Tahap 4);
+  2. Firebase Cloud Messaging API aktif dan service account `promedia-vps@…` diberi peran
+     **Firebase Cloud Messaging API Admin** (`roles/firebasecloudmessaging.admin`).
+- `/health` menampilkan statistik `scheduler` dan `push`.
+
 ## Pekerjaan rutin
 
 Deploy kode (dari Mac, folder `server/`):

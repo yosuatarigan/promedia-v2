@@ -600,6 +600,9 @@ class _UserNotificationsViewState extends State<UserNotificationsView>
                             color: AdminColors.keluarga,
                             icon: Icons.support_agent),
                       ),
+                    if (d['scheduledReminderId'] != null)
+                      const AdminBadge('Terjadwal',
+                          color: AdminColors.info, icon: Icons.schedule_send_outlined),
                     if (original != null)
                       Tooltip(
                         message: 'Waktu asli: ${formatNotifDate(original)}',
