@@ -17,3 +17,5 @@ firestore.rules
 firebase.json
 .firebaserc
 firestore.indexes.json
+server/
+docs/

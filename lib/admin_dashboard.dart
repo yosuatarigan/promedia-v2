@@ -10,6 +10,7 @@ import 'package:excel/excel.dart' hide Border;
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
 import 'package:promedia_v2/admin/add_user_dialog.dart';
+import 'package:promedia_v2/admin/delete_user_dialog.dart';
 import 'package:promedia_v2/admin/admin_session.dart';
 import 'package:promedia_v2/admin/admin_ui.dart';
 import 'package:promedia_v2/admin/notifications/user_notifications.dart';
@@ -1588,7 +1589,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         )),
         DataCell(Text((data['nik'] ?? '-').toString(),
             style: const TextStyle(color: AdminColors.textMuted))),
-        DataCell(AdminBadge.role(role)),
+        DataCell(Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AdminBadge.role(role),
+            if (data['accountDisabled'] == true) ...[
+              const SizedBox(width: 6),
+              const AdminBadge('Nonaktif', color: AdminColors.textMuted, icon: Icons.block),
+            ],
+          ],
+        )),
         DataCell(
           pass == null
               ? const Text('-', style: TextStyle(color: AdminColors.textSubtle))
@@ -1648,7 +1658,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
             AdminIconAction(
               icon: Icons.delete_outline,
-              tooltip: 'Hapus',
+              tooltip: 'Hapus / nonaktifkan',
               color: AdminColors.danger,
               onPressed: () => _confirmDelete(doc),
             ),
@@ -1696,6 +1706,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           runSpacing: 6,
                           children: [
                             AdminBadge.role(role),
+                            if (data['accountDisabled'] == true)
+                              const AdminBadge('Nonaktif',
+                                  color: AdminColors.textMuted, icon: Icons.block),
                             UnreadNotifBadge(
                               info: _unreadOf(doc),
                               compact: true,
@@ -1936,33 +1949,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
-  void _confirmDelete(QueryDocumentSnapshot doc) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Konfirmasi Hapus'),
-        content: const Text('Apakah Anda yakin ingin menghapus user ini?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await _firestore.collection('users').doc(doc.id).delete();
-              if (mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('User berhasil dihapus')),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _confirmDelete(QueryDocumentSnapshot doc) async {
+    final msg = await showDeleteUserDialog(context, doc);
+    if (msg != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    }
   }
 
   Future<void> _logout() async {
