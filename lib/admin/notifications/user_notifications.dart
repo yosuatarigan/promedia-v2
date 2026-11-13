@@ -595,7 +595,8 @@ class _UserNotificationsViewState extends State<UserNotificationsView>
                         message:
                             'Dikirim oleh ${d['actingAdminName'] ?? 'admin'} atas nama ${d['fromUserName'] ?? 'keluarga'}. '
                             'Label ini hanya terlihat di Admin Panel.',
-                        child: const AdminBadge('Dikirim admin atas nama',
+                        child: AdminBadge(
+                            'Dikirim admin atas nama ${d['fromUserName'] ?? 'keluarga'}',
                             color: AdminColors.keluarga,
                             icon: Icons.support_agent),
                       ),

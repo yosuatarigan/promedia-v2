@@ -172,7 +172,9 @@ class _SendReminderDialogState extends State<_SendReminderDialog> {
     } catch (e) {
       setState(() {
         _saving = false;
-        _error = 'Gagal mengirim: $e';
+        _error = e is FirebaseException && e.code == 'permission-denied'
+            ? 'Akses ditolak server. Pastikan akun admin masih aktif, lalu coba lagi.'
+            : 'Gagal ${_scheduled ? 'menjadwalkan' : 'mengirim'}: $e';
       });
     }
   }
