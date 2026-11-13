@@ -101,6 +101,8 @@ export class PushSender {
     const dead = res.responses
       .map((x, i) => (!x.success && DEAD_TOKEN.has(x.error?.code) ? tokens[i] : null))
       .filter(Boolean);
+    const errors = res.responses.filter((x) => !x.success).map((x) => x.error?.code ?? 'unknown');
+    if (errors.length) this.log.warn({ reminderId: ref.id, errors }, 'push partly failed');
     if (dead.length) await userRef.update({ fcmTokens: FieldValue.arrayRemove(...dead) });
     this.stats.sent += res.successCount;
     this.stats.failed += res.failureCount;
