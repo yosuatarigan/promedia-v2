@@ -1,3 +1,4 @@
+import 'package:promedia_v2/utils/stream_memo.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,6 +14,7 @@ class DetailMakanScreen extends StatefulWidget {
 }
 
 class _DetailMakanScreenState extends State<DetailMakanScreen> {
+  final _logsMemo = StreamMemo<QuerySnapshot>();
   final FoodLogService _foodLogService = FoodLogService();
   final ReminderService _reminderService = ReminderService();
   final _auth = FirebaseAuth.instance;
@@ -457,7 +459,8 @@ class _DetailMakanScreenState extends State<DetailMakanScreen> {
           // Content
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _foodLogService.getFoodLogsByDate(noKode!, selectedDate),
+              stream: _logsMemo.get(
+                  '$noKode|$selectedDate', () => _foodLogService.getFoodLogsByDate(noKode!, selectedDate)),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(

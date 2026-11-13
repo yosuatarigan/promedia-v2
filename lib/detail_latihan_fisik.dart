@@ -1,3 +1,4 @@
+import 'package:promedia_v2/utils/stream_memo.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,6 +16,7 @@ class DetailLatihanFisikScreen extends StatefulWidget {
 }
 
 class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
+  final _logsMemo = StreamMemo<QuerySnapshot>();
   final LatihanFisikService _latihanFisikService = LatihanFisikService();
   final ReminderService _reminderService = ReminderService();
   final _auth = FirebaseAuth.instance;
@@ -564,8 +566,9 @@ class _DetailLatihanFisikScreenState extends State<DetailLatihanFisikScreen> {
 
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _latihanFisikService.getLatihanFisikByDate(
-                  noKode!, selectedDate),
+              stream: _logsMemo.get(
+                  '$noKode|$selectedDate', () => _latihanFisikService.getLatihanFisikByDate(
+                  noKode!, selectedDate)),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(

@@ -1,3 +1,4 @@
+import 'package:promedia_v2/push_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -34,6 +35,18 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
   // Dibuat sekali agar tidak membuat listener baru di setiap build.
   late final Stream<int> _unreadCount =
       ReminderService().getUnreadReminderCount();
+
+  // Profil di header — dibuat sekali, bukan di setiap build.
+  late final Stream<DocumentSnapshot>? _headerUserStream =
+      _auth.currentUser == null
+          ? null
+          : _firestore.collection('users').doc(_auth.currentUser!.uid).snapshots();
+
+  @override
+  void initState() {
+    super.initState();
+    PushService.registerCurrentUser();
+  }
 
   @override
   void didChangeDependencies() {
@@ -86,8 +99,6 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
 
   // BERANDA PAGE
   Widget _buildBerandaPage() {
-    final currentUser = _auth.currentUser;
-
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -101,13 +112,7 @@ class _HomeKeluargaScreenState extends State<HomeKeluargaScreen> {
           children: [
             // Header with StreamBuilder
             StreamBuilder<DocumentSnapshot>(
-              stream:
-                  currentUser != null
-                      ? _firestore
-                          .collection('users')
-                          .doc(currentUser.uid)
-                          .snapshots()
-                      : null,
+              stream: _headerUserStream,
               builder: (context, snapshot) {
                 // Default values
                 String namaLengkap = 'User';

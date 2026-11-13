@@ -13,6 +13,9 @@ class NotifikasiScreen extends StatefulWidget {
 
 class _NotifikasiScreenState extends State<NotifikasiScreen> {
   final ReminderService _reminderService = ReminderService();
+  // Dibuat sekali agar rebuild tidak membuat listener baru.
+  late final Stream<QuerySnapshot> _reminders =
+      _reminderService.getRemindersForCurrentUser();
   final _auth = FirebaseAuth.instance;
 
   String _getTimeAgo(Timestamp? timestamp) {
@@ -143,7 +146,7 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _reminderService.getRemindersForCurrentUser(),
+        stream: _reminders,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(

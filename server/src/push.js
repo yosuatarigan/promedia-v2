@@ -93,7 +93,9 @@ export class PushSender {
       tokens,
       notification: { title, body },
       data: { reminderId: ref.id, type: String(r.type ?? '') },
-      android: { priority: 'high', notification: { channelId: 'pengingat' } },
+      // Tanpa channelId: aplikasi belum membuat channel khusus, FCM memakai
+      // channel bawaan sehingga notifikasi tetap tampil.
+      android: { priority: 'high' },
       apns: { payload: { aps: { sound: 'default' } } },
     });
     const dead = res.responses

@@ -21,6 +21,9 @@ class ChatRoomScreen extends StatefulWidget {
 
 class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final ChatService _chatService = ChatService();
+  // Dibuat sekali: mengetik pesan memicu rebuild, jangan buat listener baru.
+  late final Stream<QuerySnapshot> _messages =
+      _chatService.getChatMessages(widget.noKode);
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ImagePicker _picker = ImagePicker();
@@ -235,7 +238,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           // Messages List
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _chatService.getChatMessages(widget.noKode),
+              stream: _messages,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(

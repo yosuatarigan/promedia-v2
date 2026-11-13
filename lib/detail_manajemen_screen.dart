@@ -1,3 +1,4 @@
+import 'package:promedia_v2/utils/stream_memo.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,6 +17,7 @@ class DetailManajemenStressScreen extends StatefulWidget {
 
 class _DetailManajemenStressScreenState
     extends State<DetailManajemenStressScreen> {
+  final _logsMemo = StreamMemo<QuerySnapshot>();
   final StressManagementService _stressService = StressManagementService();
   final ReminderService _reminderService = ReminderService();
   final _auth = FirebaseAuth.instance;
@@ -606,8 +608,9 @@ class _DetailManajemenStressScreenState
 
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _stressService.getStressLogsByDate(
-                  noKode!, selectedDate),
+              stream: _logsMemo.get(
+                  '$noKode|$selectedDate', () => _stressService.getStressLogsByDate(
+                  noKode!, selectedDate)),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(

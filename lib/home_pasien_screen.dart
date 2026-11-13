@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:promedia_v2/push_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -36,11 +38,39 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
   final _reminderService = ReminderService();
+
+  // Stream Firestore dibuat SEKALI per State. Membuatnya di dalam build()
+  // membuat listener baru di setiap rebuild (boros baca kuota Firestore).
+  late final Stream<DocumentSnapshot>? _headerUserStream = _userDocStream();
+  late final Stream<DocumentSnapshot>? _bloodSugarUserStream = _userDocStream();
+  late final Stream<DocumentSnapshot>? _hba1cUserStream = _userDocStream();
+  late final Stream<DocumentSnapshot>? _olahragaUserStream = _userDocStream();
+  late final Stream<int> _unreadCountStream =
+      _reminderService.getUnreadReminderCount();
+  final Map<String, Stream<QuerySnapshot>> _chartStreams = {};
+
+  Stream<DocumentSnapshot>? _userDocStream() {
+    final uid = _auth.currentUser?.uid;
+    return uid == null ? null : _firestore.collection('users').doc(uid).snapshots();
+  }
+
+  /// 7 catatan TERBARU untuk grafik (urut turun; dibalik saat ditampilkan).
+  Stream<QuerySnapshot> _chartStream(String collection, String noKode) =>
+      _chartStreams.putIfAbsent(
+        '$collection|$noKode',
+        () => _firestore
+            .collection(collection)
+            .where('noKode', isEqualTo: noKode)
+            .orderBy('tanggal', descending: true)
+            .limit(7)
+            .snapshots(),
+      );
   
   // Pop-up notifikasi state
   bool _isCheckingReminder = false;
   String? _currentReminderId;
   OverlayEntry? _popupOverlay;
+  StreamSubscription? _pushSub;
 
   @override
   void initState() {
@@ -49,10 +79,16 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndShowReminder();
     });
+    PushService.registerCurrentUser();
+    // Push masuk saat aplikasi terbuka: langsung cek & tampilkan pop-up.
+    _pushSub = PushService.onForegroundMessage.listen((_) {
+      if (mounted && _popupOverlay == null) _checkAndShowReminder();
+    });
   }
 
   @override
   void dispose() {
+    _pushSub?.cancel();
     _popupOverlay?.remove();
     _popupOverlay = null;
     super.dispose();
@@ -250,9 +286,6 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
   }
 
   Widget _buildBerandaPage() {
-
-    final currentUser = _auth.currentUser;
-
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -265,13 +298,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
         child: Column(
           children: [
             StreamBuilder<DocumentSnapshot>(
-              stream:
-                  currentUser != null
-                      ? _firestore
-                          .collection('users')
-                          .doc(currentUser.uid)
-                          .snapshots()
-                      : null,
+              stream: _headerUserStream,
               builder: (context, snapshot) {
                 String namaLengkap = 'User';
                 String? photoUrl;
@@ -385,7 +412,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
                           );
                         },
                         child: StreamBuilder<int>(
-                          stream: _reminderService.getUnreadReminderCount(),
+                          stream: _unreadCountStream,
                           builder: (context, snapshot) {
                             final unreadCount = snapshot.data ?? 0;
 
@@ -1035,7 +1062,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     }
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: _firestore.collection('users').doc(currentUser.uid).snapshots(),
+      stream: _bloodSugarUserStream,
       builder: (context, userSnapshot) {
         if (!userSnapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -1044,13 +1071,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
         final noKode = userSnapshot.data?.get('noKode') ?? '';
 
         return StreamBuilder<QuerySnapshot>(
-          stream:
-              _firestore
-                  .collection('blood_sugar_logs')
-                  .where('noKode', isEqualTo: noKode)
-                  .orderBy('tanggal', descending: false)
-                  .limit(7)
-                  .snapshots(),
+          stream: _chartStream('blood_sugar_logs', noKode),
           builder: (context, snapshot) {
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return const Center(
@@ -1062,7 +1083,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               );
             }
 
-            final docs = snapshot.data!.docs;
+            final docs = snapshot.data!.docs.reversed.toList();
             final List<FlSpot> spots = [];
             final List<String> dates = [];
 
@@ -1155,7 +1176,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     }
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: _firestore.collection('users').doc(currentUser.uid).snapshots(),
+      stream: _hba1cUserStream,
       builder: (context, userSnapshot) {
         if (!userSnapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -1164,13 +1185,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
         final noKode = userSnapshot.data?.get('noKode') ?? '';
 
         return StreamBuilder<QuerySnapshot>(
-          stream:
-              _firestore
-                  .collection('hba1c_logs')
-                  .where('noKode', isEqualTo: noKode)
-                  .orderBy('tanggal', descending: false)
-                  .limit(7)
-                  .snapshots(),
+          stream: _chartStream('hba1c_logs', noKode),
           builder: (context, snapshot) {
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return const Center(
@@ -1182,7 +1197,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               );
             }
 
-            final docs = snapshot.data!.docs;
+            final docs = snapshot.data!.docs.reversed.toList();
             final List<FlSpot> spots = [];
             final List<String> dates = [];
 
@@ -1290,7 +1305,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
     }
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: _firestore.collection('users').doc(currentUser.uid).snapshots(),
+      stream: _olahragaUserStream,
       builder: (context, userSnapshot) {
         if (!userSnapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -1299,13 +1314,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
         final noKode = userSnapshot.data?.get('noKode') ?? '';
 
         return StreamBuilder<QuerySnapshot>(
-          stream:
-              _firestore
-                  .collection('latihan_fisik_logs')
-                  .where('noKode', isEqualTo: noKode)
-                  .orderBy('tanggal', descending: false)
-                  .limit(7)
-                  .snapshots(),
+          stream: _chartStream('latihan_fisik_logs', noKode),
           builder: (context, snapshot) {
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return const Center(
@@ -1317,7 +1326,7 @@ class _HomePasienScreenState extends State<HomePasienScreen> {
               );
             }
 
-            final docs = snapshot.data!.docs;
+            final docs = snapshot.data!.docs.reversed.toList();
             final List<FlSpot> spots = [];
             final List<String> labels = [];
 
